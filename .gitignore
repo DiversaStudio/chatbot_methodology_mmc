@@ -1,0 +1,13 @@
+# Local Claude Code settings
+.claude/
+
+# Raw data and project documents (not version controlled)
+data_&_docs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Notebook execution cache
+notebooks/cache/
