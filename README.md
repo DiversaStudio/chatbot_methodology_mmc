@@ -4,12 +4,17 @@ Methodology, exploratory data analysis (EDA), and supporting code for the Mixed 
 
 ## Overview
 
-This repo holds the data analysis work behind the chatbot's evaluation and methodology. The current stage is exploratory data analysis (EDA) of the chatbot's pilot data:
+This repo holds the data analysis work behind the chatbot's evaluation and methodology. The work proceeds in two stages: exploratory data analysis (EDA), followed by deeper advanced analysis built on top of it.
+
+**EDA notebooks** clean and characterize the raw survey/response data so later stages (e.g. indicator design, reporting, infographics) can build on a well-understood, documented dataset. Each notebook section states which questions about the data it answers, and documents the cleaning steps applied.
 
 - [`notebooks/eda_responses.ipynb`](notebooks/eda_responses.ipynb) — EDA of the chatbot **interaction responses** dataset (demographics, geography, migration routes, engagement, and cross-cuts).
 - [`notebooks/eda_meal.ipynb`](notebooks/eda_meal.ipynb) — EDA of the **MEAL (Monitoring, Evaluation, Accountability & Learning)** dataset.
 
-These EDA notebooks are the first stage of the methodology: they clean and characterize the raw survey/response data so later stages (e.g. indicator design, reporting, infographics) can build on a well-understood, documented dataset. Each notebook section states which questions about the data it answers, and documents the cleaning steps applied.
+**Analysis notebooks** build on the cleaned EDA data to answer more targeted methodology questions, using shared, tested code in [`src/`](src/) (`mmc_data`, `mmc_entities`, `mmc_text`).
+
+- [`notebooks/analysis_responses.ipynb`](notebooks/analysis_responses.ipynb) — advanced analysis of the **interaction responses** dataset: topic modeling & clustering (BERTopic), mixed coding against the MMC taxonomy, most-requested needs, geographic/temporal/demographic cross-cuts, engagement depth, reformulated-question detection, satisfaction-by-topic, and data-gap limitations. Requires the BERTopic/sentence-transformers stack and downloads a sentence-embedding model on first run.
+- [`notebooks/analysis_meal.ipynb`](notebooks/analysis_meal.ipynb) — descriptive analysis of MEAL **satisfaction** data: utility rating, would-recommend, how respondents heard about the chatbot, and a thematic read of free-text recommendations.
 
 Source data lives in [`data_&_docs/`](data_&_docs/) (Excel exports from the chatbot platform and Kobo, plus project documentation). Shared plotting utilities (the Diversa brand color palette) live in [`src/palette.py`](src/palette.py).
 
@@ -22,7 +27,7 @@ This project uses [`uv`](https://docs.astral.sh/uv/) for Python environment and 
 uv sync
 ```
 
-This creates a `.venv` with all dependencies declared in `pyproject.toml` (pandas, numpy, matplotlib, seaborn, missingno, wordcloud, geopandas, osmnx, shapely, openpyxl, python-docx, and Jupyter/JupyterLab).
+This creates a `.venv` with all dependencies declared in `pyproject.toml` (pandas, numpy, matplotlib, seaborn, missingno, wordcloud, geopandas, osmnx, shapely, openpyxl, python-docx, Jupyter/JupyterLab, and the BERTopic/sentence-transformers/UMAP/HDBSCAN stack used for topic modeling in `analysis_responses.ipynb`).
 
 ## Usage
 
