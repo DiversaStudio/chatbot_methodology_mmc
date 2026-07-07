@@ -61,3 +61,20 @@ def is_courtesy(text: str) -> bool:
         return True  # emoji/punctuation only
     non_courtesy = [w for w in words if w not in _COURTESY_TOKENS]
     return len(non_courtesy) == 0
+
+
+def load_emotion_pipeline(model_id: str = "pysentimiento/robertuito-emotion-analysis"):
+    """Return f(texts) -> list[{'label','score'}] using a 7-class Spanish emotion model."""
+    from transformers import pipeline
+    import torch
+    dev = 0 if torch.cuda.is_available() else -1
+    pipe = pipeline("text-classification", model=model_id, device=dev, top_k=1, truncation=True)
+
+    def _run(texts):
+        if isinstance(texts, str):
+            texts = [texts]
+        res = pipe([t[:256] for t in texts])
+        # top_k=1 → each item is a list with one dict
+        return [r[0] if isinstance(r, list) else r for r in res]
+
+    return _run
