@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import hashlib
+import json
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,18 +14,44 @@ def _device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def _message_digest(messages):
+    """Compute SHA-256 digest of messages joined by newline."""
+    return hashlib.sha256(("\n".join(messages)).encode("utf-8")).hexdigest()
+
+
 def embed_messages(messages, cache="cache/emb_msg_e5.npy") -> np.ndarray:
     p = _ROOT / cache
-    if p.exists():
+    sidecar = Path(str(p) + ".msgs.json")
+
+    # Try to load from cache if both files exist and content matches
+    if p.exists() and sidecar.exists():
         emb = np.load(p)
         if emb.shape[0] == len(messages):
-            return emb
+            try:
+                with open(sidecar, "r") as f:
+                    cached_data = json.load(f)
+                    cached_digest = cached_data.get("digest")
+                    current_digest = _message_digest(messages)
+                    if cached_digest == current_digest:
+                        return emb
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+    # Cache miss or invalid: rebuild embeddings
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer("intfloat/multilingual-e5-large", device=_device())
     emb = model.encode(["query: " + m for m in messages],
                        normalize_embeddings=True, batch_size=16, show_progress_bar=True)
+
+    # Save embeddings and sidecar file
     p.parent.mkdir(parents=True, exist_ok=True)
     np.save(p, emb)
+
+    # Save digest to sidecar
+    digest = _message_digest(messages)
+    with open(sidecar, "w") as f:
+        json.dump({"digest": digest}, f)
+
     return emb
 
 
