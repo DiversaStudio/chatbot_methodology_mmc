@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 import re
+import unicodedata
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +14,46 @@ DATA_HEADER_ROW = 2  # 0-indexed; header is the 3rd row of the export
 
 def _phone(name: str) -> str:
     return re.sub(r"\D", "", str(name))
+
+
+# 10 MMC priority cities + common variants -> canonical display name
+_CITY_CANON = {
+    "medellin": "Medellín", "medellin antioquia": "Medellín", "belen": "Medellín",
+    "bogota": "Bogotá", "bogota dc": "Bogotá",
+    "cucuta": "Cúcuta",
+    "barranquilla": "Barranquilla",
+    "santa marta": "Santa Marta",
+    "cali": "Cali",
+    "cartagena": "Cartagena",
+    "bucaramanga": "Bucaramanga",
+    "ipiales": "Ipiales",
+    "riohacha": "Riohacha", "maicao": "Maicao",
+    "soacha": "Soacha", "soacha cundinamarca": "Soacha",
+    "necocli": "Necoclí",
+}
+# tokens that are regions/countries, not a priority city -> Otra
+_NON_CITY = {"colombia", "cundinamarca", "antioquia", "otra", "nan"}
+
+
+def _fold(s: str) -> str:
+    s = unicodedata.normalize("NFKD", str(s))
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return s.strip().lower()
+
+
+def city_canon(name) -> str:
+    if name is None:
+        return "Otra"
+    key = _fold(name)
+    if key in _NON_CITY or key == "":
+        return "Otra"
+    if key in _CITY_CANON:
+        return _CITY_CANON[key]
+    # startswith match for "<city> <extra>" tails
+    for k, v in _CITY_CANON.items():
+        if key.startswith(k):
+            return v
+    return "Otra"
 
 
 def clean_city(raw_city, city_other) -> str:
@@ -34,6 +75,7 @@ def load_responses(path=RESPONSES_PATH) -> pd.DataFrame:
     df = _read_whatsapp(path)
     df["phone"] = df["Name"].map(_phone)
     df["city_clean"] = [clean_city(c, o) for c, o in zip(df["City"], df["City_other"])]
+    df["city_canon"] = df["city_clean"].map(city_canon)
     df["age_num"] = pd.to_numeric(df["Age"], errors="coerce")
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
     df["n_questions"] = pd.to_numeric(df["Questions per user"], errors="coerce")
@@ -68,7 +110,7 @@ def load_messages(df=None) -> pd.DataFrame:
     """Explode the per-user `Messages` blob into one row per user turn."""
     if df is None:
         df = load_responses()
-    carry = ["phone", "city_clean", "ts", "Gender", "Age Ranges", "Nationality", "age_num"]
+    carry = ["phone", "city_clean", "city_canon", "ts", "Gender", "Age Ranges", "Nationality", "age_num"]
     carry = [c for c in carry if c in df.columns]
     rows = []
     for _, r in df.iterrows():
