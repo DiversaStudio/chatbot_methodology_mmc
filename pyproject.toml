@@ -29,7 +29,21 @@ dependencies = [
     "protobuf>=7.35.1",
     "emoji>=2.15.0",
     "pyarrow>=24.0.0",
+    "torch>=2.10",
 ]
+
+[tool.uv.sources]
+# Pull torch from the CUDA 12.8 wheel index so the notebook runs the NLP models
+# on the local NVIDIA GPU (RTX 3050 Ti). The default PyPI torch is CPU-only.
+# cu128 is used (not cu124) so the GPU build matches the torch 2.10 ABI that
+# transformers 5.x / sentence-transformers 5.x require (cu124 tops out at 2.6,
+# whose older ABI segfaults under this transformers version).
+torch = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.uv]
 # This is a notebook/analysis project, not an installable library --
