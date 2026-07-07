@@ -54,3 +54,34 @@ def load_meal(path=MEAL_PATH) -> pd.DataFrame:
     df = df.rename(columns=rename)
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
     return df
+
+
+_NOISE = {"undefined", "?", ""}
+
+
+def _is_noise(t: str) -> bool:
+    t = t.strip()
+    return len(t) < 3 or t.isdigit() or t.lower() in _NOISE
+
+
+def load_messages(df=None) -> pd.DataFrame:
+    """Explode the per-user `Messages` blob into one row per user turn."""
+    if df is None:
+        df = load_responses()
+    carry = ["phone", "city_clean", "ts", "Gender", "Age Ranges", "Nationality", "age_num"]
+    carry = [c for c in carry if c in df.columns]
+    rows = []
+    for _, r in df.iterrows():
+        blob = r.get("Messages")
+        if not isinstance(blob, str):
+            continue
+        parts = [p.strip() for p in blob.split("\n")]
+        parts = [p for p in parts if not _is_noise(p)]
+        for i, p in enumerate(parts):
+            row = {c: r[c] for c in carry}
+            row["msg_idx"] = i
+            row["n_msgs_user"] = len(parts)
+            row["message"] = p
+            rows.append(row)
+    out = pd.DataFrame(rows).reset_index(drop=True)
+    return out
