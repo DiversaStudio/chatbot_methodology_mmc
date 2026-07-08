@@ -21,11 +21,45 @@ dependencies = [
     "ipykernel>=6.29",
     "ipywidgets>=8.1",
     "adjusttext>=1.4.0",
+    "bertopic>=0.17.4",
+    "sentence-transformers>=5.6.0",
+    "umap-learn>=0.5.12",
+    "hdbscan>=0.8.44",
+    "sentencepiece>=0.2.1",
+    "protobuf>=7.35.1",
+    "emoji>=2.15.0",
+    "pyarrow>=24.0.0",
+    "torch>=2.10",
 ]
+
+[tool.uv.sources]
+# Pull torch from the CUDA 12.8 wheel index so the notebook runs the NLP models
+# on the local NVIDIA GPU (RTX 3050 Ti). The default PyPI torch is CPU-only.
+# cu128 is used (not cu124) so the GPU build matches the torch 2.10 ABI that
+# transformers 5.x / sentence-transformers 5.x require (cu124 tops out at 2.6,
+# whose older ABI segfaults under this transformers version).
+torch = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.uv]
 # This is a notebook/analysis project, not an installable library --
 # don't build/install it as a package (avoids uv treating src/ as a
 # package source root during sync).
 package = false
+
+# Windows Smart App Control blocks uv's own (unsigned) managed Python builds,
+# which makes the Jupyter kernel fail to launch ("spawn UNKNOWN"). Force uv to
+# use the system Python (signed by the Python Software Foundation, so SAC
+# trusts it) and never auto-download an unsigned interpreter.
+python-preference = "only-system"
+python-downloads = "never"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
 
