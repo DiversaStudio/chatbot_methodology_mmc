@@ -1,5 +1,7 @@
 # Local Claude Code settings
 .claude/
+.venv/
+.superpowers/
 
 # Raw data and project documents (not version controlled)
 data_&_docs/
