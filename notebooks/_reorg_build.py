@@ -17,13 +17,29 @@ def _load(name):
     return _cache[name]
 
 
-def src(name, idx):
-    """A code cell copied verbatim from an arxiv notebook, outputs cleared."""
+def src(name, idx, replace=None):
+    """A code cell copied from an arxiv notebook, outputs cleared.
+
+    `replace` is an optional list of (old, new) string substitutions applied to
+    the cell source (e.g. to reconcile differing column names).
+    """
     cell = copy.deepcopy(_load(name)["cells"][idx])
     assert cell["cell_type"] == "code", f"{name}[{idx}] is not code"
+    text = "".join(cell["source"])
+    for old, new in (replace or []):
+        assert old in text, f"replace target not found in {name}[{idx}]: {old!r}"
+        text = text.replace(old, new)
+    cell["source"] = text.splitlines(keepends=True)
     cell["outputs"] = []
     cell["execution_count"] = None
     cell.setdefault("metadata", {})
+    return cell
+
+
+def md_src(name, idx):
+    """A markdown cell copied verbatim from an arxiv notebook."""
+    cell = copy.deepcopy(_load(name)["cells"][idx])
+    assert cell["cell_type"] == "markdown", f"{name}[{idx}] is not markdown"
     return cell
 
 
@@ -46,9 +62,12 @@ NEUTRAL_STYLE = code('''\
 # real palette later by replacing THIS cell (nothing else references the brand).
 _CYCLE = plt.rcParams["axes.prop_cycle"].by_key()["color"]   # matplotlib defaults
 PRIMARY = _CYCLE[0]
-BLUE_SEQ = _CYCLE
+BLUE_SEQ = BLUES = _CYCLE
 EARTH    = _CYCLE
 CAT      = _CYCLE
+# brand color names -> matplotlib defaults, so cells referencing them still run
+AGUA, ARBOL, AMEBA, MADERA, HONGO, NEGRO = (
+    _CYCLE[0], _CYCLE[2], _CYCLE[4], _CYCLE[1], "#dddddd", "black")
 INK = INK2 = "black"
 MUTED = "gray"
 GRID  = "#cccccc"
@@ -56,6 +75,10 @@ SURFACE = "white"
 
 def cat_colors(n):
     """n distinct matplotlib default colors (categorical)."""
+    return [_CYCLE[i % len(_CYCLE)] for i in range(n)]
+
+def bar_colors(n):
+    """alias of cat_colors -- n distinct matplotlib default colors."""
     return [_CYCLE[i % len(_CYCLE)] for i in range(n)]
 
 def seq_colors(n):
@@ -162,7 +185,115 @@ from scipy.stats import gaussian_kde'''),
     write("notebooks/01_eda_perfil_y_satisfaccion.ipynb", cells)
 
 
+# ---------------------------------------------------------------------------
+# NB2 -- 02_analisis_general_comportamiento_necesidades.ipynb
+# ---------------------------------------------------------------------------
+def build_nb2():
+    ER = "eda_responses.ipynb"
+    EM = "eda_meal.ipynb"
+    AR = "analysis_responses.ipynb"
+    AM = "analysis_meal.ipynb"
+    cells = [
+        md("# SAMI — Notebook 2 · Comportamiento general y necesidades\n\n"
+           "**Todo lo complejo que no es NLP:** cruces de variables, tendencias "
+           "temporales, primeras voces cualitativas, necesidades más solicitadas, "
+           "profundidad de uso. El notebook operativo — empieza a mostrar fricción.\n\n"
+           "*Las categorías de necesidad requieren clasificación (NLP) y viven en el "
+           "Notebook 3, junto con el clustering, la comparación con la clasificación "
+           "original y el sentimiento.*"),
+        md("## Setup"),
+        code('''\
+# Imports. Collapsed on purpose -- no analysis here.
+import sys, warnings
+sys.path.insert(0, "../src")
+warnings.filterwarnings("ignore")
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from collections import Counter
+from wordcloud import WordCloud
+
+import geopandas as gpd
+import contextily as cx
+from shapely.geometry import Point
+from adjustText import adjust_text
+
+import mmc_data, mmc_entities'''),
+        NEUTRAL_STYLE,
+        md("### Data\n\n"
+           "Two cleaning conventions coexist here. `df` / `meal` come from the EDA "
+           "cleaning (rich display columns: `city_display`, `nationality_clean`, "
+           "durations, destinations). `msgs` is the message-level spine from "
+           "`mmc_data` (one row per user turn)."),
+        # EDA-cleaned responses df (city_display, nationality_clean, durations, ...)
+        src(ER, 6),
+        # EDA-style MEAL (recommendation_text, rating_num, Timestamp)
+        src(EM, 5),
+        # message spine (message-level)
+        code('''\
+# Message-level spine: one row per user turn (mmc_data cleaning: city_canon, phone).
+_resp = mmc_data.load_responses()
+msgs = mmc_data.load_messages(_resp)
+print(f"df users: {len(df)}  |  meal: {len(meal)}  |  messages: {len(msgs)}")'''),
+        # --- 1. Cross-cuts ---
+        md("## 1. Cross-cuts — demographics & geography\n\n"
+           "*Patterns that only appear when variables are crossed — invisible to the "
+           "univariate EDA.*"),
+        md("### 1.1 How settled are users, city by city?"),
+        src(ER, 27),
+        md("### 1.2 Where are the users? (map)"),
+        src(ER, 29),
+        src(ER, 30),
+        md("### 1.3 Migration routes — origin → destination"),
+        src(ER, 36),
+        src(ER, 37),
+        md("### 1.4 Gender composition by nationality"),
+        src(ER, 51),
+        md("### 1.5 Engagement by city"),
+        src(ER, 53),
+        md("### 1.6 Age by intended destination"),
+        src(ER, 55),
+        # --- 2. Trends over time ---
+        md("## 2. Trends over time"),
+        md("### 2.1 Daily chatbot usage"),
+        src(ER, 47),
+        md("### 2.2 MEAL responses over time"),
+        src(EM, 20),
+        # --- 3. Qualitative voices ---
+        md("## 3. Qualitative voices\n\n*The first human break in the notebook — what "
+           "users say in their own words.*"),
+        md("### 3.1 Word cloud of recommendations"),
+        src(EM, 18),
+        md("### 3.2 Free-text recommendations (thematic read)\n\n"
+           "**What this shows.** What respondents wrote when asked what could be "
+           "improved, after filtering out non-answers (e.g. \"no\", \"ninguna\"). "
+           "**Why it matters.** Free text is the only place respondents can raise "
+           "something the closed-ended questions didn't anticipate.\n\n"
+           "> **Technical note — qualitative only.** With few substantive rows, the "
+           "free text is read manually below rather than topic-modeled or embedded — "
+           "there isn't enough volume for that to be meaningful."),
+        src(AM, 11, replace=[('meal["recommendation"]', 'meal["recommendation_text"]')]),
+        # --- 4. Most-requested needs ---
+        md("## 4. Most-requested needs (message level)\n\n"
+           "*Dictionary matching of procedures & institutions — not NLP clustering.*"),
+        md("### 4.1 Procedures & institutions mentioned"),
+        src(AR, 17),
+        md("### 4.2 Messages by city"),
+        src(AR, 19),
+        # --- 5. Engagement depth ---
+        md("## 5. Engagement depth\n\n"
+           "*How far users go — the bridge to Notebook 3, where we ask **what** they "
+           "asked about and **how** they felt.*"),
+        src(AR, 29),
+    ]
+    write("notebooks/02_analisis_general_comportamiento_necesidades.ipynb", cells)
+
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "nb1"
     if target == "nb1":
         build_nb1()
+    elif target == "nb2":
+        build_nb2()
