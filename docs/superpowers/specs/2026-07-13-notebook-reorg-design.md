@@ -14,7 +14,8 @@ Fuentes (ahora en `notebooks/arxiv/`): `eda_responses.ipynb`, `eda_meal.ipynb`,
 | Tema | Decisión |
 |---|---|
 | Mapa de ciudades (4.2 de `eda_responses`) | **Va a NB2**, no a NB1. NB1 no tiene mapas. |
-| Sección 9 (drop-off / reformulación) | Drop-off por categoría → NB2. **Reformulación (basada en similitud de embeddings) se elimina** (método "fancy"). |
+| Sección 9 (drop-off / reformulación) | **Reformulación (basada en similitud de embeddings) se elimina** (método "fancy"). Drop-off por categoría → NB3 (ver siguiente). |
+| **Categoría por mensaje** | En las fuentes, `mmc_category` la produce el pipeline NLP (clustering + zero-shot). No existe en CPU. Decisión: **todas las celdas que rebanan por categoría se mueven a NB3**, donde la categoría se deriva de la clasificación original de la base (`Chat_summary` → 7 categorías). NB2 queda **sin categoría**. |
 | Outputs | **Se limpian todos.** Los notebooks se ensamblan sin outputs; el usuario los corre de arriba a abajo. |
 | Paleta de color | **Se elimina por completo** (`from palette import *` y refs `AGUA/BLUES/bar_colors()`…). Charts caen a defaults de matplotlib. La paleta unificada se añade después. |
 | Tradiciones de documentación | Se conservan: headers markdown por sección, comentario-pregunta-guía al inicio de cada celda de código, celdas de setup colapsadas, sin análisis en el setup. |
@@ -94,16 +95,14 @@ Orden narrativo:
 | 2. Tendencias temporales | Uso del chatbot en el tiempo | eda_responses c47 |
 | | Respuestas MEAL en el tiempo (acumulado + tendencia) | eda_meal c20 |
 | 3. Voces cualitativas | Word cloud | eda_meal c18 |
-| | Lectura temática de recomendaciones libres | analysis_meal c11 |
-| 4. Necesidades | Más solicitadas (entidades/diccionario) | analysis_responses c17 |
-| | Geografía por ciudad (nivel mensaje) | analysis_responses c19–20 |
-| 5. Temporal de categorías | Categorías de necesidad en el tiempo (vs eventos) | analysis_responses c22–23 |
-| 6. Perfil × categoría | Categoría × género / edad | analysis_responses c25–27 |
-| 7. Profundidad y abandono | Engagement depth | analysis_responses c29 |
-| | Drop-off **por categoría** (sin reformulación) | analysis_responses c31 |
-| 8. Cierre | Satisfacción (MEAL) × categoría | analysis_responses c36–37 |
+| | Lectura temática de recomendaciones libres | analysis_meal c11 (col. `recommendation_text`) |
+| 4. Necesidades (sin categoría) | Más solicitadas (entidades/diccionario) | analysis_responses c17 |
+| | Mensajes por ciudad (nivel mensaje) | analysis_responses c19 |
+| 5. Profundidad de uso | Engagement depth — puente a NB3 | analysis_responses c29 |
 
-**Eliminado:** reformulación por similitud de embeddings (analysis_responses c32).
+**Movido a NB3** (requiere categoría): mix por ciudad (c20), categorías en el tiempo
+(c22–23), categoría × demografía (c25–27), drop-off por categoría (c31), satisfacción ×
+categoría (c36–37). **Eliminado:** reformulación por embeddings (c32).
 
 **Objetivos:** (1) cruces que el EDA univariado no muestra; (2) lectura cualitativa;
 (3) qué necesitan y dónde/cuándo; (4) si el perfil predice la categoría; (5) profundidad,
@@ -118,17 +117,17 @@ pipeline UMAP+HDBSCAN + zero-shot tinting + temas emergentes + reformulación + 
 7 clases. Se conserva un stack más simple y auditable.
 
 Setup: imports + `sentence_transformers`, spaCy (lemmatización es), modelo de sentimiento.
-`msgs = load_messages(df)`, luego **agregación a nivel usuario** (concatenar mensajes por
-`phone` en un documento por usuario).
+`df/meal/msgs = mmc_data.load_*`. NB3 **posee la categoría**: la deriva de `Chat_summary`
+(clasificación original, no-NLP) por usuario y la difunde a sus mensajes.
 
-| Sección | Contenido |
-|---|---|
-| 0. Setup + documento por usuario | Concatenar mensajes por usuario; lemmatización (spaCy es). |
-| 1. Features | **Primario:** sentence embeddings (e5-large) del documento de usuario. **Comparación:** TF-IDF del texto lematizado. |
-| 2. KMeans (nivel usuario) | KMeans sobre embeddings (k a elegir; k=7 para comparar con las categorías MMC). Repetir KMeans sobre TF-IDF como contraste. |
-| 3. Clusters vs. clasificación original | Asignar a cada usuario su categoría MMC dominante / `Chat_summary`; medir concordancia (ARI, NMI, pureza, matriz de confusión) para embeddings-KMeans y TF-IDF-KMeans. ¿Confirman los clusters las 7 categorías oficiales? |
-| 4. Sentimiento | Análisis de sentimiento de 3 clases (mensaje → agregado por usuario/cluster/categoría) como señal de malestar. |
-| 5. Mapa síntesis geográfica | Necesidad dominante + tono de sentimiento por ciudad. **Cierre de todo el análisis.** |
+| Sección | Contenido | Fuente |
+|---|---|---|
+| 0. Setup + clasificación original | Carga; deriva `mmc_category` por usuario desde `Chat_summary` → 7 categorías. | nuevo + AR c2 |
+| 1. Necesidades por la clasificación original | Descriptivos por categoría movidos desde NB2: mix por ciudad, categorías en el tiempo, categoría × demografía, drop-off por categoría, satisfacción × categoría. | AR c20, c22–23, c25–27, c31, c37 |
+| 2. Clustering nivel usuario | Documento por usuario + lemmatización; **primario:** embeddings e5-large + KMeans(k=7); **comparación:** TF-IDF lematizado + KMeans. | nuevo |
+| 3. Clusters vs. clasificación original | ARI, NMI, pureza, matriz de confusión para embeddings-KMeans y TF-IDF-KMeans. | nuevo |
+| 4. Sentimiento | 3 clases por mensaje (Cardiff XLM-R) + mix por categoría. | AR c34 (adaptado, sin emoción) |
+| 5. Mapa síntesis geográfica | Necesidad dominante + tono por ciudad. **Cierre de todo el análisis.** | AR c38–41 |
 
 **Eliminado de NB3:** UMAP/HDBSCAN, zero-shot NLI tinting, temas emergentes,
 reformulación por embeddings, emoción de 7 clases.
