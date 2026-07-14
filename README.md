@@ -31,12 +31,43 @@ This creates a `.venv` with all dependencies declared in `pyproject.toml` (panda
 
 `torch` is pinned to a **CUDA (cu128) GPU build** via `[tool.uv.sources]` so `analysis_responses.ipynb` runs its embedding/classification/emotion models on an NVIDIA GPU; the notebook falls back to CPU automatically if CUDA is unavailable (just slower).
 
+### Alternative: plain pip + venv (no uv, no Anaconda)
+
+If you'd rather not use `uv`, you can install everything with the standard-library `venv` and `pip`. You need **Python 3.11+** already installed.
+
+```powershell
+# 1. Create and activate a virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
+
+# 2. Upgrade pip
+python -m pip install --upgrade pip
+
+# 3. Install PyTorch. GPU build (CUDA 12.8):
+pip install "torch>=2.10" --index-url https://download.pytorch.org/whl/cu128
+#    ...or, for a CPU-only machine (slower, no CUDA needed):
+#    pip install "torch>=2.10"
+
+# 4. Install everything else (mirrors pyproject.toml; includes the spaCy
+#    Spanish model used by notebook 03)
+pip install -r requirements.txt
+```
+
+`requirements.txt` is kept in sync with the runtime dependencies in `pyproject.toml`. `torch` is installed in a separate step so you can choose the GPU or CPU build — installing it before `requirements.txt` means pip keeps the wheel you picked. The `geopandas` / `shapely` / `cartopy` / `contextily` geospatial stack installs from prebuilt wheels on Windows, macOS, and Linux, so no system GEOS/PROJ libraries are required.
+
 ## Usage
 
 Run the notebooks with the project's environment, e.g. from VS Code (select the `.venv` kernel) or from the command line:
 
 ```powershell
 uv run jupyter lab
+```
+
+If you set up the environment with plain pip + venv (above), activate it first and launch Jupyter directly:
+
+```powershell
+.\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
+jupyter lab
 ```
 
 Notebooks expect to be run from the `notebooks/` directory (they add `../src` to `sys.path` to import `palette.py`).
