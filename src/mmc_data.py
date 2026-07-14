@@ -7,8 +7,8 @@ import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = _ROOT / "data_&_docs"
-RESPONSES_PATH = DATA_DIR / "MMC_bot_responses_Grupo_nuevo_1783087815.xlsx"
-MEAL_PATH = DATA_DIR / "MMC_MEAL_Group_Title_1783087939.xlsx"
+RESPONSES_PATH = DATA_DIR / "MMC_bot_responses_1783087815.xlsx"
+MEAL_PATH = DATA_DIR / "MMC_MEAL_1783087939.xlsx"
 DATA_HEADER_ROW = 2  # 0-indexed; header is the 3rd row of the export
 
 
