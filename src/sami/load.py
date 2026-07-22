@@ -28,7 +28,12 @@ def split_messages(blob) -> list[str]:
 
 
 def _is_noise(t: str) -> bool:
-    t = t.strip()
+    # Redaction-invariant: a line whose only content was a PII digit run has
+    # already been replaced with the literal "[redacted]" token by the time
+    # split_messages sees it (load_responses redacts before returning). Strip
+    # that token before the length/digit checks so the noise decision reflects
+    # the real underlying content, not the redaction placeholder.
+    t = t.replace("[redacted]", " ").strip()
     return len(t) < 3 or t.isdigit() or t.lower() in _NOISE
 
 
