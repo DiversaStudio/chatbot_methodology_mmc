@@ -127,3 +127,28 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
     df["seq"] = df.groupby("user_id").cumcount()
     df["n_msgs_user"] = df.groupby("user_id")["message"].transform("size")
     return df
+
+
+# ---- MEAL survey loader ----
+def load_meal(path=None, salt=None) -> pd.DataFrame:
+    path = path or config.MEAL_PATH
+    salt = salt if salt is not None else config.get_salt()
+    df = _read_whatsapp(path)
+    df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
+    df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
+    cols = list(df.columns)
+    rename = {                    # positional: the 5 survey question columns
+        cols[2]: "usefulness_rating",
+        cols[3]: "would_recommend",
+        cols[4]: "recommendation_text",
+        cols[5]: "discovery_channel",
+        cols[6]: "discovery_other",
+    }
+    df = df.rename(columns=rename)
+    keep = ["user_id", "ts", "usefulness_rating", "would_recommend",
+            "recommendation_text", "discovery_channel", "discovery_other"]
+    df = df[[c for c in keep if c in df.columns]].copy()
+    # P8: keep most recent response per user
+    df = df.sort_values("ts").drop_duplicates("user_id", keep="last").reset_index(drop=True)
+    df = _redact_pii_runs(df)
+    return df
