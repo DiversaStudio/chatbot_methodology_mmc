@@ -103,3 +103,27 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     df["dominant_category"] = df["Chat_summary"].map(taxonomy.normalize_category)
     df = _redact_pii_runs(df)
     return df
+
+
+# ---- message spine loader ----
+def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
+    """Explode each response record's `Messages` blob into one row per message
+    (the analysis spine). Note some users have multiple response records
+    (2-3 records for 26 of 917 users in the real export); `n_msgs_user` and
+    `seq` are computed per USER (across all of that user's records), not per
+    record, so the P6 invariant (sum of per-user counts == total rows) holds."""
+    carry = [c for c in ["user_id", "ts", "city_canon", "dominant_category",
+                         "Gender", "Age Ranges", "Nationality", "age_num"]
+             if c in responses_df.columns]
+    rows = []
+    for _, r in responses_df.iterrows():
+        parts = split_messages(r.get("Messages"))
+        for p in parts:
+            row = {c: r[c] for c in carry}
+            row["message"] = p
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    df = df.sort_values(["user_id", "ts"], kind="stable").reset_index(drop=True)
+    df["seq"] = df.groupby("user_id").cumcount()
+    df["n_msgs_user"] = df.groupby("user_id")["message"].transform("size")
+    return df
