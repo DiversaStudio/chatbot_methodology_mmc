@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from . import config, taxonomy
+from . import config
 
 _PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\d{7,}")]
 
@@ -84,12 +84,14 @@ def reconciliation_table(responses: pd.DataFrame, messages: pd.DataFrame,
 
 
 def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
+    # Second element is always a plain Python bool (not numpy.bool_) so run_meta
+    # stays JSON-serializable when a later task persists it.
     checks = []
-    checks.append(("P1_pii_responses", pii_scan(responses) == [], "no whatsapp/phone in responses"))
-    checks.append(("P1_pii_messages", pii_scan(messages) == [], "no whatsapp/phone in messages"))
+    checks.append(("P1_pii_responses", bool(pii_scan(responses) == []), "no whatsapp/phone in responses"))
+    checks.append(("P1_pii_messages", bool(pii_scan(messages) == []), "no whatsapp/phone in messages"))
     per_user = messages.groupby("user_id")["n_msgs_user"].first().sum()
-    checks.append(("P6_spine_invariant", per_user == len(messages), f"{per_user} == {len(messages)}"))
-    checks.append(("P8_meal_unique", meal["user_id"].is_unique, "one MEAL row per user"))
+    checks.append(("P6_spine_invariant", bool(per_user == len(messages)), f"{per_user} == {len(messages)}"))
+    checks.append(("P8_meal_unique", bool(meal["user_id"].is_unique), "one MEAL row per user"))
     unclass = (responses["dominant_category"] == "unclassified").mean()
-    checks.append(("P7_unclassified_share", unclass < 0.10, f"{unclass:.1%} unclassified"))
+    checks.append(("P7_unclassified_share", bool(unclass < 0.10), f"{unclass:.1%} unclassified"))
     return checks
