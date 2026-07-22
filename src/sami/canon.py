@@ -20,6 +20,9 @@ CITY_CANON: dict[str, str] = {
 }
 # tokens that are regions/countries, not a priority city
 NON_CITY: set[str] = {"colombia", "cundinamarca", "antioquia", "otra", "nan", ""}
+# short/ambiguous aliases that must only match exactly, never as a "<key> <tail>" prefix
+# (e.g. "Belen de Umbria" and "Calima" are distinct municipalities, not Medellín/Cali)
+EXACT_ONLY: set[str] = {"belen", "cali"}
 
 
 def fold(s) -> str:
@@ -50,7 +53,9 @@ def city_canon(name) -> str:
     if key in CITY_CANON:
         return CITY_CANON[key]
     for k, v in CITY_CANON.items():  # startswith match for "<city> <tail>"
-        if key.startswith(k):
+        if k in EXACT_ONLY:
+            continue
+        if key == k or key.startswith(k + " "):
             return v
     return "Otra"
 

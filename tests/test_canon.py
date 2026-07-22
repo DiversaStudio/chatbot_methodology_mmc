@@ -29,3 +29,14 @@ def test_is_non_city_reports_reason():
 def test_clean_city_uses_other_when_otra():
     assert canon.clean_city("Otra", "Envigado") == "Envigado"
     assert canon.clean_city("Medellín", None) == "Medellín"
+
+
+def test_city_canon_does_not_over_match_prefixes():
+    # distinct municipalities that happen to share a prefix with a canon key
+    assert canon.city_canon("Belen de Umbria") == "Otra"
+    assert canon.city_canon("Belen, Narino") == "Otra"
+    assert canon.city_canon("Calima") == "Otra"
+    # intended matches must still hold
+    assert canon.city_canon("belen") == "Medellín"
+    assert canon.city_canon("cali") == "Cali"
+    assert canon.city_canon("medellin antioquia") == "Medellín"
