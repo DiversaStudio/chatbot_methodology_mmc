@@ -97,13 +97,22 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     df = _read_whatsapp(path)
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df = df.drop(columns=[c for c in ["Name"] if c in df.columns])
-    df["city_clean"] = [canon.clean_city(c, o) for c, o in zip(df["City"], df.get("City_other", pd.Series([None] * len(df))))]
+    def _col(name):  # missing-column-safe accessor (schema drifts between exports)
+        return df[name] if name in df.columns else pd.Series([None] * len(df))
+    df["city_clean"] = [canon.clean_city(c, o) for c, o in zip(df["City"], _col("City_other"))]
     df["city_canon"] = df["city_clean"].map(canon.city_canon)
+    df["department"] = df["city_canon"].map(canon.department_of)
     df["age_num"] = pd.to_numeric(df["Age"], errors="coerce")
     df["age_flag"] = df["age_num"].map(lambda a: "unreliable_sub18" if pd.notna(a) and a < 18 else "ok")
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
     df["n_questions"] = pd.to_numeric(df.get("Questions per user"), errors="coerce")
     df["dominant_category"] = df["Chat_summary"].map(taxonomy.normalize_category)
+    # P4: *_other consolidation (city already done above) + display-ready derivations
+    df["gender_clean"] = [canon.clean_gender(g, o) for g, o in zip(_col("Gender"), _col("Gender_other"))]
+    df["nationality_clean"] = [canon.clean_nationality(n, o) for n, o in zip(_col("Nationality"), _col("Nationality_other"))]
+    df["nationality_canon"] = df["nationality_clean"].map(canon.nationality_canon)
+    df["away_duration_canon"] = _col("Away_duration").map(canon.away_duration_canon)
+    df["away_duration_order"] = _col("Away_duration").map(canon.away_duration_order)
     df = _redact_pii_runs(df)
     return df
 
