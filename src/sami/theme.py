@@ -1,3 +1,5 @@
+"""Brand palette, plotly/mpl templates and EN display maps (ported from palette.py)."""
+
 # Diversa brand color palette + shared chart design system.
 #
 # Two layers live here:
