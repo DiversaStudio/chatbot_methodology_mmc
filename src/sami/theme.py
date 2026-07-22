@@ -52,6 +52,12 @@ INK, INK2, MUTED = '#0b0b0b', '#52514e', '#898781'
 GRID, SURFACE    = '#e6e5df', '#ffffff'
 
 
+def blue_cmap():
+    """A continuous light->dark brand-blue colormap for choropleths."""
+    from matplotlib.colors import LinearSegmentedColormap
+    return LinearSegmentedColormap.from_list("sami_blue", BLUE_SEQ)
+
+
 def cat_colors(n):
     """First n categorical hues, fixed order (never cycled)."""
     return CAT[:n]
