@@ -44,3 +44,46 @@ def test_dominant_category_in_official_set():
     from sami.taxonomy import OFFICIAL_CATEGORIES
     allowed = set(OFFICIAL_CATEGORIES) | {"unclassified"}
     assert set(df["dominant_category"]).issubset(allowed)
+
+
+def test_split_messages_drops_redacted_only_lines():
+    # split_messages runs on the Messages column *after* _redact_pii_runs has already
+    # replaced 7+-digit runs with the literal token "[redacted]" (load_responses
+    # redacts before returning; split_messages is applied downstream). A line that
+    # was purely a digit run (e.g. a phone number) becomes just "[redacted]" — that
+    # must still be treated as noise (as the original all-digit line was), not
+    # survive as a phantom message.
+    msgs = load.split_messages("hola\n[redacted]\ngracias amigo")
+    assert "[redacted]" not in msgs
+    assert msgs == ["hola", "gracias amigo"]
+
+
+def test_split_messages_keeps_lines_with_embedded_pii_redacted():
+    # A line with PII embedded alongside real content should survive, redacted,
+    # not be dropped entirely.
+    msgs = load.split_messages("necesito ayuda mi numero [redacted] por favor")
+    assert len(msgs) == 1
+    assert "[redacted]" in msgs[0]
+    assert not re.search(r"\d{7,}", msgs[0])
+
+
+def test_message_spine_has_no_phantom_redacted_messages():
+    # End-to-end: the full pipeline (load_responses -> split_messages on the
+    # already-redacted Messages column) must not manufacture phantom "[redacted]"
+    # messages out of lines that were originally pure digit runs.
+    #
+    # Measured count is 2991, not the design doc's 2993 (see docs/superpowers/plans/
+    # 2026-07-22-sami-pipeline-foundation.md). The 2993 baseline was measured on raw,
+    # unredacted text, where two standalone "+<12 digits>" phone-number lines
+    # (e.g. "+573208471248") were counted as real messages only because a leading
+    # "+" defeated the original `t.isdigit()` noise check -- not because they held
+    # any conversational content. After PII redaction (required for the hard PII
+    # gate) those lines become "+[redacted]", which the redaction-invariant noise
+    # check correctly drops as noise. That's 2 fewer messages than the stale
+    # baseline: 2993 - 2 = 2991. The export/actual behavior is the source of truth
+    # per project convention; this constant reflects the produced value, not the
+    # doc reference.
+    df = load.load_responses(salt=SALT)
+    spine = [m for blob in df["Messages"] for m in load.split_messages(blob)]
+    assert not any(m.strip() == "[redacted]" for m in spine)
+    assert len(spine) == 2991
