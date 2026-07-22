@@ -11,5 +11,8 @@ __pycache__/
 *.pyc
 .venv/
 
+# Secrets (pseudonymization salt)
+.env
+
 # Notebook execution cache
 notebooks/cache/
