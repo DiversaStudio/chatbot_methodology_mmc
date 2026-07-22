@@ -55,7 +55,7 @@ def city_canon(name) -> str:
     for k, v in CITY_CANON.items():  # startswith match for "<city> <tail>"
         if k in EXACT_ONLY:
             continue
-        if key == k or key.startswith(k + " "):
+        if key.startswith(k + " "):  # exact matches already returned above
             return v
     return "Otra"
 

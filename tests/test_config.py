@@ -1,4 +1,3 @@
-import importlib
 import pytest
 from sami import config
 
