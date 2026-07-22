@@ -39,6 +39,23 @@ def test_age_flag_marks_sub18():
     assert (df[df["age_num"] >= 18]["age_flag"] == "ok").all()
 
 
+def test_derived_audience_columns():
+    df = load.load_responses(salt=SALT)
+    # new NB1 columns exist and are populated
+    for col in ["department", "gender_clean", "nationality_canon",
+                "away_duration_canon", "away_duration_order"]:
+        assert col in df.columns
+    # ~96% Venezuelan (measured 905 of 919 non-null nationality)
+    assert (df["nationality_canon"] == "Venezuela").sum() >= 900
+    # department only set for priority cities; every non-null value is a real dept
+    from sami import canon
+    depts = set(df["department"].dropna())
+    assert depts.issubset(set(canon.DEPARTMENT_OF_CITY.values()))
+    # away_duration order is either None or a valid 0..4 index, monotonically consistent
+    orders = df["away_duration_order"].dropna().unique()
+    assert set(orders).issubset({0, 1, 2, 3, 4})
+
+
 def test_dominant_category_in_official_set():
     df = load.load_responses(salt=SALT)
     from sami.taxonomy import OFFICIAL_CATEGORIES

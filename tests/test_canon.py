@@ -40,3 +40,47 @@ def test_city_canon_does_not_over_match_prefixes():
     assert canon.city_canon("belen") == "Medellín"
     assert canon.city_canon("cali") == "Cali"
     assert canon.city_canon("medellin antioquia") == "Medellín"
+
+
+# --- nationality --------------------------------------------------------------
+def test_nationality_canon_known_and_fallback():
+    assert canon.nationality_canon("Venezuela") == "Venezuela"
+    assert canon.nationality_canon("venezolana") == "Venezuela"
+    assert canon.nationality_canon("United States") == "United States"
+    assert canon.nationality_canon("Estados Unidos") == "United States"
+    # unknown value is title-cased through, never dropped silently
+    assert canon.nationality_canon("Brasil") == "Brasil"
+    assert canon.nationality_canon(None) == "Desconocida"
+
+
+def test_clean_nationality_uses_other_fallback():
+    assert canon.clean_nationality("Otra", "Brasil") == "Brasil"
+    assert canon.clean_nationality("Venezuela", None) == "Venezuela"
+
+
+# --- department of city -------------------------------------------------------
+def test_department_of_priority_cities():
+    assert canon.department_of("Medellín") == "Antioquia"
+    assert canon.department_of("Cúcuta") == "Norte de Santander"
+    assert canon.department_of("Bogotá") == "Bogotá"          # fold-matches NE "Bogota"
+    assert canon.department_of("Riohacha") == canon.department_of("Maicao") == "La Guajira"
+    assert canon.department_of("Otra") is None
+    assert canon.department_of("nowhere") is None
+
+
+# --- away duration (ordered) --------------------------------------------------
+def test_away_duration_canon_and_order():
+    assert canon.away_duration_canon("Hace más de 5 años") == "Hace más de 5 años"
+    # accent/case-insensitive via fold
+    assert canon.away_duration_canon("HACE MAS DE 5 ANOS") == "Hace más de 5 años"
+    assert canon.away_duration_canon("garbage") is None
+    order = [canon.away_duration_order(v) for v in canon.AWAY_DURATION_ORDER]
+    assert order == [0, 1, 2, 3, 4]
+    assert canon.away_duration_order("garbage") is None
+
+
+# --- gender -------------------------------------------------------------------
+def test_gender_display_and_consolidation():
+    assert canon.GENDER_DISPLAY["Mujer"] == "Woman"
+    assert canon.clean_gender("Otro", "No binario") == "No binario"
+    assert canon.clean_gender("Mujer", None) == "Mujer"
