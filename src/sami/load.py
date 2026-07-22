@@ -80,7 +80,10 @@ def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
     """Belt-and-suspenders for the PII gate: users sometimes paste a phone number or
     cedula into an open-text field (Messages, Chat_summary, ...). Redact any run of
     7+ consecutive digits from string columns. Excludes user_id, the intentional
-    pseudonymized hash, whose hex digits may incidentally contain such a run."""
+    pseudonymized hash, whose hex digits may incidentally contain such a run.
+
+    Best-effort scrub; qa.pii_scan is the authoritative PII gate (it scans a
+    wider surface — every non-user_id column coerced to str)."""
     for col in df.columns:
         if col == "user_id" or not pd.api.types.is_string_dtype(df[col]):
             continue
@@ -148,7 +151,7 @@ def load_meal(path=None, salt=None) -> pd.DataFrame:
     keep = ["user_id", "ts", "usefulness_rating", "would_recommend",
             "recommendation_text", "discovery_channel", "discovery_other"]
     df = df[[c for c in keep if c in df.columns]].copy()
-    # P8: keep most recent response per user
-    df = df.sort_values("ts").drop_duplicates("user_id", keep="last").reset_index(drop=True)
+    # P8: keep most recent response per user (stable sort so ties are well-defined)
+    df = df.sort_values("ts", kind="stable").drop_duplicates("user_id", keep="last").reset_index(drop=True)
     df = _redact_pii_runs(df)
     return df

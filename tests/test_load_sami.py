@@ -31,6 +31,7 @@ def test_load_sami_is_deterministic(monkeypatch):
     b = load_sami()
     pd.testing.assert_frame_equal(a.responses, b.responses)
     pd.testing.assert_frame_equal(a.messages, b.messages)
+    pd.testing.assert_frame_equal(a.meal, b.meal)
 
 
 def test_load_sami_frozen(monkeypatch):
