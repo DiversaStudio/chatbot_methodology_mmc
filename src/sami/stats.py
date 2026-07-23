@@ -29,7 +29,11 @@ def assoc_test(a: pd.Series, b: pd.Series) -> dict:
 
     Drops rows where either value is NaN, builds the crosstab, runs chi-square
     (Fisher's exact for a 2x2 with an expected cell < 5), and reports Cramér's V.
-    `meaningful` is True only when V >= 0.1 AND the min expected cell >= 5.
+    `meaningful` is True only when V >= 0.1 AND the min expected cell >= 5 — so a
+    strong association on a thin 2x2 (min_expected < 5) is conservatively reported
+    as not meaningful even when Fisher's p is tiny. Note `stat` is always the
+    uncorrected chi-square even when `test == "fisher"`; the reported `p` for a
+    Fisher case comes from `fisher_exact`, not from `stat`.
     """
     df = pd.DataFrame({"a": a, "b": b}).dropna()
     conf = pd.crosstab(df["a"], df["b"])

@@ -28,7 +28,7 @@ def city_category_mix(messages: pd.DataFrame, top_cities: int = 5) -> pd.DataFra
 
 
 def weekly_category_counts(messages: pd.DataFrame, top_n: int = 4) -> pd.DataFrame:
-    """Messages per ISO week (Monday) x top-N category + 'Other'. Record-arrival grain."""
+    """Messages per week (Monday-start, via W-SUN periods) x top-N category + 'Other'. Record-arrival grain."""
     m = messages.dropna(subset=["ts"]).copy()
     top = _top_categories(m, top_n)
     m["cat_grp"] = np.where(m["dominant_category"].isin(top), m["dominant_category"], "Other")
@@ -43,16 +43,19 @@ def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,
                   meal: pd.DataFrame) -> pd.DataFrame:
     """Ordered engagement funnel with absolute n and stage-to-stage conversion.
 
-    Stages are placed on a single, nested engagement axis — message volume —
-    so each stage is a genuine subset of the prior (mixing the questions axis
-    from `responses` with the messages axis broke monotonicity):
+    The first four stages sit on a single, strictly nested engagement axis —
+    message volume — so each is a genuine subset of the prior (mixing the
+    questions axis from `responses` with the messages axis broke monotonicity):
 
         arrived (users) -> sent ≥1 message -> engaged (≥2 messages) ->
-        power user (≥p90 messages) -> surveyed (MEAL responded).
+        power user (≥p90 messages)
 
-    The first stage n equals the reconciliation user count; the surveyed stage
-    is the MEAL population (a separate, smaller cohort). Every n traces to the
-    P10 reconciliation table.
+    The fifth stage, ``surveyed (MEAL)``, is **off that nested axis**: it is the
+    MEAL respondent cohort, which is not a subset of power users (a respondent
+    need not be a heavy messager). It is appended for context only, so its
+    ``conversion_from_prev`` is deliberately NaN — a "% of power users" figure
+    there would be analytically false. The first stage n equals the
+    reconciliation user count; every n traces to the P10 reconciliation table.
     """
     users = responses["user_id"].nunique()
     msgs_per_user = messages.groupby("user_id")["n_msgs_user"].first()
@@ -66,10 +69,12 @@ def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,
         ("sent ≥1 message", sent_1),
         ("engaged (≥2 messages)", engaged),
         ("power user (≥p90 messages)", power),
-        ("surveyed (MEAL)", surveyed),
+        ("surveyed (MEAL, separate cohort)", surveyed),
     ]
     df = pd.DataFrame(stages, columns=["stage", "n"])
     df["conversion_from_prev"] = df["n"] / df["n"].shift(1)
+    # surveyed is off the nested engagement axis — not a conversion from power users
+    df.loc[df.index[-1], "conversion_from_prev"] = np.nan
     return df
 
 
