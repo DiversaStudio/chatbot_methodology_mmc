@@ -89,3 +89,27 @@ def entity_counts(texts: Iterable[str]) -> pd.Series:
         for ent in extract_entities(t):
             c[ent] += 1
     return pd.Series(c, dtype="int64").sort_values(ascending=False)
+
+
+# ---- institution vs procedure split (NB2 §1 two-panel) ----
+ENTITY_KIND: dict[str, str] = {
+    "PPT": "procedure", "PEP": "procedure", "Visa": "procedure",
+    "Cédula de extranjería": "procedure", "Pasaporte": "procedure",
+    "EPS": "procedure", "SISBÉN": "procedure",
+    "Refugio/Asilo": "procedure", "Trabajo/Empleo": "procedure",
+    "Vivienda/Arriendo": "procedure", "Ayuda humanitaria": "procedure",
+    "Educación": "procedure",
+    "Migración Colombia": "institution", "ACNUR": "institution",
+    "Cancillería": "institution", "Registraduría": "institution",
+    "SENA": "institution", "ICBF": "institution",
+}
+
+
+def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
+    """Split entity_counts into an institution Series and a procedure Series."""
+    counts = entity_counts(texts)
+    out: dict[str, pd.Series] = {}
+    for kind in ("institution", "procedure"):
+        names = [k for k, v in ENTITY_KIND.items() if v == kind]
+        out[kind] = counts[counts.index.isin(names)].sort_values(ascending=False)
+    return out

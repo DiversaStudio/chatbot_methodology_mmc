@@ -32,3 +32,21 @@ def test_normalize_category_blank_is_unclassified():
 def test_extract_entities():
     ents = taxonomy.extract_entities("Necesito ayuda con mi PPT y la afiliación en salud EPS")
     assert "PPT" in ents and "EPS" in ents
+
+
+def test_entity_kind_covers_all_patterns():
+    from sami import taxonomy
+    assert set(taxonomy.ENTITY_KIND) == set(taxonomy.ENTITY_PATTERNS)
+    assert set(taxonomy.ENTITY_KIND.values()) <= {"institution", "procedure"}
+
+
+def test_entity_counts_by_kind_partitions():
+    from sami import taxonomy
+    texts = ["Necesito mi PPT y afiliación EPS",           # procedures
+             "Fui a Migración Colombia y ACNUR"]            # institutions
+    out = taxonomy.entity_counts_by_kind(texts)
+    assert set(out) == {"institution", "procedure"}
+    assert out["procedure"].get("PPT", 0) >= 1
+    assert out["institution"].get("ACNUR", 0) >= 1
+    # no entity appears in both panels
+    assert set(out["institution"].index).isdisjoint(set(out["procedure"].index))
