@@ -104,3 +104,14 @@ def test_message_spine_has_no_phantom_redacted_messages():
     spine = [m for blob in df["Messages"] for m in load.split_messages(blob)]
     assert not any(m.strip() == "[redacted]" for m in spine)
     assert len(spine) == 2991
+
+
+def test_load_responses_has_city_duration_derivations():
+    from sami import load
+    df = load.load_responses()
+    assert "city_duration_canon" in df.columns
+    assert "city_duration_order" in df.columns
+    # every non-null order is a valid index into the canon order list
+    from sami import canon
+    orders = df["city_duration_order"].dropna().unique()
+    assert all(0 <= int(o) < len(canon.CITY_DURATION_ORDER) for o in orders)

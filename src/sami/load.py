@@ -113,6 +113,8 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     df["nationality_canon"] = df["nationality_clean"].map(canon.nationality_canon)
     df["away_duration_canon"] = _col("Away_duration").map(canon.away_duration_canon)
     df["away_duration_order"] = _col("Away_duration").map(canon.away_duration_order)
+    df["city_duration_canon"] = _col("City_duration").map(canon.city_duration_canon)
+    df["city_duration_order"] = _col("City_duration").map(canon.city_duration_order)
     df = _redact_pii_runs(df)
     return df
 

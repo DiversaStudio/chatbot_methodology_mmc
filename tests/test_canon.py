@@ -84,3 +84,18 @@ def test_gender_display_and_consolidation():
     assert canon.GENDER_DISPLAY["Mujer"] == "Woman"
     assert canon.clean_gender("Otro", "No binario") == "No binario"
     assert canon.clean_gender("Mujer", None) == "Mujer"
+
+
+def test_city_duration_canon_and_order():
+    from sami import canon
+    labels = canon.CITY_DURATION_ORDER
+    assert len(labels) >= 3
+    # canon is idempotent on its own canonical labels
+    for i, lab in enumerate(labels):
+        assert canon.city_duration_canon(lab) == lab
+        assert canon.city_duration_order(lab) == i
+    # accent/case-insensitive
+    assert canon.city_duration_canon(labels[0].upper()) == labels[0]
+    # unknown -> None
+    assert canon.city_duration_canon("xyz no such bucket") is None
+    assert canon.city_duration_order("xyz no such bucket") is None
