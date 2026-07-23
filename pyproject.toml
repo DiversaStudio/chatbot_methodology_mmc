@@ -71,4 +71,5 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["slow: exercises a real model download/inference"]
 
