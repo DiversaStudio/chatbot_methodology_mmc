@@ -247,3 +247,28 @@ labels ("big and badly served").
   `sami.theme` only; any logic >15 lines lives in a module.
 - All new module code covered by pytest; full suite green.
 - Whole-branch Opus review before merge (as foundation + NB1 + NB2).
+
+---
+
+## 8. Outcomes vs this design (recorded after implementation, 2026-07-23)
+
+Two §3 predictions were wrong, in opposite directions. Both are recorded here because the
+spec's expectations were used to justify design choices.
+
+- **Clustering stability PASSED, contrary to §3's expectation of "soft structure".** The
+  reason is a selection error the spec did not anticipate: silhouette is *flat* on this
+  corpus (0.028–0.040, noise-level), so argmax silhouette selects k=8 — which does fail,
+  at ARI 0.536. Choosing k on the criterion that actually varies (stability, largest k
+  clearing 0.6 by one sd) gives **k=4 at ARI 0.80**, four interpretable archetypes, and
+  satisfies doc 02's "3–5 named archetypes" without special pleading. `choose_k` now
+  implements this rule.
+- **The tone gate FAILED: κ = 0.604 against the 0.7 bar** (accuracy 89.5%, n=200,
+  disagreement symmetric at 10 vs 11). All sentiment percentages are therefore suppressed
+  in NB3 and the negative-share figures render as rank order only. The ~16% negative-tone
+  figure in doc 01 §7 **remains unquotable** and stays "pending" in the reconciliation
+  table. NB2's priority matrix inherits this: its unmet-need axis is directional.
+- **A PII risk the spec missed:** c-TF-IDF term lists surfaced a user's first name
+  ("javier") into a rendered figure — `qa.pii_scan` only detects phone patterns. Fixed
+  generally with a **distinct-user floor** (`min_user_df=5`) in `ctfidf_terms`, which
+  removes rare personal names without a name blocklist. spaCy NER was evaluated for this
+  and rejected: on informal Spanish it tags "quiero" and "medellin" as PERSON.
