@@ -15,14 +15,30 @@ from sklearn.metrics import adjusted_rand_score, davies_bouldin_score, silhouett
 
 STABILITY_BAR = 0.6  # mean pairwise ARI required to call clusters stable
 
-# Greetings and bot boilerplate carry no signal but dominate raw frequency.
+# Greetings, bot boilerplate and high-frequency function words carry no signal but
+# dominate raw frequency. Kept deliberately aggressive: with a distinct-user floor also
+# applied, anything left in a rendered term list should be content-bearing.
 SAMI_STOPWORDS: set[str] = {
-    "hola", "buenas", "buenos", "dias", "tardes", "noches", "gracias", "favor",
-    "por", "porfavor", "señor", "senora", "señora", "senor", "ok", "okay", "si",
-    "no", "bien", "quiero", "necesito", "saber", "informacion", "info", "ayuda",
-    "ayudar", "puede", "puedo", "como", "que", "para", "una", "uno", "los", "las",
-    "del", "con", "mas", "muy", "esta", "este", "soy", "estoy", "tengo", "hacer",
-    "sami", "bot", "chat", "mensaje", "buen", "dia", "saludos", "cordial",
+    # greetings / courtesy / bot boilerplate
+    "hola", "buenas", "buenos", "dias", "días", "tardes", "noches", "gracias", "gracia",
+    "favor", "porfavor", "señor", "senora", "señora", "senor", "saludos", "cordial",
+    "sami", "samy", "bot", "chat", "mensaje", "buen", "dia", "muchisima", "muchísima",
+    # modal / verbal filler
+    "quiero", "necesito", "saber", "ayuda", "ayudar", "puede", "puedo", "pueden",
+    "hacer", "hago", "tengo", "tiene", "tienen", "hace", "estoy", "esta", "está",
+    "soy", "somos", "seria", "sería", "quisiera", "deseo", "poder", "sacar", "sacando",
+    "solicitar", "obtener", "gustaria", "gustaría", "decir", "dar", "ver", "ir",
+    # determiners / prepositions / connectives
+    "para", "por", "una", "uno", "unos", "unas", "los", "las", "del", "con", "sin",
+    "mas", "más", "muy", "este", "esto", "esta", "estos", "esas", "eso", "ese",
+    "donde", "dónde", "cuando", "cuándo", "como", "cómo", "cual", "cuál", "cuales",
+    "cuáles", "que", "qué", "quien", "quién", "porque", "pero", "también", "tambien",
+    "todo", "toda", "todos", "todas", "otro", "otra", "otros", "otras", "mismo",
+    "ahora", "aqui", "aquí", "alla", "allá", "desde", "hasta", "sobre", "entre",
+    "cada", "algun", "algún", "alguna", "solo", "sólo", "ningun", "ningún", "nada",
+    # low-content generic nouns/adjectives seen dominating panels
+    "informacion", "información", "info", "verdad", "tipos", "tipo", "manera",
+    "momento", "parte", "caso", "cosa", "cosas", "vez", "veces", "bien", "okay",
 }
 
 
@@ -143,20 +159,34 @@ def _tokenize(doc: str) -> list[str]:
     return [t for t in toks if len(t) > 3 and t not in SAMI_STOPWORDS]
 
 
-def ctfidf_terms(docs, labels, top_n: int = 10) -> dict[int, pd.Series]:
+def ctfidf_terms(docs, labels, top_n: int = 10, min_user_df: int = 5) -> dict[int, pd.Series]:
     """Class-based TF-IDF: terms distinctive to a cluster, not merely frequent in it.
 
     Documents are pooled per cluster into one "class document"; term frequency
     within a class is weighted by log(N_classes / n_classes_containing_term), so
     a word common to every cluster scores ~0 however often it appears.
+
+    `min_user_df` requires a term to appear in at least that many input documents
+    before it can be reported. With one document per user this is a distinct-user
+    floor, and it does two jobs at once: it drops vocabulary too rare to be a real
+    theme, and it is the **PII guard on rendered term lists** — personal names
+    reach only one or two users and are removed without needing a name blocklist
+    (spaCy NER is far too noisy on this informal Spanish to filter on). Pass
+    `min_user_df=1` only when documents are pooled and the count is meaningless.
     """
     docs = list(docs)
     labels = np.asarray(labels)
+
+    user_df = Counter()
+    for d in docs:
+        user_df.update(set(_tokenize(d)))
+    allowed = {t for t, n in user_df.items() if n >= min_user_df}
+
     class_counts: dict[int, Counter] = {}
     for lab in np.unique(labels):
         c: Counter = Counter()
         for d in (docs[i] for i in np.where(labels == lab)[0]):
-            c.update(_tokenize(d))
+            c.update(t for t in _tokenize(d) if t in allowed)
         class_counts[int(lab)] = c
 
     n_classes = len(class_counts)

@@ -81,9 +81,22 @@ def test_ctfidf_prefers_distinctive_over_globally_frequent():
 
 def test_ctfidf_drops_sami_stopwords():
     docs = ["hola buenos dias necesito informacion pasaporte"] * 4
-    terms = clusters.ctfidf_terms(docs, [0, 0, 1, 1], top_n=10)
+    terms = clusters.ctfidf_terms(docs, [0, 0, 1, 1], top_n=10, min_user_df=1)
     for s in terms.values():
         assert not (set(s.index) & clusters.SAMI_STOPWORDS)
+
+
+def test_ctfidf_min_user_df_drops_rare_terms_including_names():
+    # "javier" appears for a single user -> must never reach a rendered term list;
+    # "pasaporte" is shared across users -> must survive.
+    docs = [f"pasaporte tramite documento {i}" for i in range(6)] + ["pasaporte javier tramite"]
+    labels = [0] * 6 + [1]
+    terms = clusters.ctfidf_terms(docs, labels, top_n=10, min_user_df=5)
+    assert not any("javier" in s.index for s in terms.values())
+    assert any("pasaporte" in s.index for s in terms.values())
+    # with the floor lowered the rare token comes back -> proves the floor did the work
+    loose = clusters.ctfidf_terms(docs, labels, top_n=10, min_user_df=1)
+    assert any("javier" in s.index for s in loose.values())
 
 
 def test_project_2d_shapes():
