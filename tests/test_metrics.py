@@ -44,3 +44,15 @@ def test_funnel_is_monotonic_and_tops_at_users(data):
 def test_priority_matrix_frame_importable_but_deferred():
     # signature exists; calling without neg cache returns frame lacking the sentiment axis
     assert callable(metrics.priority_matrix_frame)
+
+
+def test_negative_by_category_is_a_bounded_share(data):
+    rng = np.random.default_rng(0)
+    sent = pd.DataFrame(
+        {"label": rng.choice(["negative", "neutral", "positive"], size=len(data.messages))},
+        index=data.messages.index,
+    )
+    s = metrics.negative_by_category(data.messages, sent)
+    assert ((s >= 0) & (s <= 1)).all()
+    assert set(s.index) <= set(data.messages["dominant_category"].unique())
+    assert (s.values[:-1] >= s.values[1:]).all()  # descending

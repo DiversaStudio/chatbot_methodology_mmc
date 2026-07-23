@@ -78,6 +78,20 @@ def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,
     return df
 
 
+def negative_by_category(messages: pd.DataFrame, sentiment: pd.DataFrame,
+                         col: str = "dominant_category") -> pd.Series:
+    """Share of messages classified negative, per official category.
+
+    `sentiment` must be index-aligned to `messages` (as `nlp.sentiment_messages`
+    returns). This is the series NB2's priority matrix has been waiting on — its
+    unmet-need axis. Whether the resulting numbers may be *quoted* depends on the
+    NB3 validation gate (`validation.validation_report(...)['gate_passed']`);
+    below the kappa bar the caller must use it directionally only.
+    """
+    neg = (sentiment.loc[messages.index, "label"] == "negative")
+    return neg.groupby(messages[col]).mean().sort_values(ascending=False)
+
+
 def priority_matrix_frame(messages: pd.DataFrame, meal: pd.DataFrame,
                           neg_by_category: pd.Series | None = None) -> pd.DataFrame:
     """DEFERRED (NB2 §6 climax): per-category priority frame.

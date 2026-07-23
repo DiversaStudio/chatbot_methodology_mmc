@@ -50,3 +50,28 @@ def test_entity_counts_by_kind_partitions():
     assert out["institution"].get("ACNUR", 0) >= 1
     # no entity appears in both panels
     assert set(out["institution"].index).isdisjoint(set(out["procedure"].index))
+
+
+def test_candidate_intent_probes_compile_and_use_known_slugs():
+    import re as _re
+    from sami import taxonomy as tx
+    assert set(tx.CANDIDATE_INTENT_PROBES) <= set(tx.CANDIDATE_INTENT_SLUGS + [
+        "entrepreneurship", "procedure_troubleshooting", "fraud_protection"])
+    for pat in tx.CANDIDATE_INTENT_PROBES.values():
+        _re.compile(pat)
+
+
+def test_archetype_mapping_guard_catches_drift():
+    import pandas as _pd
+    import pytest as _pytest
+    from sami import taxonomy as tx
+    good = {cid: _pd.Series({meta["marker"]: 1.0, "otro": 0.5})
+            for cid, meta in tx.ARCHETYPE_NAMES.items()}
+    tx.assert_archetype_mapping(good)          # marker present -> passes
+
+    drifted = {cid: _pd.Series({"otro": 0.5}) for cid in tx.ARCHETYPE_NAMES}
+    with _pytest.raises(AssertionError):
+        tx.assert_archetype_mapping(drifted)
+
+    with _pytest.raises(AssertionError):
+        tx.assert_archetype_mapping({})        # missing cluster -> fails
