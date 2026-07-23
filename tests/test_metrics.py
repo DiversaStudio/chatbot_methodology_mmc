@@ -32,9 +32,13 @@ def test_weekly_counts_sum_to_message_total(data):
 def test_funnel_is_monotonic_and_tops_at_users(data):
     f = metrics.funnel_stages(data.responses, data.messages, data.meal)
     n = f["n"].to_numpy()
-    assert (n[:-1] >= n[1:]).all()          # non-increasing
+    # first four stages sit on the nested message-volume axis -> strictly non-increasing
+    nested = n[:4]
+    assert (nested[:-1] >= nested[1:]).all()
     assert int(n[0]) == data.responses["user_id"].nunique()
-    assert f["conversion_from_prev"].iloc[0] != f["conversion_from_prev"].iloc[0] or True  # first is NaN
+    assert pd.isna(f["conversion_from_prev"].iloc[0])       # first stage has no prior
+    # surveyed is off the nested axis -> its conversion is deliberately NaN
+    assert pd.isna(f["conversion_from_prev"].iloc[-1])
 
 
 def test_priority_matrix_frame_importable_but_deferred():
