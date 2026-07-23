@@ -153,6 +153,30 @@ def away_duration_order(raw) -> int | None:
     return AWAY_DURATION_ORDER.index(label) if label is not None else None
 
 
+# --- time in current city (ordered; NB2 §3 duration×city cut) ------------------
+# The five structured City_duration survey buckets, verbatim from the export
+# (the field also carries free-text answers, which canonicalize to None).
+CITY_DURATION_ORDER: list[str] = [
+    "Menos de 1 mes",
+    "Entre 1 y 3 meses",
+    "Entre 4 y 6 meses",
+    "Entre 7 meses y 1 año",
+    "Más de 1 año",
+]
+_CITY_BY_FOLD: dict[str, str] = {fold(v): v for v in CITY_DURATION_ORDER}
+
+
+def city_duration_canon(raw) -> str | None:
+    """Canonical Spanish label for a City_duration value; None if unrecognized."""
+    return _CITY_BY_FOLD.get(fold(raw))
+
+
+def city_duration_order(raw) -> int | None:
+    """Sort index (0 = least time in city) or None if unrecognized."""
+    label = city_duration_canon(raw)
+    return CITY_DURATION_ORDER.index(label) if label is not None else None
+
+
 # --- gender EN display --------------------------------------------------------
 GENDER_DISPLAY: dict[str, str] = {
     "Mujer": "Woman",
