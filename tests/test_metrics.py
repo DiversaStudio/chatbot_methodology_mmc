@@ -56,3 +56,48 @@ def test_negative_by_category_is_a_bounded_share(data):
     assert ((s >= 0) & (s <= 1)).all()
     assert set(s.index) <= set(data.messages["dominant_category"].unique())
     assert (s.values[:-1] >= s.values[1:]).all()  # descending
+
+
+def _matrix_fixture():
+    messages = pd.DataFrame({
+        "user_id": ["a"] * 6 + ["b"] * 5 + ["c"] + ["d"] + ["e"] * 2,
+        "message": ["m"] * 15,
+        "dominant_category": ["legal_documentation"] * 11 + ["employment"] * 4,
+    })
+    meal = pd.DataFrame({
+        "user_id": ["a", "b", "c", "d"],
+        "rating_num": [1.0, 2.0, 5.0, 5.0],
+        "dominant_category": ["legal_documentation"] * 2 + ["employment"] * 2,
+    })
+    return messages, meal
+
+
+def test_priority_matrix_blends_available_axes():
+    messages, meal = _matrix_fixture()
+    neg = pd.Series({"legal_documentation": 0.30, "employment": 0.05})
+    f = metrics.priority_matrix_frame(messages, meal, neg_by_category=neg)
+    assert f["n_axes"].eq(3).all()                       # repeat + negative + rating
+    assert f.loc["legal_documentation", "messages"] == 11
+    assert f.loc["legal_documentation", "users"] == 2
+    # the category that is heavier, angrier and worse-rated must score higher unmet need
+    assert f.loc["legal_documentation", "unmet_need"] > f.loc["employment", "unmet_need"]
+
+
+def test_priority_matrix_without_sentiment_uses_two_axes():
+    messages, meal = _matrix_fixture()
+    f = metrics.priority_matrix_frame(messages, meal)
+    assert f["n_axes"].eq(2).all()
+    assert "pct_negative" not in f.columns
+
+
+def test_priority_matrix_small_n_meal_falls_back_to_overall():
+    messages, meal = _matrix_fixture()
+    f = metrics.priority_matrix_frame(messages, meal, min_meal_n=20)
+    # every category has < 20 MEAL responses -> all fall back to the single overall mean
+    assert f["rating_is_fallback"].all()
+    assert f["mean_rating"].nunique() == 1
+    assert f["mean_rating"].iloc[0] == pytest.approx(meal["rating_num"].mean())
+    # with the bar dropped, real per-category means are used instead
+    g = metrics.priority_matrix_frame(messages, meal, min_meal_n=1)
+    assert not g["rating_is_fallback"].any()
+    assert g["mean_rating"].nunique() == 2

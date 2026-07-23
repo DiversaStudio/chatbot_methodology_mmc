@@ -92,20 +92,67 @@ def negative_by_category(messages: pd.DataFrame, sentiment: pd.DataFrame,
     return neg.groupby(messages[col]).mean().sort_values(ascending=False)
 
 
-def priority_matrix_frame(messages: pd.DataFrame, meal: pd.DataFrame,
-                          neg_by_category: pd.Series | None = None) -> pd.DataFrame:
-    """DEFERRED (NB2 §6 climax): per-category priority frame.
+def _zscore(s: pd.Series) -> pd.Series:
+    sd = s.std(ddof=0)
+    return (s - s.mean()) / sd if sd and np.isfinite(sd) and sd > 0 else s * 0.0
 
-    x = message volume, y = unmet-need score (z-scored blend of % repeat-askers,
-    % negative sentiment, inverted mean MEAL rating), bubble = users. The
-    negative-sentiment axis (`neg_by_category`) comes from NB3's validated
-    sentiment cache, which does not exist yet — this function is importable and
-    unit-covered but is NOT rendered by NB2 until NB3 lands. Do not call from the
-    notebook this pass.
+
+def priority_matrix_frame(messages: pd.DataFrame, meal: pd.DataFrame,
+                          neg_by_category: pd.Series | None = None,
+                          min_meal_n: int = 20) -> pd.DataFrame:
+    """NB2 §6 climax: per-category priority frame — which needs are big AND badly served.
+
+    x = message volume, y = `unmet_need` (mean of the z-scores of % repeat-askers,
+    % negative sentiment, and *inverted* mean MEAL rating), bubble = users.
+
+    Two guards matter more than the blend itself:
+
+    - **Small-n MEAL fallback.** The MEAL join is ~69 users across 8 categories, so a
+      per-category mean rating is often built on a handful of responses. Categories with
+      fewer than `min_meal_n` responses fall back to the overall mean rating (column
+      `rating_is_fallback` marks them) rather than contributing an unstable per-category
+      mean to the score.
+    - **The sentiment axis is optional.** Without `neg_by_category` the score is built
+      from the two axes that remain, and `n_axes` records how many were used. Callers
+      must not present a 2-axis score as if it were the 3-axis one.
+
+    Whether the sentiment axis may be quoted as a *rate* depends on NB3's validation gate;
+    below the kappa bar the caller must label the axis directional.
     """
     vol = messages["dominant_category"].value_counts()
     frame = pd.DataFrame({"messages": vol})
     frame["users"] = messages.groupby("dominant_category")["user_id"].nunique()
+
+    # repeat askers: users at or above the p90 message volume, as a share of the category
+    per_user = messages.groupby("user_id").agg(
+        n=("message", "size"), cat=("dominant_category", "first"))
+    p90 = per_user["n"].quantile(0.90)
+    frame["pct_repeat"] = (per_user["n"] >= p90).groupby(per_user["cat"]).mean().reindex(frame.index)
+
+    # mean MEAL rating per category, with the small-n fallback
+    m = meal.dropna(subset=["rating_num"]) if "rating_num" in meal.columns else meal.iloc[0:0]
+    if len(m) and "dominant_category" in m.columns:
+        grp = m.groupby("dominant_category")["rating_num"]
+        cat_mean, cat_n = grp.mean(), grp.size()
+        overall = float(m["rating_num"].mean())
+        rating = cat_mean.reindex(frame.index)
+        n_resp = cat_n.reindex(frame.index).fillna(0)
+        fallback = n_resp < min_meal_n
+        frame["mean_rating"] = rating.where(~fallback, overall)
+        frame["meal_n"] = n_resp.astype(int)
+        frame["rating_is_fallback"] = fallback
+    else:
+        frame["mean_rating"] = np.nan
+        frame["meal_n"] = 0
+        frame["rating_is_fallback"] = True
+
+    axes = [_zscore(frame["pct_repeat"])]
     if neg_by_category is not None:
         frame["pct_negative"] = neg_by_category.reindex(frame.index)
-    return frame
+        axes.append(_zscore(frame["pct_negative"]))
+    if frame["mean_rating"].notna().any():
+        axes.append(_zscore(-frame["mean_rating"]))   # inverted: worse rating -> higher need
+
+    frame["n_axes"] = len(axes)
+    frame["unmet_need"] = pd.concat(axes, axis=1).mean(axis=1)
+    return frame.sort_values("messages", ascending=False)
