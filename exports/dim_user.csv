@@ -1,0 +1,918 @@
+user_id,gender_clean,age_num,age_flag,city_canon,department,nationality_canon,away_duration_canon,away_duration_order,city_duration_canon,city_duration_order,dominant_category,n_questions,minors,age_range,destination_country,n_msgs_user,has_text,cluster_id
+0014ad7a21e3,Mujer,29.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Argentina,5,True,1.0
+006dab9688be,Hombre,17.0,unreliable_sub18,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,2.0,No,0-17,Colombia,2,True,1.0
+00b7b18ae81a,Mujer,33.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,1,True,2.0
+00e2a21037ac,Mujer,34.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,employment,0.0,Si,18-35,Colombia,1,True,2.0
+00e5e5188fa3,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,Si,18-35,Colombia,6,True,3.0
+012862ab9070,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+01a55f6e2bfc,Mujer,22.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+01b6e41756d9,Mujer,36.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,6,True,1.0
+01c9824c67eb,Mujer,40.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Entre 4 y 6 meses,2.0,humanitarian_assistance,1.0,No,36-50,Colombia,1,True,0.0
+01e874a94ef6,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,3.0,Si,18-35,Colombia,4,True,0.0
+0216c17c32b9,Mujer,31.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,United States,1,True,0.0
+025f8fa9b2ff,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,3.0
+026d46d84f36,Mujer,33.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,,,journey_information,1.0,Si,18-35,Venezuela,2,True,0.0
+02764a615e66,Mujer,28.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,humanitarian_assistance,1.0,No,18-35,Colombia,1,True,1.0
+02a47b073bb0,Mujer,39.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+02a905d8ae15,Hombre,41.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,36-50,Colombia,3,True,3.0
+02e50709eb06,Hombre,24.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,,0,False,
+0337f971aa05,Mujer,40.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,4,True,3.0
+036275add5eb,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,2.0
+0367a28c51cd,Mujer,33.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,3.0
+0383b80046b9,Mujer,27.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Argentina,0,False,
+04561f6119e9,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,No,18-35,Colombia,2,True,3.0
+046a939f1579,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,6.0,Si,18-35,Colombia,7,True,3.0
+049ef16eb70d,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,No,36-50,Colombia,2,True,0.0
+0556605b2d5c,Hombre,45.0,ok,Medellín,Antioquia,Bulgaria,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,No,36-50,Colombia,7,True,0.0
+057777824af7,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,journey_information,1.0,No,18-35,Venezuela,1,True,3.0
+061eed24d599,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,2,True,2.0
+06433e895ee5,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,7.0,Si,18-35,Argentina,12,True,1.0
+06a2b18e373f,Mujer,50.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+0720077ff117,Hombre,36.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,,,unclassified,0.0,Si,36-50,Colombia,0,False,
+0728fbb71e81,Mujer,37.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Venezuela,1,True,2.0
+07328a0c07a6,Hombre,46.0,ok,Otra,,Cuba,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,36-50,Colombia,1,True,3.0
+075f884db357,Mujer,28.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,8.0,Si,18-35,Colombia,7,True,3.0
+0765abd5a93d,Hombre,14.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,0-17,Colombia,0,False,
+07a493b2ddeb,Mujer,35.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,8.0,No,18-35,Venezuela,8,True,0.0
+07dc6748f76d,Mujer,28.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+07fdee5981cb,Hombre,60.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,50 and above,Colombia,2,True,0.0
+0809661b0bc4,Mujer,40.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,2.0
+086e0bde9d76,Hombre,28.0,ok,Barranquilla,Atlántico,Ecuador,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,employment,1.0,Si,18-35,Colombia,1,True,2.0
+09c51cd233c6,Mujer,32.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,2,True,2.0
+0a19abe64c8f,Mujer,27.0,ok,Ipiales,Nariño,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,services,0.0,Si,18-35,Colombia,0,False,
+0a2869cfe664,Mujer,29.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Entre 4 y 6 meses,2.0,legal_documentation,1.0,No,18-35,Colombia,2,True,3.0
+0a5b92f117c1,Mujer,41.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,,,services,2.0,Si,36-50,Colombia,4,True,0.0
+0a9de4272ae0,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,7.0,Si,18-35,Colombia,12,True,0.0
+0acb321354fe,Hombre,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,0.0,No,18-35,Colombia,2,True,1.0
+0af1b20e629c,Mujer,42.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,services,0.0,No,36-50,Colombia,14,True,0.0
+0b98d3009cee,Mujer,36.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 3 meses,1,Entre 4 y 6 meses,2.0,legal_documentation,10.0,No,36-50,Colombia,34,True,0.0
+0bd2b552813a,Hombre,59.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,No,50 and above,Colombia,4,True,1.0
+0bd6a1517cd4,Mujer,32.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,2.0
+0be817c3db2e,Hombre,24.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,0.0,No,18-35,United States,1,True,2.0
+0c2e8dcba2eb,Mujer,43.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,1.0,No,36-50,Colombia,5,True,3.0
+0c775d73f6b8,Mujer,55.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,No,50 and above,Colombia,2,True,3.0
+0cd045787ad8,Mujer,22.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+0d1a2ab1cda3,Hombre,30.0,ok,Medellín,Antioquia,Ecuador,Entre 1 a 3 meses,1,Entre 4 y 6 meses,2.0,services,2.0,Si,18-35,Colombia,7,True,3.0
+0d3864ce7985,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,1.0,Si,36-50,Colombia,5,True,1.0
+0d4c00f44bf5,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,1.0
+0d79522d75ab,Mujer,47.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,3.0,Si,36-50,Colombia,8,True,0.0
+0e39f120f47d,Hombre,32.0,ok,Medellín,Antioquia,1,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,employment,2.0,Si,18-35,Colombia,3,True,2.0
+0e4de81613cf,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,,,employment,1.0,Si,18-35,Colombia,1,True,2.0
+0e62967fd27d,Mujer,41.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,3,True,3.0
+0e7d5903f563,Hombre,30.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,Colombia,0,False,
+0eceb4e2c434,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,humanitarian_assistance,2.0,Si,18-35,Colombia,4,True,0.0
+0f4d0aadbeb7,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,3.0
+0fb335dc5958,Mujer,49.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,No,36-50,Colombia,5,True,0.0
+10403265a7b9,Hombre,20.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,0.0,No,18-35,Colombia,1,True,2.0
+106f48ba07b7,Mujer,29.0,ok,Barranquilla,Atlántico,4,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Venezuela,3,True,0.0
+10bbd378898e,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,3.0
+11d359d29a07,Mujer,52.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,2.0,Si,50 and above,Colombia,3,True,2.0
+11e3b5c0ff75,Hombre,39.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,1,True,2.0
+1209a0c44415,Mujer,25.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,Si,18-35,Colombia,2,True,1.0
+1245b4e27da3,Mujer,48.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,legal_documentation,0.0,Si,36-50,Colombia,2,True,2.0
+12a4d7d0b517,Hombre,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,9.0,No,18-35,Colombia,12,True,0.0
+130232130f4e,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,1,True,2.0
+133cfb98c56c,Mujer,40.0,ok,Otra,,Chile,Entre 1 a 5 años,3,,,legal_documentation,3.0,No,36-50,Colombia,4,True,3.0
+139c5bffa62f,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,services,0.0,Si,18-35,Colombia,1,True,2.0
+13a0b790d57c,Mujer,20.0,ok,Cali,Valle del Cauca,Venezuela,Entre 3 meses y 1 año,2,,,journey_information,0.0,Si,18-35,Colombia,1,True,2.0
+13c78ef9081e,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,3,True,3.0
+13d370beb64b,Mujer,23.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+14930e78ce9a,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,services,0.0,Si,36-50,Colombia,2,True,0.0
+1550486ac76e,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,protection,0.0,Si,18-35,Argentina,0,False,
+157aec2253fd,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,0.0,No,18-35,Colombia,2,True,2.0
+15dc0f6bbd54,Mujer,52.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,50 and above,Colombia,1,True,0.0
+16a465fda40c,Mujer,56.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,1.0
+16dd8b39b4ea,Hombre,23.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,services,2.0,Si,18-35,Colombia,3,True,0.0
+171ae6ceacf2,Mujer,22.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,Si,18-35,Colombia,5,True,3.0
+176ac8a2f9fb,Hombre,35.0,ok,Medellín,Antioquia,Mexico,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,Colombia,1,True,2.0
+17ae63bbba2a,Mujer,5.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,0-17,Colombia,1,True,2.0
+17c22ca81d52,Mujer,53.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,50 and above,Colombia,0,False,
+17c99caae844,Mujer,52.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,4,True,0.0
+17db1913fc63,Mujer,46.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,0.0,Si,36-50,Colombia,2,True,1.0
+1848f211e243,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,2.0
+185a9a73040a,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+1869a21f0508,Mujer,19.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,No,18-35,Colombia,4,True,1.0
+194c0b66d618,Mujer,68.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,50 and above,Colombia,1,True,2.0
+19d8b6f6f965,Hombre,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,1.0
+19fb6b4a45c3,Mujer,20.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,services,0.0,Si,18-35,Colombia,1,True,1.0
+1a83a3c7f37a,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,6,True,0.0
+1ad08d444027,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,2.0
+1b5222e497bf,Mujer,41.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,14,True,0.0
+1b62f7b2e3ab,Mujer,27.0,ok,Cali,Valle del Cauca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,Colombia,3,True,0.0
+1b9a5105a9db,Mujer,46.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,3,True,0.0
+1bf1b0378d93,Mujer,74.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,3.0
+1c4cccd51f1e,Mujer,32.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,legal_documentation,1.0,No,18-35,Chile,1,True,2.0
+1c6098ca81dd,Mujer,51.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,7.0,Si,50 and above,Colombia,14,True,3.0
+1cb79f121916,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,1.0,No,18-35,Colombia,2,True,1.0
+1d6d8f86b6ae,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,1,True,0.0
+1d77aaf2280a,Hombre,24.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,5.0,No,18-35,Colombia,6,True,0.0
+1d9d9f68d199,Mujer,22.0,ok,Soacha,Cundinamarca,Venezuela,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,services,1.0,Si,18-35,Colombia,2,True,0.0
+1de87f03b7cb,Mujer,21.0,ok,Soacha,Cundinamarca,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,services,0.0,Si,18-35,Colombia,6,True,0.0
+1e01c7d59f5c,Mujer,45.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,3.0
+1fa40aefa1ca,Mujer,24.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,4.0,Si,18-35,Colombia,10,True,1.0
+20338a2364a6,Hombre,30.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,1.0
+2040ec3fddb2,Mujer,51.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,50 and above,Colombia,2,True,3.0
+204861de9f07,Mujer,32.0,ok,Otra,,Venezuela,Menos de 1 mes,0,Más de 1 año,4.0,organization_search,1.0,No,18-35,Venezuela,1,True,0.0
+205f6c912237,Hombre,29.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,1.0,Si,18-35,Venezuela,1,True,2.0
+2191b93bf7b5,Mujer,30.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,1.0,Si,18-35,,1,True,3.0
+21996eb7014b,Mujer,43.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,3.0
+21d253a16688,Mujer,34.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,4.0,Si,18-35,Venezuela,4,True,0.0
+21fc9e9b5d1c,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,4,True,3.0
+221fa9dcfc72,Mujer,46.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,humanitarian_assistance,2.0,Si,36-50,Colombia,4,True,0.0
+2245d475c707,Mujer,27.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,,,legal_documentation,2.0,Si,18-35,Colombia,3,True,3.0
+224b0c65cba8,Hombre,58.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,50 and above,Colombia,1,True,2.0
+2280eec9c1e1,Mujer,3.0,unreliable_sub18,Otra,,Venezuela,Entre 1 a 5 años,3,,,unclassified,0.0,Si,0-17,Colombia,0,False,
+22aede07eb2b,Hombre,35.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,4,True,3.0
+22b948dd4918,Hombre,29.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,Colombia,2,True,2.0
+237cf28f02a2,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,Colombia,3,True,0.0
+23e088703289,Mujer,28.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,2.0,Si,18-35,Colombia,1,True,0.0
+24210d0ef3a3,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,4,True,3.0
+242d9ac9e268,Mujer,47.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,No,36-50,Colombia,0,False,
+2483f48531ff,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,No,18-35,Colombia,1,True,2.0
+24abe8cb3a7d,Hombre,26.0,ok,Ipiales,Nariño,Venezuela,Entre 3 meses y 1 año,2,,,humanitarian_assistance,2.0,No,18-35,Venezuela,2,True,2.0
+24e2b3678d0d,Hombre,35.0,ok,Barranquilla,Atlántico,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,Si,18-35,Colombia,5,True,3.0
+253457f30450,Mujer,35.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,1,True,2.0
+2554be1b599e,Mujer,58.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,50 and above,Colombia,2,True,3.0
+2578eba6f1bc,Mujer,39.0,ok,Barranquilla,Atlántico,Colombia,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Chile,0,False,
+25c717fcfcf0,Mujer,43.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,2.0,Si,36-50,Colombia,2,True,0.0
+25d1576e420f,Mujer,45.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,3.0
+25e0bb818fe7,Hombre,46.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,1,True,2.0
+25f72e684000,Mujer,52.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,3.0
+2624c4c019ec,Hombre,57.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+26749af13e1e,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,3.0
+267d167f5c8d,Mujer,30.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,1.0
+26abf7ed58c5,Mujer,49.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+26c37c7c3dcf,Mujer,21.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,legal_documentation,4.0,Si,18-35,Colombia,5,True,3.0
+2757dc3ce28d,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,Si,18-35,Colombia,3,True,0.0
+276a55f67a77,Mujer,46.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,3.0,Si,36-50,Venezuela,9,True,0.0
+285ad64669e0,Hombre,19.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,No,18-35,Colombia,2,True,1.0
+2920d7482649,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,4,True,3.0
+2984a7622736,Mujer,1.0,unreliable_sub18,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,employment,1.0,Si,0-17,Colombia,4,True,3.0
+29d93a2f169e,Mujer,24.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,0.0,No,18-35,Colombia,2,True,0.0
+2a7c52a956d9,Mujer,48.0,ok,Necoclí,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+2ad1d2577df4,Mujer,28.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,0.0
+2b0c382722d0,Hombre,46.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,3.0,Si,36-50,Colombia,3,True,3.0
+2b3c5d49d7e6,Hombre,37.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,0.0,Si,36-50,Colombia,0,False,
+2b4cbbc49e4e,Mujer,60.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,0.0,No,50 and above,Colombia,2,True,0.0
+2b4f1562fa44,Hombre,35.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,,,legal_documentation,0.0,No,18-35,Colombia,3,True,1.0
+2b53dd383709,Hombre,44.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,1,True,1.0
+2ba620c8e1c2,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,1,True,2.0
+2bcaf3d1f7f2,Mujer,27.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,2.0
+2bcfaa3df52b,Hombre,29.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,No,18-35,Colombia,3,True,3.0
+2bda216ee06e,Hombre,33.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,5.0,Si,18-35,Colombia,4,True,0.0
+2be96f37218b,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,1.0,Si,18-35,Colombia,1,True,3.0
+2c894b94435f,Mujer,32.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,3.0
+2d0025fbee46,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Argentina,0,False,
+2d0b3adde136,Mujer,35.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,1,True,2.0
+2d411cc2c22a,lgtbQ+,49.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,2,True,3.0
+2dc38572ac12,Hombre,1.0,unreliable_sub18,Otra,,Venezuela,Entre 1 a 3 meses,1,,,legal_documentation,1.0,Si,0-17,Colombia,2,True,3.0
+2e7fb3da27a8,Mujer,34.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+2e9e4eccd47e,Hombre,36.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,1.0,No,36-50,Colombia,1,True,2.0
+2eebe3247bca,Mujer,39.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+2ef4b05fa3e4,Mujer,38.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,1,True,3.0
+2f6b5faa9396,Mujer,31.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,Colombia,0,False,
+2f99c95f0057,Hombre,34.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,6.0,No,18-35,United States,21,True,0.0
+2fdebb60b258,Mujer,56.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,50 and above,Colombia,10,True,1.0
+3087b37015be,Hombre,52.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,employment,0.0,Si,50 and above,Colombia,7,True,0.0
+309d5f4bdad6,Mujer,40.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,legal_documentation,1.0,Si,36-50,Colombia,1,True,2.0
+30d8ffd038d6,Hombre,3.0,unreliable_sub18,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,,,employment,1.0,No,0-17,Colombia,2,True,0.0
+313570b55d25,Hombre,26.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,8.0,Si,18-35,Colombia,11,True,3.0
+315b46fd8fac,Mujer,14.0,unreliable_sub18,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,0-17,Colombia,1,True,3.0
+3169e6a20c8b,Mujer,52.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,No,50 and above,Colombia,3,True,0.0
+324389fa1463,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,services,2.0,No,18-35,Colombia,4,True,0.0
+326a35419541,Mujer,43.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,3.0,Si,36-50,Colombia,6,True,0.0
+329758511943,Mujer,7.0,unreliable_sub18,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,No,0-17,Colombia,8,True,3.0
+32be206e53e4,Hombre,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,6.0,Si,18-35,Colombia,8,True,3.0
+32fdecd17449,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,3.0,Si,18-35,Colombia,4,True,0.0
+33ccadbfd77c,Mujer,10.0,unreliable_sub18,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,0-17,Colombia,1,True,3.0
+33d15dadcc97,Mujer,27.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,3.0,Si,18-35,Colombia,9,True,1.0
+33d504e8d4d9,Mujer,37.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,36-50,,1,True,2.0
+3405af2b0ae0,Mujer,81.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,legal_documentation,2.0,Si,50 and above,Colombia,4,True,3.0
+342ad1d06b28,Mujer,33.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,Si,18-35,Colombia,2,True,3.0
+342f5cb9f227,Mujer,1.0,unreliable_sub18,Barranquilla,Atlántico,Peru,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,2.0,No,0-17,Colombia,2,True,3.0
+355e39b91f6d,Mujer,34.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,,,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+35e3c97de485,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+360b473dd1ec,Mujer,27.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,employment,0.0,Si,18-35,Colombia,3,True,0.0
+3619dce82ba5,Mujer,22.0,ok,Barranquilla,Atlántico,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,Si,18-35,United States,2,True,0.0
+36574b853fbc,Mujer,35.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+37dbdecc155d,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,unclassified,0.0,No,36-50,,0,False,
+37f1ae5951bc,Hombre,31.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,6.0,Si,18-35,Colombia,7,True,3.0
+382c0027e143,Mujer,41.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,1,True,2.0
+38b67f491e68,Mujer,28.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,1.0
+38be3f3419e5,Mujer,5.0,unreliable_sub18,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,2.0,No,0-17,Colombia,3,True,1.0
+38ca49bafc59,Hombre,47.0,ok,Maicao,La Guajira,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,15.0,Si,36-50,Colombia,18,True,3.0
+3935544d11dc,Mujer,39.0,ok,Cali,Valle del Cauca,Ecuador,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,organization_search,3.0,Si,36-50,Colombia,6,True,0.0
+3aa53a743056,Hombre,44.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,1.0
+3b182d800abd,Mujer,27.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,4,True,0.0
+3b6613f603ac,Mujer,2.0,unreliable_sub18,Otra,,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,legal_documentation,6.0,Si,0-17,,6,True,3.0
+3b7c53152a59,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,3,True,3.0
+3b8d0cd08fe2,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,6,True,3.0
+3c69a8dc1d56,Mujer,68.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,50 and above,Venezuela,2,True,2.0
+3d3b0981d2f7,Mujer,32.0,ok,Cali,Valle del Cauca,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Venezuela,1,True,2.0
+3d7cb134f996,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,employment,1.0,Si,18-35,Venezuela,1,True,2.0
+3db4f09bf26e,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,0.0,Si,36-50,Colombia,2,True,1.0
+3dbebe73d557,Mujer,43.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,6,True,0.0
+3e50d7b566a3,Mujer,46.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Venezuela,3,True,2.0
+3e6779b22da8,Mujer,42.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,United States,2,True,0.0
+3e95e47dd7ec,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,1.0,Si,18-35,Colombia,5,True,0.0
+3ef43e2b6b24,Mujer,17.0,unreliable_sub18,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,1.0,No,0-17,Venezuela,3,True,1.0
+3fc23677ed59,Hombre,60.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,2.0,No,50 and above,Colombia,2,True,3.0
+406b3e9a1228,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,3.0,Si,18-35,Colombia,5,True,0.0
+40796bc37a12,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,services,1.0,Si,18-35,Colombia,1,True,1.0
+40909d385fd7,Hombre,23.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,,,legal_documentation,,No,,Colombia,1,True,1.0
+40ac2feac7f3,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,4,True,2.0
+40cbebbd504b,Mujer,36.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,3,True,3.0
+40d6861d8bae,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+40f4d7ee7e94,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,18-35,Colombia,5,True,0.0
+41662a74fa3e,Hombre,36.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,9.0,Si,36-50,Colombia,15,True,0.0
+41b6ee9f59df,Mujer,28.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,1,True,2.0
+41bd701f2990,Mujer,44.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+42070e3f07d1,Mujer,31.0,ok,Bucaramanga,Santander,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Colombia,5,True,0.0
+431801bc2248,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,1.0,No,18-35,Colombia,1,True,3.0
+434494785677,Hombre,22.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,0.0,No,18-35,Colombia,2,True,3.0
+43f2bfa84b23,Mujer,25.0,ok,Cali,Valle del Cauca,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,organization_search,4.0,Si,18-35,Colombia,10,True,0.0
+4462fcbb3406,Hombre,54.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+44c34c6efe6f,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,organization_search,0.0,No,18-35,Colombia,2,True,2.0
+45126221f02e,Mujer,43.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,,2,True,3.0
+453801c9089a,Mujer,45.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,services,4.0,Si,36-50,Colombia,11,True,1.0
+4544c32a7977,Mujer,22.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,2,True,1.0
+456815a6abe9,Mujer,37.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,3.0,Si,36-50,Colombia,6,True,0.0
+456b1a830844,Mujer,55.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,protection,0.0,Si,50 and above,Colombia,3,True,2.0
+459d7e890352,Mujer,33.0,ok,Bucaramanga,Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,6,True,3.0
+45a90cc344dd,Mujer,29.0,ok,Maicao,La Guajira,Venezuela,Hace más de 5 años,4,,,unclassified,0.0,No,18-35,Colombia,0,False,
+46030f16eeeb,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,unclassified,4.0,No,36-50,Colombia,6,True,3.0
+460d24f18102,Hombre,26.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,2.0,No,18-35,Venezuela,2,True,0.0
+4620e676486d,Mujer,27.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+469b37d5ff1e,Mujer,53.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,4,True,1.0
+46da40226356,Mujer,29.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,No,18-35,Colombia,3,True,3.0
+46f5acd38250,Mujer,20.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,3.0
+47898d03e9ec,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,No,36-50,Colombia,4,True,0.0
+4799299fa12d,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,36-50,Colombia,1,True,2.0
+481568c9e082,Mujer,36.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,36-50,Colombia,2,True,2.0
+483319801d63,Mujer,52.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+48499511f77b,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,36-50,Colombia,3,True,0.0
+4865387f4d2b,Mujer,37.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,1,True,2.0
+486f594ec494,Mujer,53.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,protection,0.0,Si,50 and above,Colombia,0,False,
+487f19ff25af,Mujer,26.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,0.0
+4973666d1861,Mujer,33.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,1,True,3.0
+49fa6cf2fedc,Mujer,36.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,United States,1,True,2.0
+4a686437f274,Mujer,29.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,1.0
+4a9224ec0d8e,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,7.0,Si,18-35,Colombia,8,True,3.0
+4af69dad3bf1,Hombre,27.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+4b8af1d9e6e6,Mujer,24.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,legal_documentation,4.0,Si,18-35,Colombia,4,True,0.0
+4bb8ce99c5fd,Mujer,39.0,ok,Bucaramanga,Santander,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+4c27be02ace9,Mujer,19.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+4c2c2ccab7ef,Mujer,32.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+4c5d5996085f,Prefiero no responder,16.0,unreliable_sub18,Otra,,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,1.0,Si,0-17,,6,True,0.0
+4c7490179e9b,Mujer,47.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,5.0,Si,36-50,Colombia,12,True,0.0
+4d0d805f41f7,Mujer,32.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,humanitarian_assistance,9.0,Si,18-35,Colombia,13,True,0.0
+4d1089abd65a,Mujer,32.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,employment,1.0,Si,18-35,Colombia,2,True,2.0
+4d24b1824f22,Hombre,31.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+4d5aec64e21d,Hombre,51.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,50 and above,Colombia,3,True,3.0
+4d9fdd15a627,Mujer,23.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,1.0
+4dbeb691b609,Mujer,29.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,3.0,Si,18-35,,6,True,0.0
+4dc5923f9d21,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,3.0,No,18-35,Colombia,3,True,3.0
+4e549487225a,Mujer,47.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,humanitarian_assistance,5.0,No,36-50,Colombia,38,True,0.0
+4ebb7f683407,Mujer,19.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,No,18-35,Colombia,1,True,0.0
+4eed8489d04f,Hombre,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,6,True,0.0
+4f1cbf244adb,Hombre,20.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,,0,False,
+4f524af45e30,Hombre,28.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Más de 1 año,4.0,humanitarian_assistance,6.0,Si,18-35,Colombia,12,True,0.0
+4f6457eb190e,Mujer,33.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+4f8c281ecd81,Mujer,22.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,2.0
+5044f351c01f,Mujer,41.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,7.0,Si,36-50,Colombia,9,True,0.0
+50609b181614,Mujer,25.0,ok,Riohacha,La Guajira,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+50fdccfb1891,Mujer,33.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,11.0,Si,18-35,Venezuela,12,True,0.0
+512018e4b670,Mujer,44.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,3,True,0.0
+5120edad4c99,Mujer,30.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+519c42d73b02,Prefiero no responder,30.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,services,0.0,Si,18-35,Colombia,1,True,2.0
+51e28189c9d0,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,legal_documentation,2.0,Si,18-35,United States,2,True,3.0
+52c3b55e29a6,Hombre,22.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,services,1.0,No,18-35,Colombia,2,True,2.0
+533f8aeb1f13,Hombre,60.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,0.0,Si,50 and above,Colombia,5,True,0.0
+535a43ed5f6c,Mujer,19.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,employment,0.0,No,18-35,Colombia,3,True,3.0
+538295dd1cc1,Hombre,29.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,2.0,No,18-35,Colombia,3,True,2.0
+548d34245649,Mujer,36.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+54987b876f2a,Mujer,6.0,unreliable_sub18,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,0-17,Colombia,2,True,1.0
+54f981c3f69d,Mujer,22.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,6,True,1.0
+555b65ff0b32,Mujer,27.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,2.0
+55a546c0886d,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,2.0,Si,18-35,Argentina,6,True,0.0
+565848d424b6,Hombre,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,3,True,3.0
+566014fe1472,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,protection,0.0,Si,18-35,Colombia,2,True,2.0
+566065ba27e3,Mujer,51.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,50 and above,Colombia,1,True,0.0
+56a94c18bdd6,Hombre,35.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,18-35,Colombia,3,True,2.0
+56d210ca8ced,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,5.0,Si,18-35,Colombia,4,True,1.0
+56e476735a0f,Mujer,22.0,ok,Soacha,Cundinamarca,Venezuela,Entre 3 meses y 1 año,2,,,legal_documentation,1.0,No,18-35,Colombia,3,True,1.0
+573843e5bd1e,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,No,36-50,Colombia,3,True,3.0
+573966264c78,Mujer,28.0,ok,Barranquilla,Atlántico,Venezuela,Entre 3 meses y 1 año,2,,,services,2.0,No,18-35,Colombia,4,True,1.0
+57bcca8ebb97,Hombre,56.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,50 and above,Colombia,1,True,2.0
+5804605991cf,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+5858420214d9,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,journey_information,0.0,Si,36-50,Colombia,1,True,2.0
+58aa5ef80922,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,No,36-50,,2,True,2.0
+58bd15dd3b17,Mujer,37.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+58e3ec0e8efa,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,,,legal_documentation,15.0,Si,36-50,Colombia,42,True,3.0
+58f58e00440b,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,services,0.0,No,18-35,Colombia,1,True,2.0
+591ef6450265,Mujer,33.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,employment,0.0,Si,18-35,Colombia,1,True,2.0
+5952f7857809,Mujer,50.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,6.0,Si,50 and above,Colombia,3,True,1.0
+5969c82a3eb7,Mujer,48.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,employment,2.0,Si,36-50,Colombia,3,True,0.0
+598560d91722,Mujer,10.0,unreliable_sub18,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,3.0,Si,0-17,Colombia,4,True,1.0
+5a37c2627cfe,Mujer,48.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,No,36-50,Colombia,2,True,3.0
+5a525086d92f,Hombre,28.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,3,True,1.0
+5a7498cf5cbc,Mujer,38.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,1.0
+5a96e7702cb0,Mujer,26.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,18-35,Colombia,2,True,1.0
+5af71ce15ba4,Mujer,28.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,7,True,1.0
+5b35eba5a9c4,Hombre,39.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,5.0,Si,36-50,Colombia,8,True,0.0
+5bfad0d03abe,Mujer,42.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,2.0,Si,36-50,Colombia,2,True,1.0
+5c9a4a964857,Mujer,26.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+5c9ef20917c1,Mujer,26.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+5cb012353434,Hombre,25.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,2.0,Si,18-35,Colombia,3,True,2.0
+5cd4dbfb17c4,Mujer,26.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+5cef985e56f4,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,8,True,3.0
+5d68d7d36dbf,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,humanitarian_assistance,2.0,No,18-35,Colombia,5,True,0.0
+5e4e11b7a1b0,Mujer,36.0,ok,Otra,,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,15.0,Si,36-50,Colombia,24,True,3.0
+5e8b19f7609f,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,3,True,2.0
+5ea0c636563a,Mujer,50.0,ok,Otra,,Colombia,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,protection,1.0,No,50 and above,Colombia,1,True,1.0
+5eb579d50f61,Mujer,63.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,2.0
+5f11954d95d6,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Argentina,2,True,3.0
+5f3b1a98a0c9,Mujer,35.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,Colombia,2,True,2.0
+5f53f39e9f4e,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,0.0,Si,18-35,Colombia,3,True,0.0
+5f587b32486e,Mujer,20.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,humanitarian_assistance,2.0,No,18-35,Colombia,2,True,0.0
+5f7ccd4c3ba5,Mujer,40.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+5f8aae4275b4,Mujer,32.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,6.0,Si,18-35,Colombia,10,True,3.0
+5fceb0b65f8e,Hombre,39.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,36-50,Colombia,2,True,2.0
+5fe4874309e2,Mujer,25.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,No,18-35,Colombia,5,True,0.0
+6009b77e7f5b,Prefiero no responder,33.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,services,1.0,Si,18-35,Colombia,2,True,0.0
+600c9c7af56c,Mujer,22.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,2.0,Si,18-35,Colombia,3,True,1.0
+6046a01863f9,Mujer,21.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,Colombia,3,True,0.0
+605cd2a13361,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,3.0
+6091610a4330,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,1,True,3.0
+613314d063bd,Mujer,25.0,ok,Otra,,Venezuela,Menos de 1 mes,0,Entre 1 y 3 meses,1.0,protection,0.0,Si,18-35,Colombia,0,False,
+61529bc12cc7,Mujer,26.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+618f68ebe821,Mujer,35.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+622409064ef4,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+626dfbcaff20,Hombre,59.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,7,True,1.0
+628e143864d2,Mujer,29.0,ok,Barranquilla,Atlántico,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+6312454c1ad8,Mujer,44.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,,,unclassified,0.0,Si,36-50,United States,0,False,
+63ba58c33223,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,4.0,Si,18-35,Colombia,6,True,3.0
+6439f990b011,Hombre,46.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Entre 1 y 3 meses,1.0,organization_search,2.0,Si,36-50,Colombia,6,True,0.0
+6491eceed718,Mujer,36.0,ok,Ipiales,Nariño,United States,Hace más de 5 años,4,Menos de 1 mes,0.0,unclassified,0.0,Si,36-50,Venezuela,0,False,
+649a37936305,Hombre,44.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+65d0ed23a3a4,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,unclassified,0.0,No,18-35,Colombia,0,False,
+65d262ea31f5,Mujer,23.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,1,True,3.0
+6650942ea6ea,Hombre,39.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,36-50,Colombia,6,True,0.0
+666e7971b1a5,Hombre,28.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,2.0
+667ce8497a5f,Mujer,27.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,employment,1.0,Si,18-35,Venezuela,2,True,2.0
+6695107cea34,Mujer,35.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,2,True,2.0
+66c4ad0769aa,Mujer,21.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,employment,1.0,Si,18-35,Colombia,4,True,0.0
+67137155144d,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,7.0,Si,18-35,Colombia,16,True,0.0
+6729a0cd9307,Mujer,36.0,ok,Ipiales,Nariño,Ecuador,Menos de 1 mes,0,Menos de 1 mes,0.0,protection,3.0,Si,36-50,Colombia,4,True,3.0
+67bc1b1311b4,Mujer,41.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,36-50,Colombia,7,True,0.0
+67e2bbaedc66,Mujer,36.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,journey_information,1.0,Si,36-50,United States,1,True,0.0
+680eb65432dc,transgenero,25.0,ok,Necoclí,Antioquia,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,2.0,No,18-35,Venezuela,3,True,0.0
+685101263c25,Hombre,23.0,ok,Ipiales,Nariño,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,employment,0.0,No,18-35,Colombia,0,False,
+6863d38c2d07,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,5.0,Si,18-35,Colombia,5,True,3.0
+6881c4372f8a,Gay,24.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,organization_search,3.0,Si,18-35,Colombia,3,True,0.0
+68fd964afd09,Mujer,64.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,50 and above,Colombia,6,True,0.0
+691f9dbcafab,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+691fe5ddb951,Mujer,35.0,ok,Necoclí,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,unclassified,0.0,Si,18-35,Ecuador,0,False,
+6921ec0847ed,Hombre,22.0,ok,Medellín,Antioquia,Panamá,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,3.0,No,18-35,Colombia,3,True,3.0
+6935b7fc6aef,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+695a2528e0f0,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,0.0,Si,18-35,Colombia,1,True,2.0
+69fe1235d290,Mujer,28.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,3.0,Si,18-35,Colombia,4,True,0.0
+6a4edfd40e68,Mujer,17.0,unreliable_sub18,Otra,,Venezuela,Menos de 1 mes,0,,,humanitarian_assistance,0.0,No,0-17,Venezuela,3,True,0.0
+6a69fced0269,Mujer,28.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,legal_documentation,8.0,No,18-35,Colombia,10,True,3.0
+6a96577d2770,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,2.0,Si,36-50,Colombia,13,True,0.0
+6b65c7c3b3ef,Mujer,24.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,humanitarian_assistance,2.0,Si,18-35,Venezuela,6,True,0.0
+6b9263923d4f,Mujer,24.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,3,True,3.0
+6c3f6488d293,Mujer,33.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,5,True,3.0
+6c4e1033a6f4,Hombre,28.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,,0,False,
+6c99e1a0bd00,Prefiero no responder,30.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,18-35,Colombia,25,True,0.0
+6c9cb7899305,Mujer,54.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,No,50 and above,Colombia,2,True,0.0
+6cbe5937faf9,Mujer,28.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,6.0,Si,18-35,Colombia,9,True,3.0
+6cf9e8114e66,Mujer,55.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,No,50 and above,Colombia,1,True,2.0
+6d2bcdd6f526,Mujer,27.0,ok,Ipiales,Nariño,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,3.0,No,18-35,Venezuela,3,True,0.0
+6d7f82ed82f8,Mujer,30.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,2.0
+6e228243d03f,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,5,True,3.0
+6e8817a099fc,Hombre,25.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,5,True,3.0
+7037462b3440,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,4.0,Si,18-35,Colombia,10,True,0.0
+70c15978d565,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,36-50,Colombia,1,True,0.0
+70e576a65f54,Mujer,34.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,1.0
+70f88c68bbf5,Hombre,53.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,50 and above,Colombia,3,True,3.0
+712a05510899,Mujer,4.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,2.0,Si,0-17,Colombia,4,True,1.0
+719105037cd3,Mujer,37.0,ok,Maicao,La Guajira,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,14.0,Si,36-50,Colombia,17,True,0.0
+71937764deb6,Mujer,36.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,1,True,3.0
+7205b06dde9e,Hombre,46.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,No,36-50,Colombia,1,True,2.0
+7217147bd0ff,Mujer,1.0,unreliable_sub18,Soacha,Cundinamarca,Ecuador,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,No,0-17,Colombia,1,True,3.0
+72481892be9f,Mujer,28.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,humanitarian_assistance,1.0,No,18-35,Chile,3,True,2.0
+7298a75fed0e,Mujer,34.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,1,True,0.0
+730e17119e5d,Mujer,22.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,2.0
+7465cb41b2c1,Hombre,33.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,Colombia,0,False,
+753a1bd5c882,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,No,18-35,Colombia,3,True,0.0
+7561a5acc372,Hombre,52.0,ok,Medellín,Antioquia,El Salvador,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,No,50 and above,Colombia,5,True,3.0
+75c9dbc84410,Mujer,20.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,0.0
+76087f2004aa,Hombre,62.0,ok,Riohacha,La Guajira,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,50 and above,Colombia,1,True,3.0
+762d794c4fbc,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,0.0
+7646c844148c,Hombre,18.0,ok,Bogotá,Bogotá,Ecuador,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,United States,2,True,3.0
+76a41fe32942,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,1,True,2.0
+76c65e1b6c3a,Hombre,46.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,United States,2,True,1.0
+771f85a17fcb,Mujer,31.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,employment,2.0,Si,18-35,Colombia,3,True,0.0
+77aaa1392818,Mujer,23.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,0.0,Si,18-35,Colombia,3,True,2.0
+7809d4fe159d,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+782bc1dc9626,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 1 y 3 meses,1.0,services,2.0,Si,18-35,Colombia,2,True,3.0
+78b3dbf30200,Mujer,16.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,0-17,Colombia,3,True,3.0
+78b3feb46881,Mujer,55.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+790be084108d,Mujer,41.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,,Si,36-50,Colombia,0,False,
+7941b981e189,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,1.0
+7952b8c1a3a5,Mujer,40.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,2.0,Si,36-50,Colombia,4,True,1.0
+79c401a5c308,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,1.0,No,36-50,Venezuela,0,False,
+7a0081c16d9f,Mujer,30.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,unclassified,0.0,Si,18-35,Colombia,0,False,
+7a1cfeff21d5,Mujer,5.0,unreliable_sub18,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,0-17,Colombia,3,True,3.0
+7a65d39df1c5,Mujer,27.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,,,unclassified,0.0,Si,18-35,Colombia,0,False,
+7a6ddaad47bb,Mujer,20.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,2,True,1.0
+7a7dab29bc17,Mujer,31.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,humanitarian_assistance,2.0,Si,18-35,Venezuela,2,True,0.0
+7b1eecba6057,Mujer,55.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+7b41c71f72b3,Mujer,35.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,4.0,Si,18-35,Venezuela,4,True,0.0
+7b6725641439,Mujer,33.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,5,True,3.0
+7bd19fcf3cfa,Mujer,41.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,4.0,Si,36-50,Colombia,8,True,0.0
+7ca5b1d9e37f,Mujer,34.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Argentina,4,True,0.0
+7cbabccbbd74,Mujer,34.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+7cbc83c55799,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+7cd7675ea731,Mujer,37.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,1.0
+7cd81c1cedbc,Hombre,34.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,,,legal_documentation,3.0,No,18-35,Colombia,4,True,3.0
+7ce830d64919,Hombre,22.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+7d102248f6ed,Mujer,54.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,,,unclassified,0.0,Si,50 and above,Colombia,0,False,
+7d42365ec542,Mujer,22.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,5,True,1.0
+7d7d7dd617bf,Mujer,29.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,Colombia,5,True,1.0
+7d9e9ebb75e8,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,3.0
+7db0f19f99c4,Mujer,18.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,2.0
+7decc9eebcb2,Mujer,52.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,2.0,Si,50 and above,Colombia,2,True,2.0
+7e6d7186811b,Mujer,59.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,50 and above,Colombia,3,True,3.0
+7eb0525767e1,Hombre,30.0,ok,Ipiales,Nariño,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,2.0,No,18-35,Venezuela,5,True,3.0
+7f5783a9735d,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,18-35,Colombia,1,True,2.0
+7f5a40c9c463,Hombre,55.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,3,True,3.0
+7f6183ceb4db,Mujer,28.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+7f7d72c5ec10,Prefiero no responder,23.0,ok,Otra,,Ecuador,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,journey_information,3.0,No,18-35,United States,5,True,3.0
+7ff12400b9f6,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,journey_information,0.0,No,18-35,Venezuela,5,True,0.0
+80099afc12f8,Mujer,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+80448aa9421f,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,4.0,Si,50 and above,Argentina,5,True,3.0
+809306d0866c,Mujer,26.0,ok,Bucaramanga,Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,1,True,2.0
+8151bb57be3e,Mujer,50.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Entre 4 y 6 meses,2.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+817b33c4e195,Mujer,33.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,0.0,Si,18-35,Colombia,1,True,0.0
+822956e2ebde,Mujer,34.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,1.0
+82557e0275c4,Mujer,65.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+82bbe02beb1c,Mujer,46.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,2.0,Si,36-50,,2,True,0.0
+839f912ebc05,Hombre,44.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,7.0,Si,36-50,,8,True,0.0
+83bce99b745a,Hombre,31.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,No,18-35,United States,0,False,
+8515b9337673,Mujer,40.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,36-50,United States,2,True,2.0
+851cf3b82b01,Mujer,52.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,50 and above,Colombia,4,True,3.0
+864848d53820,Mujer,36.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,unclassified,0.0,Si,36-50,United States,0,False,
+86589ef84d58,Mujer,42.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,2,True,2.0
+866fdeb1a0de,Mujer,36.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,employment,1.0,Si,36-50,United States,2,True,3.0
+868583471b48,Mujer,23.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,3,True,3.0
+874ab9c8c13c,Mujer,18.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,2.0
+875ddd21c83a,Mujer,34.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,6,True,0.0
+877f45c963ca,Hombre,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,No,18-35,Colombia,3,True,1.0
+87f5ad4d1e03,Mujer,2.0,unreliable_sub18,Otra,,Ecuador,Entre 1 a 5 años,3,,,legal_documentation,2.0,Si,0-17,Colombia,2,True,0.0
+883becdeb2ac,Hombre,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,,,legal_documentation,0.0,No,18-35,Colombia,2,True,3.0
+88798bf22b1d,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+889b4a2620af,Mujer,35.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+88d62e8e059f,Hombre,20.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,18-35,Colombia,5,True,0.0
+88e3815baa87,Hombre,48.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,No,36-50,Colombia,3,True,0.0
+89738eae7ba7,Mujer,46.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,3.0,No,36-50,Colombia,4,True,3.0
+898bdb72ffa7,Hombre,48.0,ok,Soacha,Cundinamarca,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,humanitarian_assistance,4.0,Si,36-50,Colombia,6,True,0.0
+8a74e17e6243,Mujer,25.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,2.0
+8adfd0f355e9,Mujer,38.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,36-50,Colombia,2,True,2.0
+8b1e864a8753,Mujer,47.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,3,True,3.0
+8b5e8d22c93a,Mujer,61.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,No,50 and above,Colombia,6,True,0.0
+8b7b2f1ccb13,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+8c55a7380118,Mujer,53.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,5.0,No,50 and above,Colombia,9,True,3.0
+8cadaabfc46b,Mujer,46.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,4.0,Si,36-50,Colombia,6,True,0.0
+8cbaa78b7f53,Mujer,57.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,1.0,Si,50 and above,Colombia,2,True,3.0
+8cc3e6296d4b,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,2,True,0.0
+8d209885c75b,Mujer,49.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,8.0,No,36-50,Colombia,10,True,0.0
+8e550e7fc89a,Hombre,19.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,No,18-35,Colombia,5,True,1.0
+8e58449c3754,Hombre,28.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Venezuela,6,True,2.0
+8e5b3257d1da,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,No,18-35,Colombia,8,True,0.0
+8f17e48d5f7e,Mujer,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,,4,True,3.0
+8f22a38fba39,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,No,36-50,Colombia,1,True,0.0
+8f8014dd3ca2,Hombre,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,No,50 and above,Venezuela,3,True,0.0
+902fa97f667e,Mujer,29.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,4,True,0.0
+9073c17379d1,Mujer,32.0,ok,Bucaramanga,Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,4.0,Si,18-35,Colombia,4,True,3.0
+90a9c5ed7580,Mujer,37.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,,,employment,1.0,Si,36-50,Colombia,1,True,1.0
+90b569f486eb,Hombre,32.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,services,1.0,Si,18-35,Venezuela,2,True,2.0
+90eb8eb3336a,Mujer,42.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,36-50,Colombia,5,True,0.0
+90f9b9d9f534,Hombre,41.0,ok,Otra,,Haití,Hace más de 5 años,4,Menos de 1 mes,0.0,unclassified,0.0,No,36-50,Peru,0,False,
+91098e83c5d9,Prefiero no responder,24.0,ok,Cali,Valle del Cauca,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,2.0
+91aba0850082,Mujer,27.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,3,True,3.0
+91eb0e40a414,Hombre,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,2,True,2.0
+91f1d0aea4de,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,1.0
+920726b4a7d0,Mujer,26.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,,,employment,1.0,Si,18-35,Colombia,4,True,0.0
+9213dfcc43bb,Mujer,27.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+923ea915bfb1,Prefiero no responder,32.0,ok,Bogotá,Bogotá,India,Entre 1 a 5 años,3,,,unclassified,0.0,Si,18-35,United States,0,False,
+924d9c35fc08,Prefiero no responder,40.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,4.0,Si,36-50,United States,9,True,0.0
+9282aea69349,Mujer,42.0,ok,Cali,Valle del Cauca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+9293ff00b6ee,Mujer,30.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,0.0
+92c906ae713f,Mujer,32.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+92d7b0a9f8fc,Hombre,41.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,Si,36-50,Colombia,5,True,3.0
+930b60a9ec31,Mujer,54.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 4 y 6 meses,2.0,legal_documentation,2.0,Si,50 and above,Colombia,3,True,3.0
+932b8454df7d,Hombre,32.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,Si,18-35,Colombia,4,True,1.0
+9345677b0964,Hombre,35.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,7.0,No,18-35,Colombia,6,True,1.0
+93b56b2abdba,Hombre,53.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,1.0,Si,50 and above,Colombia,2,True,0.0
+93ec90685c9f,Mujer,63.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,4.0,No,50 and above,Colombia,12,True,0.0
+9495fff13123,Mujer,5.0,unreliable_sub18,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,0-17,Colombia,3,True,3.0
+94b7a86b0c3f,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,7.0,No,18-35,Colombia,8,True,3.0
+963a564234a7,Mujer,32.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,,4,True,0.0
+969fcebd33ec,Mujer,28.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,1,True,2.0
+96bf8e4f69fa,Mujer,34.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,1.0
+970c5e6500df,Mujer,36.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,0.0,Si,36-50,Colombia,3,True,3.0
+97727500e60a,Hombre,47.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,5,True,1.0
+9802841c02ed,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,1.0,No,18-35,Venezuela,1,True,2.0
+991321e4e058,Mujer,25.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,0.0
+99d748af0cc0,Mujer,52.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,2.0
+9a84005c901c,Mujer,42.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,4,True,3.0
+9a9909a709cd,Mujer,26.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,1.0
+9b0075cc6b91,Hombre,36.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,services,2.0,No,36-50,Colombia,2,True,1.0
+9b97805bcedb,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,0.0,Si,18-35,Venezuela,2,True,3.0
+9bd58a2b1cf7,Hombre,19.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,18-35,Colombia,0,False,
+9c6992dafeae,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,employment,1.0,Si,18-35,Colombia,2,True,2.0
+9c79fc78d797,Mujer,29.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,2,True,1.0
+9c7a3cc59688,Hombre,32.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,,,employment,4.0,Si,18-35,Colombia,4,True,3.0
+9c7d2b9f7321,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,employment,1.0,Si,18-35,Colombia,1,True,2.0
+9cd63af1ae81,Mujer,46.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,0,False,
+9d06a9320c10,Mujer,25.0,ok,Necoclí,Antioquia,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,services,4.0,Si,18-35,Colombia,4,True,0.0
+9d13da642c1d,Hombre,31.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,protection,0.0,No,18-35,Colombia,0,False,
+9d5222baadcf,Hombre,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,4,True,3.0
+9d7b24a63bc5,Mujer,30.0,ok,Bogotá,Bogotá,Cuba,Entre 3 meses y 1 año,2,,,legal_documentation,6.0,Si,18-35,Colombia,5,True,3.0
+9d8a3f92a7aa,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,9.0,Si,18-35,Colombia,11,True,3.0
+9de723d55df3,Hombre,8.0,unreliable_sub18,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,0-17,Venezuela,3,True,1.0
+9deb9afea846,Mujer,61.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,journey_information,0.0,No,50 and above,,0,False,
+9e4727f44f04,Hombre,32.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,,,legal_documentation,2.0,No,18-35,Colombia,3,True,3.0
+9ec54a2a09b9,Mujer,38.0,ok,Bogotá,Bogotá,Venezuela,Menos de 1 mes,0,Entre 1 y 3 meses,1.0,legal_documentation,4.0,Si,36-50,Chile,6,True,1.0
+9f55b7f98d0c,Mujer,29.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,Si,18-35,Colombia,10,True,0.0
+9fc2d4ba36e4,Mujer,23.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Entre 1 y 3 meses,1.0,legal_documentation,0.0,Si,18-35,Argentina,7,True,3.0
+a02ba6b93372,Mujer,42.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,4,True,1.0
+a09ce3b9b833,Mujer,39.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,36-50,Colombia,1,True,3.0
+a1115850bcb8,Hombre,40.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,1,True,2.0
+a12387bc1be3,Mujer,26.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+a141cef8bfb9,Hombre,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+a14634aae815,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,2.0
+a1a62d5f08bb,Prefiero no responder,35.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,legal_documentation,1.0,Si,18-35,Argentina,4,True,1.0
+a1d0263d7fc6,Mujer,50.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+a26eecc89b56,Hombre,24.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,7.0,Si,18-35,Colombia,9,True,0.0
+a2818f285f14,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,36-50,Colombia,1,True,3.0
+a2dc998af660,Prefiero no responder,12.0,unreliable_sub18,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,0-17,Colombia,1,True,1.0
+a2e7a4a72fef,Mujer,29.0,ok,Medellín,Antioquia,3,Menos de 1 mes,0,Menos de 1 mes,0.0,services,1.0,No,18-35,Colombia,1,True,3.0
+a2e8cb3c1302,Hombre,67.0,ok,Medellín,Antioquia,Haiti,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+a3230ca2cb01,Hombre,58.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,employment,1.0,No,50 and above,Colombia,2,True,3.0
+a362578e8741,Mujer,47.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,6,True,0.0
+a3974ac773a5,Mujer,33.0,ok,Necoclí,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,0.0,Si,18-35,Argentina,0,False,
+a3ac0cb9e730,Hombre,18.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,employment,0.0,No,18-35,Colombia,1,True,2.0
+a426c732d67b,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,1.0,Si,18-35,Colombia,2,True,2.0
+a47a460d4806,Mujer,27.0,ok,Otra,,Venezuela,Menos de 1 mes,0,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,3,True,0.0
+a4a8889cb093,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,2.0
+a57647c83ab8,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,services,1.0,Si,18-35,Colombia,1,True,2.0
+a59fcec78cc4,Mujer,28.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,1.0,Si,18-35,Colombia,3,True,0.0
+a5a1de8d5d8f,Mujer,33.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,legal_documentation,9.0,No,18-35,United States,12,True,3.0
+a5b1e565a5b6,Mujer,50.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,50 and above,Colombia,3,True,0.0
+a5c1cc164391,Mujer,46.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,journey_information,1.0,Si,36-50,,1,True,2.0
+a5d221da4a61,Mujer,31.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+a6249c3b6b96,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,0.0,No,18-35,Colombia,3,True,2.0
+a6569a9c9d2e,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+a6642232899b,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,employment,2.0,Si,18-35,Colombia,4,True,0.0
+a6a51804742e,Hombre,19.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,3.0,No,18-35,Colombia,10,True,3.0
+a741d3529eec,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,1,True,2.0
+a88b0cc13301,Mujer,27.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,4,True,3.0
+a8b6c91e103d,Hombre,33.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,employment,5.0,Si,18-35,Colombia,17,True,0.0
+a8bb402a432a,Mujer,48.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,,,legal_documentation,3.0,Si,36-50,Colombia,22,True,0.0
+a8fd097f45d7,Mujer,39.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,3,True,0.0
+a9082d58a6cb,Mujer,21.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,services,0.0,Si,18-35,Venezuela,1,True,2.0
+a91744e541a0,Mujer,31.0,ok,Ipiales,Nariño,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+a99da951150b,Mujer,30.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Entre 4 y 6 meses,2.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+a9cd5c5c51c2,Mujer,32.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,0.0,Si,18-35,Colombia,1,True,3.0
+aa3c30618eac,Mujer,24.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,2.0
+aa3ef1ca5118,Mujer,40.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,4,True,1.0
+aa4c1039726b,Mujer,40.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Venezuela,3,True,1.0
+aa5cfb011785,Hombre,39.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,unclassified,2.0,Si,36-50,Colombia,6,True,0.0
+aae2ac12b8a1,Hombre,36.0,ok,Medellín,Antioquia,Cuba,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,36-50,Colombia,1,True,3.0
+aafc94db1e25,Hombre,49.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,4,True,0.0
+ab8260e04552,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,3,True,3.0
+abc4a73d789d,Mujer,33.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Argentina,1,True,1.0
+abfde777018e,Mujer,40.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,,,legal_documentation,5.0,Si,36-50,Colombia,4,True,3.0
+ac776a91e1b9,Hombre,27.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+aca214bbd428,Mujer,20.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+acb3b8186493,Mujer,36.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,3,True,0.0
+acf5c6560459,Hombre,32.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,Colombia,1,True,3.0
+ad0d0436a635,Hombre,29.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,employment,0.0,No,18-35,Colombia,1,True,2.0
+ad2009457cac,Hombre,1.0,unreliable_sub18,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,legal_documentation,0.0,Si,0-17,Colombia,10,True,3.0
+ad94b6ca4670,Mujer,42.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,employment,0.0,Si,36-50,Colombia,2,True,0.0
+adc62f73647f,Mujer,43.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,,,legal_documentation,1.0,Si,36-50,Colombia,1,True,3.0
+adcc6e0b89df,Hombre,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,journey_information,0.0,No,18-35,Venezuela,5,True,0.0
+ae274c7b9001,Mujer,23.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,No,18-35,Colombia,1,True,0.0
+ae3786c10d54,Mujer,30.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+aee16c067335,Hombre,23.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,4.0,No,18-35,Colombia,5,True,1.0
+af0e5c149be0,Hombre,45.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,3,True,0.0
+af2bff13e52d,Mujer,25.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Venezuela,2,True,2.0
+af3bc59a1828,Hombre,51.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,4,True,3.0
+af73974dfb5f,Mujer,36.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+afd7d41bb0db,Mujer,30.0,ok,Cali,Valle del Cauca,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+afe7c6a18d07,Mujer,57.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,50 and above,Colombia,4,True,0.0
+b094ff31751a,Mujer,28.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,employment,0.0,Si,18-35,Colombia,4,True,2.0
+b0e5890f08d5,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,services,0.0,Si,18-35,Colombia,2,True,0.0
+b141a6d1398e,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,3.0
+b1c6ff87f7cd,Mujer,19.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+b214fc588e5a,Hombre,23.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,4,True,3.0
+b2273e7bc4a0,Hombre,32.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,1.0
+b25d4c10e8d8,Mujer,37.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,1,True,2.0
+b2635e9a6a7f,Mujer,51.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+b2a81bc4bdcf,Hombre,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,3,True,3.0
+b2b053c989b4,Mujer,26.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,3.0,No,18-35,Colombia,6,True,0.0
+b2e0b64be27c,Hombre,54.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,50 and above,Colombia,1,True,2.0
+b307cd1e0085,Mujer,28.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+b3c0e6b6e9a1,Hombre,40.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,1.0
+b3c878da29b3,Mujer,33.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,8.0,Si,18-35,Colombia,16,True,3.0
+b411ca13f4a1,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Venezuela,2,True,1.0
+b4ee5ceb484c,Hombre,28.0,ok,Riohacha,La Guajira,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,2.0
+b5f02b72f3e0,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,6,True,3.0
+b6447f6aca25,Mujer,52.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,No,50 and above,Colombia,1,True,3.0
+b664096fd396,Mujer,40.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,,Si,36-50,Colombia,0,False,
+b6711f708f82,Mujer,1.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Entre 3 meses y 1 año,2,Más de 1 año,4.0,legal_documentation,1.0,No,0-17,Colombia,4,True,0.0
+b6aec3dd7f39,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,legal_documentation,3.0,No,18-35,Colombia,3,True,3.0
+b71b48b68419,Prefiero no responder,53.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,50 and above,Colombia,4,True,0.0
+b742052b3783,Mujer,26.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,4,True,3.0
+b7d2163f0f3d,Hombre,46.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,humanitarian_assistance,2.0,Si,36-50,Venezuela,12,True,0.0
+b7ed444bfe49,Mujer,23.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+b810be78aa76,Hombre,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,6,True,3.0
+b8f4fe31551a,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,2,True,2.0
+b8f629c969bb,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,services,4.0,No,36-50,Colombia,6,True,3.0
+b94a953eb128,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Venezuela,2,True,3.0
+b9f74543e0a3,Hombre,19.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,2,True,1.0
+ba65623de66c,Mujer,23.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Venezuela,3,True,2.0
+bae2bd10c40f,Mujer,31.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,4.0,Si,18-35,,5,True,3.0
+baeaf1552f27,Mujer,43.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+bb33b846c2c5,Hombre,27.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,5,True,3.0
+bb994c5bd396,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,6.0,Si,36-50,Colombia,11,True,3.0
+bc1dee482f04,Mujer,29.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,,,organization_search,4.0,Si,18-35,Colombia,4,True,0.0
+bc23c504be66,Mujer,50.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,0.0,Si,36-50,Colombia,1,True,1.0
+bcb32a25466f,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,1,True,2.0
+bd3834c92d2b,Mujer,54.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,50 and above,Colombia,4,True,3.0
+bd72935f5518,Mujer,33.0,ok,Maicao,La Guajira,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,1,True,3.0
+bdc0d2b7501c,Mujer,45.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Argentina,4,True,3.0
+bdc7e2e1dce1,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,0.0,No,36-50,Colombia,2,True,0.0
+be1030057619,Mujer,42.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Venezuela,1,True,2.0
+be2290c9b620,Mujer,30.0,ok,Ipiales,Nariño,Venezuela,Entre 1 a 5 años,3,,,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,0.0
+bea69498fbd0,Mujer,1.0,unreliable_sub18,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,2.0,Si,0-17,Colombia,4,True,0.0
+bebf0fad32f7,Mujer,28.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,6,True,0.0
+bef4069fd2da,Mujer,25.0,ok,Bogotá,Bogotá,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,2.0,Si,18-35,Colombia,5,True,0.0
+bef69be61162,Hombre,46.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,3,True,1.0
+befd38dd27f0,Mujer,26.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,4.0,Si,18-35,Colombia,4,True,3.0
+bf11ef5edebb,Mujer,52.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,50 and above,Colombia,8,True,3.0
+bf22bd88e84f,Mujer,26.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,journey_information,1.0,No,18-35,Colombia,1,True,2.0
+bf5b084d5edd,Mujer,58.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,,,unclassified,,Si,50 and above,Venezuela,0,False,
+c07a41679f4b,Mujer,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,No,18-35,Colombia,2,True,0.0
+c0c65ce10f8a,Mujer,28.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,2.0
+c0ebc8b6e977,Mujer,30.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+c102a05bc7bd,Mujer,33.0,ok,Otra,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,6,True,0.0
+c17649e72675,Mujer,45.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,unclassified,0.0,Si,36-50,Venezuela,0,False,
+c1c4a8254e3e,Mujer,49.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,journey_information,1.0,Si,36-50,Colombia,1,True,1.0
+c1d4b4c60b81,Mujer,27.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,1.0
+c24b23e10ab0,Mujer,19.0,ok,Otra,,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,legal_documentation,3.0,Si,18-35,,3,True,3.0
+c30ddc5d3f63,Hombre,39.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,Si,36-50,Colombia,4,True,1.0
+c32ff785b9e9,Mujer,19.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,United States,1,True,2.0
+c336a1971655,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,2.0,Si,36-50,Colombia,1,True,2.0
+c37c0528b4bd,Hombre,23.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+c4008a395ed9,Mujer,22.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,4,True,3.0
+c494e85241dd,Mujer,30.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,,0,False,
+c4b3d829b70c,Mujer,38.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,6.0,Si,36-50,Colombia,9,True,3.0
+c4d5bca077ba,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+c51d4492a83b,Mujer,28.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,1.0
+c57891ad82ed,Mujer,25.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,6.0,Si,18-35,Colombia,9,True,3.0
+c5850b168b1b,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,journey_information,0.0,Si,18-35,Venezuela,1,True,2.0
+c5a3d211e7ae,Mujer,48.0,ok,Santa Marta,Magdalena,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,0.0,No,36-50,Colombia,3,True,3.0
+c5ab76d9c28f,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,2,True,0.0
+c5e71c53cc98,Hombre,23.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,,No,18-35,Colombia,0,False,
+c6eedaa8be95,Prefiero no responder,33.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,4.0,Si,18-35,,4,True,3.0
+c70fc546cae1,Mujer,33.0,ok,Otra,Atlántico,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,Si,18-35,Colombia,11,True,3.0
+c779e342fd14,Mujer,37.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,3.0
+c7ac43e9ee49,Mujer,23.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,No,18-35,Colombia,1,True,3.0
+c802a23c8e42,Mujer,26.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,6,True,2.0
+c821037c2495,Mujer,37.0,ok,Barranquilla,Atlántico,Soy Colombovenezolana,Entre 1 a 5 años,3,Más de 1 año,4.0,journey_information,1.0,No,36-50,Colombia,1,True,0.0
+c873b5d50419,Mujer,39.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Entre 1 y 3 meses,1.0,humanitarian_assistance,0.0,Si,36-50,Colombia,3,True,2.0
+c87ec7e92f39,Hombre,45.0,ok,Medellín,Antioquia,Colombia,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,employment,1.0,No,36-50,Colombia,8,True,3.0
+c91427640882,Mujer,43.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,,4,True,3.0
+c91439ec4b27,Mujer,18.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+c9ea75e2113a,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,2,True,2.0
+c9ebcba1ba34,Hombre,28.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,No,18-35,Colombia,1,True,2.0
+ca554e8748d9,Hombre,30.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,3.0
+ca80d27637a1,Hombre,21.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,4.0,No,18-35,,6,True,3.0
+cafa8a84785e,Hombre,26.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,humanitarian_assistance,4.0,No,,Colombia,4,True,0.0
+cb06ed18a45f,Hombre,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+cb4ac043c9a2,Mujer,33.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,,,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,0.0
+cb52036d2ba0,Mujer,24.0,ok,Otra,,Argentina,Entre 1 a 3 meses,1,Entre 4 y 6 meses,2.0,legal_documentation,2.0,No,18-35,Argentina,3,True,3.0
+cb75e0242283,Hombre,41.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,36-50,Colombia,1,True,2.0
+cc1f59f41f51,Mujer,41.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,3.0,Si,36-50,Colombia,5,True,3.0
+cc350246cf6e,Mujer,54.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Venezuela,0,False,
+cc43888d2b0f,Mujer,23.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,5.0,Si,18-35,Colombia,10,True,3.0
+cc44be011fc8,Mujer,24.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+cc831ab48d9d,Hombre,35.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,5.0,No,18-35,Colombia,11,True,3.0
+ccc7d41b56b4,Mujer,31.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,United States,0,False,
+cd237f294dba,Hombre,37.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,1.0,Si,36-50,Colombia,1,True,2.0
+cd29ce6cd432,Hombre,38.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,1.0
+cd5c01dd37cb,Mujer,62.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Más de 1 año,4.0,organization_search,2.0,Si,50 and above,Colombia,3,True,0.0
+cd8f0a22aab9,Mujer,22.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,5.0,Si,18-35,Colombia,6,True,1.0
+ce9e71da80de,Mujer,34.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,3.0,Si,18-35,Colombia,2,True,3.0
+cf027211d091,Mujer,36.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,2.0,Si,36-50,Colombia,2,True,0.0
+cf1e2d9e5c95,Mujer,22.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,11.0,Si,18-35,Colombia,14,True,0.0
+cf7ef4f07578,Mujer,55.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,Colombia,2,True,1.0
+cfc17091b6cf,Hombre,60.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,50 and above,Colombia,4,True,3.0
+cfe952f9994f,Mujer,44.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,4,True,3.0
+d0bceaecaaae,Mujer,37.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,3,True,3.0
+d0d71c3f7dc1,Hombre,32.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,services,0.0,Si,18-35,Colombia,1,True,2.0
+d160747fc117,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,8,True,3.0
+d1708ab4ac5b,Mujer,28.0,ok,Maicao,La Guajira,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,employment,1.0,Si,18-35,Colombia,4,True,2.0
+d17355b0878f,Mujer,54.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,50 and above,Venezuela,6,True,0.0
+d1907c132530,Mujer,50.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,50 and above,Colombia,1,True,2.0
+d1939489a003,Mujer,33.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,18-35,Colombia,2,True,0.0
+d198e5adc768,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+d1c4e8d8c4d7,Mujer,34.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,5,True,0.0
+d1ca95b614c6,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+d1cdd2427eda,Hombre,27.0,ok,Otra,,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,4,True,3.0
+d2b935343ccf,Hombre,33.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,1,True,1.0
+d3318d268aa5,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+d345c9071887,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,protection,3.0,No,36-50,Colombia,3,True,3.0
+d34943bfdf8b,Hombre,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,2.0,No,18-35,Colombia,2,True,1.0
+d3864482b1cc,Mujer,49.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+d395c2b6bb31,Mujer,61.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,1.0,No,50 and above,Venezuela,1,True,2.0
+d3b7d49f9133,Mujer,26.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,humanitarian_assistance,2.0,Si,18-35,Colombia,3,True,0.0
+d3ddd0715e63,Mujer,20.0,ok,Cúcuta,Norte de Santander,Cuba,Menos de 1 mes,0,Menos de 1 mes,0.0,unclassified,0.0,No,18-35,Colombia,0,False,
+d40966e0b7a4,Mujer,39.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,1.0,Si,36-50,Colombia,1,True,1.0
+d40c929ddf9e,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 1 y 3 meses,1.0,legal_documentation,3.0,No,18-35,Colombia,4,True,3.0
+d4b0a5904697,Hombre,28.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,6,True,1.0
+d4f5ff676133,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,2,True,3.0
+d502ce7c5ddb,Mujer,39.0,ok,Medellín,Antioquia,Peru,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+d665167a9732,Mujer,45.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,3,True,0.0
+d6dc83117e62,Mujer,33.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Argentina,0,False,
+d6f1371a11b5,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,36-50,Colombia,3,True,3.0
+d70599256661,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,organization_search,2.0,Si,18-35,Colombia,4,True,1.0
+d751422bce52,Mujer,25.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,6,True,3.0
+d78b203a7cef,Hombre,32.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,18-35,Colombia,4,True,3.0
+d7dd07913041,Mujer,47.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+d81df2cad7fc,Mujer,24.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+d881a73f0891,Mujer,22.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,3.0,Si,18-35,Colombia,9,True,0.0
+d886bb9194e9,Hombre,55.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,50 and above,Colombia,4,True,3.0
+d8b710015e75,Mujer,40.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,1.0,Si,,Venezuela,1,True,0.0
+d90b2bb09217,Mujer,49.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,4,True,3.0
+da142d4a5117,Hombre,24.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,,,protection,1.0,No,18-35,Colombia,1,True,3.0
+da7d3bcb70fb,Hombre,28.0,ok,Otra,,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,unclassified,0.0,No,18-35,Chile,0,False,
+dad67fee72e3,Mujer,31.0,ok,Riohacha,La Guajira,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,0.0,Si,18-35,Colombia,4,True,0.0
+daef5948e6af,Mujer,36.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,,,services,1.0,Si,36-50,Colombia,5,True,0.0
+db2f6c12f2ac,Mujer,41.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,1.0,Si,36-50,Colombia,3,True,1.0
+db64856f9ace,Mujer,48.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,1,True,2.0
+db6e189427d5,Hombre,42.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,0,False,
+dba0aa969b39,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,50 and above,Colombia,0,False,
+dbe2e350f093,Hombre,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,No,18-35,Colombia,0,False,
+dbe581eaf411,Mujer,33.0,ok,Necoclí,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+dc24421b28d3,Mujer,40.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,legal_documentation,4.0,Si,36-50,Colombia,4,True,3.0
+dc32814ac7fb,Mujer,51.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,No,50 and above,United States,1,True,3.0
+dcc5db21a0ed,Mujer,63.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,1.0,No,50 and above,Colombia,1,True,3.0
+dd16a0f184e1,Hombre,46.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,6.0,Si,36-50,Colombia,17,True,0.0
+de1ded63645a,Mujer,36.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,,,journey_information,3.0,Si,36-50,Venezuela,2,True,0.0
+de4012f900cf,Hombre,28.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,,,humanitarian_assistance,1.0,Si,18-35,Colombia,2,True,0.0
+de6086eb2be3,Hombre,43.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,3,True,3.0
+def3e194afc8,Mujer,32.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,unclassified,0.0,No,18-35,United States,0,False,
+def53b6a796b,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+df07b2341410,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,4,True,1.0
+df79cf3d1d84,Hombre,30.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,No,18-35,Colombia,1,True,1.0
+df97388b8b59,Mujer,22.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+dfed16440fa7,Mujer,40.0,ok,Riohacha,La Guajira,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,3.0,Si,36-50,Colombia,5,True,0.0
+e0631c168fc6,Mujer,28.0,ok,Riohacha,La Guajira,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,2.0,Si,18-35,Colombia,3,True,0.0
+e06423c70b3e,Hombre,22.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,Si,18-35,Colombia,7,True,0.0
+e0759bd92787,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,5,True,0.0
+e0938d4ee792,Mujer,35.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,,,legal_documentation,1.0,Si,18-35,Colombia,1,True,1.0
+e1ada0b3526e,Mujer,25.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,3.0,Si,18-35,Colombia,5,True,1.0
+e1d352c8b6dc,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,7,True,0.0
+e1e54a1ff1f5,Mujer,30.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Entre 4 y 6 meses,2.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,2.0
+e1e56ec111f7,Mujer,38.0,ok,Ipiales,Nariño,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,humanitarian_assistance,1.0,Si,36-50,Colombia,10,True,0.0
+e1f13dfde3bc,Mujer,42.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,2.0,Si,36-50,Colombia,6,True,0.0
+e23546b81515,Mujer,33.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,employment,2.0,Si,18-35,Colombia,2,True,1.0
+e253e90e463e,Hombre,7.0,unreliable_sub18,Otra,,Panamá,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,0-17,Colombia,2,True,3.0
+e25d61d034aa,Hombre,25.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,,,legal_documentation,3.0,Si,18-35,Colombia,6,True,1.0
+e2c9eb5825cb,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,5,True,3.0
+e322ca23cf78,Mujer,51.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,50 and above,Colombia,1,True,2.0
+e3ae191d4fd0,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,2.0,Si,18-35,Colombia,3,True,1.0
+e4bb3d69fa67,Mujer,21.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,11,True,1.0
+e53901a426b6,Mujer,35.0,ok,Bogotá,Bogotá,Costa Rica,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+e54fd550f83a,Mujer,28.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,4.0,Si,18-35,Colombia,4,True,0.0
+e5cd8f93170c,Mujer,28.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,3.0,Si,18-35,Colombia,2,True,1.0
+e5edc9cb3a93,Mujer,15.0,unreliable_sub18,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,5.0,Si,0-17,Colombia,9,True,3.0
+e6181d811dab,Hombre,47.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,0.0,No,36-50,Colombia,2,True,2.0
+e63ad6b19e6a,Mujer,23.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,humanitarian_assistance,2.0,Si,18-35,Colombia,6,True,0.0
+e685b0c1941c,Mujer,26.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,18-35,Colombia,5,True,3.0
+e6f409ef9b75,Mujer,29.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,2,True,0.0
+e719d43df055,Soy una mujer trans,39.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,1.0,No,36-50,Colombia,2,True,0.0
+e7a36fffd249,Mujer,21.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,2.0,Si,18-35,Colombia,2,True,0.0
+e7e6471d8d08,Mujer,76.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,50 and above,Colombia,2,True,0.0
+e7f80bee45fd,Mujer,27.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,protection,0.0,Si,18-35,Colombia,1,True,2.0
+e80a36af12e5,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,3.0
+e82096d4e3bc,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,No,18-35,Colombia,4,True,0.0
+e846935965c0,Hombre,21.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,5.0,No,18-35,Colombia,5,True,3.0
+e86a9cdef117,Mujer,34.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,0.0,No,18-35,Colombia,2,True,3.0
+e8cd996ab9b0,Hombre,51.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,No,50 and above,Colombia,2,True,1.0
+e8d16804b787,Mujer,24.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,18-35,Colombia,2,True,1.0
+e900ff1f2554,Mujer,21.0,ok,Ipiales,Nariño,Venezuela,Entre 3 meses y 1 año,2,Menos de 1 mes,0.0,humanitarian_assistance,0.0,Si,18-35,Venezuela,2,True,2.0
+e908b895cfdc,Mujer,40.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,3.0,Si,36-50,Colombia,3,True,0.0
+e97c2a96e445,Hombre,37.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,36-50,Colombia,0,False,
+e9900c755cc8,Mujer,53.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,6.0,No,50 and above,Colombia,5,True,3.0
+e9a672df4997,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,No,50 and above,Colombia,3,True,0.0
+e9c7c306fde3,Mujer,38.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,1,True,3.0
+ea19a9b97add,Hombre,10.0,unreliable_sub18,Otra,,Ecuador,Hace más de 5 años,4,,,services,3.0,Si,0-17,Colombia,7,True,1.0
+ea632a43ed21,Hombre,52.0,ok,Soacha,Cundinamarca,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,50 and above,Colombia,2,True,2.0
+eb1740169607,Mujer,30.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+eb396272d9a4,Mujer,64.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,1.0,No,50 and above,Colombia,2,True,3.0
+eb4807a8774d,Mujer,41.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,2,True,3.0
+eba15300ac71,Mujer,43.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,4.0,Si,36-50,Colombia,6,True,1.0
+ebb0abd50de4,Mujer,24.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,2.0,Si,18-35,Colombia,2,True,2.0
+ebd77a80a358,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,1.0,No,36-50,Venezuela,3,True,3.0
+ebf63a1e9924,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,4,True,3.0
+ec0808a120ca,Hombre,30.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,8.0,Si,18-35,Venezuela,13,True,0.0
+ec1a34a77cca,Mujer,46.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,3,True,0.0
+ec5575cda85d,Mujer,47.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,2,True,1.0
+ecbabc3cee0c,Mujer,38.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,protection,0.0,Si,36-50,Colombia,1,True,0.0
+ecc635d4b0e2,Mujer,25.0,ok,Ipiales,Nariño,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,humanitarian_assistance,1.0,Si,18-35,Venezuela,2,True,0.0
+ecfe90bb1876,Mujer,26.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Entre 1 y 3 meses,1.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+ed4f4f6f3045,Mujer,44.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 7 meses y 1 año,3.0,services,1.0,Si,36-50,Colombia,2,True,1.0
+ed5f7c488f83,Mujer,1.0,unreliable_sub18,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,0-17,Argentina,2,True,1.0
+ede539a89ef4,Mujer,32.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+edec792c9b50,Mujer,28.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,0.0
+ee9d47c348b7,Mujer,1.0,unreliable_sub18,Otra,,Venezuela,Menos de 1 mes,0,,,humanitarian_assistance,2.0,Si,0-17,Colombia,2,True,0.0
+eecee4198c0f,Hombre,39.0,ok,Cali,Valle del Cauca,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,legal_documentation,0.0,No,36-50,Colombia,5,True,3.0
+ef060dfe6b88,Mujer,33.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,organization_search,1.0,Si,18-35,Colombia,1,True,2.0
+ef3574401e61,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,2,True,2.0
+ef6587cba0cf,Mujer,57.0,ok,Bucaramanga,Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,0.0,No,50 and above,Colombia,2,True,0.0
+ef9f4e4bdb30,Mujer,28.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 4 y 6 meses,2.0,legal_documentation,4.0,Si,18-35,Colombia,5,True,1.0
+efa2a0117317,Mujer,46.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,8,True,1.0
+efbbf80fd44b,Mujer,24.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+f03a13d8517f,Hombre,36.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,2.0,Si,36-50,Colombia,2,True,1.0
+f088ab89ff01,Mujer,25.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Menos de 1 mes,0.0,legal_documentation,3.0,Si,18-35,Colombia,12,True,3.0
+f09b02668c99,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Colombia,1,True,3.0
+f09b18a53d8c,Mujer,29.0,ok,Bucaramanga,Santander,Venezuela,Hace más de 5 años,4,,,humanitarian_assistance,2.0,Si,18-35,Colombia,7,True,0.0
+f0dbcdf1f67e,Hombre,20.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,No,18-35,Colombia,2,True,3.0
+f11283a6845d,Hombre,49.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,29.0,Si,36-50,Colombia,30,True,0.0
+f14f1e38bd33,Mujer,53.0,ok,Bogotá,Bogotá,Nicaragua,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,journey_information,0.0,No,50 and above,,1,True,2.0
+f17def181492,Mujer,23.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,5.0,Si,18-35,Colombia,5,True,3.0
+f19346cfa019,Mujer,36.0,ok,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,Si,36-50,Colombia,3,True,3.0
+f196f2a726ed,Mujer,22.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,2.0,Si,18-35,Venezuela,3,True,0.0
+f1aa82c69e44,Mujer,21.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+f21321abd593,Mujer,36.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,4,True,0.0
+f2540154103f,Mujer,49.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,36-50,Colombia,1,True,0.0
+f2d9ee2f480b,Mujer,36.0,ok,Otra,,Venezuela,Menos de 1 mes,0,Entre 1 y 3 meses,1.0,humanitarian_assistance,3.0,Si,36-50,Colombia,5,True,0.0
+f35294957acf,Prefiero no responder,26.0,ok,Cali,Valle del Cauca,United States,Menos de 1 mes,0,Más de 1 año,4.0,unclassified,0.0,No,18-35,,0,False,
+f3a1ba2f693b,Mujer,29.0,ok,Riohacha,La Guajira,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,employment,0.0,Si,18-35,Colombia,1,True,1.0
+f4686af3b986,Mujer,37.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,3,True,3.0
+f480b4f24ed8,Mujer,11.0,unreliable_sub18,Santa Marta,Magdalena,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,No,0-17,Colombia,9,True,0.0
+f483ae131fa8,Mujer,41.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,Si,36-50,Colombia,3,True,1.0
+f4b1d91c8719,Mujer,58.0,ok,Otra,,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,unclassified,0.0,No,50 and above,Colombia,0,False,
+f4ea24417e86,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,3.0,Si,18-35,Colombia,4,True,3.0
+f4f453dc0b6d,Hombre,64.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,1.0,No,50 and above,,1,True,2.0
+f515ff1cdba3,Mujer,42.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Menos de 1 mes,0.0,services,0.0,No,36-50,Venezuela,2,True,0.0
+f551cd0b668e,Mujer,27.0,ok,Riohacha,La Guajira,Venezuela,Hace más de 5 años,4,Entre 1 y 3 meses,1.0,unclassified,0.0,Si,18-35,Venezuela,0,False,
+f5863c04b88e,Mujer,48.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,2,True,2.0
+f5a245a65843,Mujer,24.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,2,True,3.0
+f61075c58c43,Mujer,22.0,ok,Otra,,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,humanitarian_assistance,1.0,Si,18-35,Colombia,1,True,2.0
+f6195c2e45a8,Mujer,29.0,ok,Bogotá,Bogotá,Venezuela,Entre 1 a 3 meses,1,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,6,True,0.0
+f64d330feb5a,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,1.0,Si,36-50,Colombia,4,True,0.0
+f655c3640a9c,Mujer,25.0,ok,Maicao,La Guajira,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,employment,0.0,No,18-35,Colombia,1,True,2.0
+f696796581e3,Hombre,27.0,ok,Cúcuta,Norte de Santander,Noruega,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,No,18-35,Argentina,1,True,0.0
+f69be2a55113,Mujer,22.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,1.0,Si,18-35,Venezuela,6,True,0.0
+f6f7def545ce,Mujer,19.0,ok,Cúcuta,Norte de Santander,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+f6ffa029142b,Mujer,28.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,1,True,2.0
+f77d7d730827,Mujer,39.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,employment,0.0,Si,36-50,Colombia,3,True,0.0
+f7a00d1f924f,Hombre,67.0,ok,Cúcuta,Norte de Santander,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,humanitarian_assistance,2.0,No,50 and above,Colombia,1,True,1.0
+f8915ce811fa,Mujer,35.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+f8a90db52737,Hombre,31.0,ok,Santa Marta,Magdalena,Venezuela,Entre 1 a 3 meses,1,Menos de 1 mes,0.0,legal_documentation,8.0,Si,18-35,Colombia,7,True,3.0
+f8df33a0bed7,Mujer,30.0,ok,Cartagena,Bolívar,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,7,True,0.0
+f8fb272d309f,Mujer,31.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+f90a785a914c,Hombre,32.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,No,18-35,Colombia,1,True,0.0
+f9303dd76a7c,Mujer,32.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+f98279ef0fbb,Hombre,39.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,4,True,3.0
+f9a08781f2e1,Hombre,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,,,legal_documentation,1.0,No,50 and above,Colombia,2,True,3.0
+f9c69cf01445,Mujer,20.0,ok,Cúcuta,Norte de Santander,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,employment,1.0,Si,18-35,Colombia,2,True,0.0
+f9cf071cedbb,Hombre,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,3.0,No,36-50,Colombia,5,True,0.0
+f9d6c94199a5,Mujer,38.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,5,True,0.0
+f9e1e99d614e,Mujer,29.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,Si,18-35,Colombia,1,True,1.0
+fa38dc8de452,Mujer,34.0,ok,Otra,,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+fa43dffe7a35,Mujer,36.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,0.0,Si,36-50,Colombia,1,True,3.0
+fa61f37c486f,Mujer,42.0,ok,Bogotá,Bogotá,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,legal_documentation,2.0,Si,36-50,Colombia,3,True,3.0
+faaca385eab7,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+faf4cb082ebb,Mujer,29.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
+fb0e60c91527,Mujer,28.0,ok,Otra,,Venezuela,Hace más de 5 años,4,,,employment,0.0,Si,18-35,Colombia,1,True,2.0
+fb7dfffdbe45,Mujer,50.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,50 and above,Colombia,4,True,0.0
+fbacd5d9fac6,Mujer,33.0,ok,Otra,,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,legal_documentation,2.0,Si,18-35,Colombia,1,True,2.0
+fc5afa9539ce,Hombre,24.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 3 meses,1,Entre 1 y 3 meses,1.0,legal_documentation,1.0,No,18-35,Colombia,6,True,3.0
+fcf527dbf6de,Mujer,37.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Entre 4 y 6 meses,2.0,humanitarian_assistance,1.0,Si,36-50,Colombia,2,True,0.0
+fd1c4099fa6b,Mujer,31.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,services,1.0,Si,18-35,Colombia,2,True,1.0
+fd66527a6032,Hombre,22.0,ok,Medellín,Antioquia,Venezuela,Menos de 1 mes,0,Menos de 1 mes,0.0,legal_documentation,5.0,No,18-35,Colombia,9,True,3.0
+fe3fb489daaa,Mujer,41.0,ok,Medellín,Antioquia,Venezuela,Entre 1 a 5 años,3,Entre 7 meses y 1 año,3.0,legal_documentation,2.0,No,36-50,Colombia,2,True,3.0
+fe9ae764a26c,Hombre,46.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,services,0.0,No,36-50,Colombia,1,True,2.0
+ff4170cf835e,Hombre,43.0,ok,Medellín,Antioquia,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,36-50,Colombia,2,True,0.0
+ff48f45207bd,Mujer,34.0,ok,Soacha,Cundinamarca,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,0.0,Si,18-35,Colombia,3,True,2.0
+ff9e11e9bb69,Mujer,20.0,ok,Medellín,Antioquia,Venezuela,Entre 3 meses y 1 año,2,Entre 7 meses y 1 año,3.0,legal_documentation,3.0,No,18-35,Colombia,3,True,3.0
+ffd4f038679e,Mujer,26.0,ok,Barranquilla,Atlántico,Venezuela,Entre 1 a 5 años,3,Más de 1 año,4.0,humanitarian_assistance,1.0,Si,18-35,Colombia,3,True,0.0
+ffdf9816cf1f,Mujer,33.0,ok,Barranquilla,Atlántico,Venezuela,Hace más de 5 años,4,Más de 1 año,4.0,unclassified,0.0,Si,18-35,Colombia,0,False,
