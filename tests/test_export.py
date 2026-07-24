@@ -32,3 +32,28 @@ def test_dim_user_one_row_per_user(SD):
 def test_dim_user_no_pii(SD):
     from sami import qa
     assert qa.pii_scan(export.build_dim_user(SD.responses, SD.messages)) == []
+
+
+def test_fact_message_grain_and_join(SD):
+    f = export.build_fact_message(SD.messages)
+    assert len(f) == len(SD.messages)
+    assert f["message_id"].is_unique
+    assert list(f["message_id"]) == list(SD.messages.index)
+    assert f["sentiment_label"].isna().all()   # no sentiment passed
+    assert f["cluster_id"].isna().all()
+
+
+def test_fact_message_sentiment_join(SD):
+    # synthetic sentiment aligned to the messages index
+    sent = pd.DataFrame({"label": ["negative"] * len(SD.messages)}, index=SD.messages.index)
+    f = export.build_fact_message(SD.messages, sentiment=sent)
+    assert (f["sentiment_label"] == "negative").all()
+
+
+def test_fact_meal_rating_num(SD):
+    f = export.build_fact_meal(SD.meal)
+    assert f["user_id"].is_unique
+    assert "rating_num" in f.columns
+    # rating_num is 1-5 or NaN, never a raw string
+    vals = f["rating_num"].dropna().unique()
+    assert set(vals).issubset({1, 2, 3, 4, 5})
