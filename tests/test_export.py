@@ -96,3 +96,38 @@ def test_agg_priority_matrix_no_sentiment(SD):
     assert "category" in pm.columns and "unmet_need" in pm.columns
     assert "unclassified" not in set(pm["category"])   # excluded
     assert (pm["n_axes"] <= 2).all()                    # no sentiment axis
+
+
+def test_nlp_umap_synthetic():
+    XY = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
+    labels = np.array([0, 1, 0])
+    user_ids = ["u1", "u2", "u3"]
+    u = export.build_nlp_umap(XY, labels, user_ids)
+    assert list(u.columns) == ["user_id", "x", "y", "cluster_id"]
+    assert list(u["user_id"]) == user_ids
+    assert u["x"].iloc[1] == 0.3
+
+
+def test_nlp_cluster_terms_synthetic():
+    terms = {0: pd.Series({"cita": 0.9, "pasaporte": 0.7}),
+             1: pd.Series({"trabajo": 0.8})}
+    t = export.build_nlp_cluster_terms(terms)
+    assert set(t.columns) == {"cluster_id", "rank", "term", "weight"}
+    assert t[(t.cluster_id == 0) & (t["rank"] == 0)]["term"].iloc[0] == "cita"
+
+
+def test_nlp_tone_confusion_synthetic():
+    cats = ["negative", "not_negative"]
+    cm = pd.DataFrame([[5, 2], [3, 90]], index=cats, columns=cats)
+    cm.index.name, cm.columns.name = "human", "model"
+    report = {"confusion": cm}
+    c = export.build_nlp_tone_confusion(report)
+    assert set(c.columns) == {"human_label", "model_label", "n"}
+    assert int(c[(c.human_label == "negative") & (c.model_label == "negative")]["n"].iloc[0]) == 5
+    assert c["n"].sum() == 100
+
+
+def test_nlp_emergent_themes(SD):
+    e = export.build_nlp_emergent_themes(SD.messages)
+    assert set(e.columns) == {"theme", "slug", "n_messages", "n_users"}
+    assert (e["n_users"] >= 0).all()

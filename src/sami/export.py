@@ -138,3 +138,54 @@ def build_agg_priority_matrix(messages, fact_meal, dim_user,
         on="user_id", how="left")
     pm = metrics.priority_matrix_frame(msgs_pm, meal_cat, neg_by_category=neg_by_cat)
     return pm.reset_index().rename(columns={"dominant_category": "category"})
+
+
+def build_dim_cluster(prof: pd.DataFrame, names: dict) -> pd.DataFrame:
+    d = prof.reset_index().rename(columns={"archetype": "cluster_id"})
+    d["name"] = d["cluster_id"].map(names)
+    cols = ["cluster_id", "name", "n_users", "n_messages", "median_age", "top_categories"]
+    return d[[c for c in cols if c in d.columns]]
+
+
+def build_nlp_umap(XY, labels, user_ids) -> pd.DataFrame:
+    return pd.DataFrame({"user_id": list(user_ids), "x": XY[:, 0], "y": XY[:, 1],
+                         "cluster_id": list(labels)})
+
+
+def build_nlp_cluster_terms(terms: dict) -> pd.DataFrame:
+    rows = [{"cluster_id": cid, "rank": rank, "term": term, "weight": float(w)}
+            for cid, s in terms.items()
+            for rank, (term, w) in enumerate(s.items())]
+    return pd.DataFrame(rows, columns=["cluster_id", "rank", "term", "weight"])
+
+
+def build_nlp_emergent_themes(messages: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for slug, pat in taxonomy.CANDIDATE_INTENT_PROBES.items():
+        hit = messages["message"].str.contains(pat, case=False, regex=True, na=False)
+        rows.append({"theme": PROBE_EN.get(slug, slug), "slug": slug,
+                     "n_messages": int(hit.sum()),
+                     "n_users": int(messages.loc[hit, "user_id"].nunique())})
+    return (pd.DataFrame(rows).sort_values("n_users", ascending=False)
+            .reset_index(drop=True))
+
+
+def build_nlp_tone_confusion(report: dict) -> pd.DataFrame:
+    cm = report["confusion"]
+    long = (cm.reset_index()
+            .melt(id_vars=cm.index.name, var_name=cm.columns.name, value_name="n"))
+    return long.rename(columns={cm.index.name: "human_label",
+                                cm.columns.name: "model_label"})
+
+
+def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
+    rows = []
+    for cid in sorted(msgs_lab["archetype"].unique()):
+        marker = taxonomy.ARCHETYPE_NAMES[cid]["marker"]
+        g = (msgs_lab[(msgs_lab["archetype"] == cid)
+                      & msgs_lab["message"].str.len().between(60, 190)
+                      & msgs_lab["message"].str.contains(marker, case=False, na=False)]
+             .sort_values(["user_id", "seq"], kind="stable"))
+        rows.append({"cluster_id": int(cid), "name": names.get(cid),
+                     "message": g["message"].iloc[0] if len(g) else "—"})
+    return pd.DataFrame(rows)
