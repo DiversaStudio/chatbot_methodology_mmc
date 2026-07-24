@@ -167,3 +167,22 @@ def test_nlp_voices_dash_fallback_when_no_match():
                              "seq": [0], "message": ["corto"]})   # too short, no marker
     v = export.build_nlp_voices(msgs_lab, {cid: "X"})
     assert v.loc[0, "message"] == "—"
+
+
+def test_meta_run_flags():
+    m = export.build_meta_run({"responses_file": "x.xlsx", "checks": [("P1", True)]},
+                              nlp_meta={"tone_gate_passed": False,
+                                        "sentiment_quotable": False, "nlp_included": True})
+    kv = dict(zip(m["key"], m["value"]))
+    assert "checks" not in kv                          # dropped (not scalar)
+    assert kv["tone_gate_passed"] == "False"
+    assert kv["sentiment_quotable"] == "False"
+
+
+def test_parity_check_all_match(SD):
+    du = export.build_dim_user(SD.responses, SD.messages)
+    fmsg = export.build_fact_message(SD.messages)
+    fmeal = export.build_fact_meal(SD.meal)
+    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
+    assert set(p.columns) == {"metric", "exported_value", "reconciliation_value", "match"}
+    assert p["match"].all(), p[~p["match"]]
