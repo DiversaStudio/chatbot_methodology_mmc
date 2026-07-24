@@ -155,6 +155,10 @@ Cols: `category, messages, users, pct_repeat, mean_rating, meal_n,
 rating_is_fallback, pct_negative, n_axes, unmet_need`. Feeds NB2 §6 priority
 matrix (volume × unmet-need × tone).
 
+> `pct_negative` here is a **tone-directional** score input (one z-scored axis of
+> `unmet_need`), not a publishable rate — the same κ=0.604 suppression applies.
+> Use it to rank categories, never as a headline percentage.
+
 *Discrepancy: the design spec's placeholder column list
 (`category, volume, unmet_score, tone_score`) doesn't match the shipped
 columns, which mirror `metrics.priority_matrix_frame`'s actual (richer)

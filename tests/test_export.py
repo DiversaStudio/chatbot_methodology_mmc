@@ -206,3 +206,15 @@ def test_write_all_aborts_on_pii(tmp_path):
     with pytest.raises(ValueError, match="PII"):
         export.write_all(tmp_path, {"bad": bad})
     assert not (tmp_path / "bad.csv").exists()          # nothing partially written
+
+
+def test_agg_weekly_rating(SD):
+    fm = export.build_fact_meal(SD.meal)
+    w = export.build_agg_weekly_rating(fm)
+    assert set(w.columns) == {"week", "mean_rating", "n"}
+    # resample("W") emits a row per week in range — empty weeks have n=0, mean NaN.
+    assert w["mean_rating"].dropna().between(1, 5).all()
+    assert (w["n"] >= 0).all()
+    # counts sum to the rated-and-dated MEAL responses
+    rated = fm.dropna(subset=["ts", "rating_num"])
+    assert int(w["n"].sum()) == len(rated)

@@ -133,12 +133,12 @@ CANDIDATE_INTENT_SLUGS: list[str] = [
 # They exist to corroborate, in users' own words, the needs the c-TF-IDF cluster terms
 # surfaced — and to let a hypothesised need be honestly reported as ABSENT.
 CANDIDATE_INTENT_PROBES: dict[str, str] = {
-    "transport_logistics": r"\b(pasaje|terminal|transporte|bus|viajar|ruta|traslado|trocha)\b",
-    "entrepreneurship": r"\b(emprendimiento|emprender|negocio propio|capital semilla|microcr[eé]dito)\b",
-    "procedure_troubleshooting": r"\b(rumv|biom[eé]trico|no me aparece|no carga|verificar|duplicado)\b",
-    "human_handoff": r"(hablar con (un|una|alguien|alguno|persona)|asesor|un humano|una persona real|comunicarme con)",
-    "fraud_protection": r"\b(estafa|estafaron|fraude|enga[nñ]o|me robaron)\b",
-    "connectivity": r"\b(recarga|datos m[oó]viles|saldo|internet|wifi)\b",
+    "transport_logistics": r"\b(?:pasaje|terminal|transporte|bus|viajar|ruta|traslado|trocha)\b",
+    "entrepreneurship": r"\b(?:emprendimiento|emprender|negocio propio|capital semilla|microcr[eé]dito)\b",
+    "procedure_troubleshooting": r"\b(?:rumv|biom[eé]trico|no me aparece|no carga|verificar|duplicado)\b",
+    "human_handoff": r"(?:hablar con (?:un|una|alguien|alguno|persona)|asesor|un humano|una persona real|comunicarme con)",
+    "fraud_protection": r"\b(?:estafa|estafaron|fraude|enga[nñ]o|me robaron)\b",
+    "connectivity": r"\b(?:recarga|datos m[oó]viles|saldo|internet|wifi)\b",
 }
 
 # Named archetypes for the k=4 solution at random_state=0 (NB3 §2). Cluster ids are
