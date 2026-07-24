@@ -1,0 +1,6 @@
+stage_order,stage,n,conversion_from_prev
+0,arrived,917,
+1,sent ≥1 message,800,0.8724100327153762
+2,engaged (≥2 messages),604,0.755
+3,power user (≥p90 messages),95,0.15728476821192053
+4,"surveyed (MEAL, separate cohort)",69,

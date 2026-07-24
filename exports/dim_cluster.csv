@@ -1,0 +1,5 @@
+cluster_id,name,n_users,n_messages,median_age,top_categories
+3,Regularising from scratch,260,1055,33.0,"legal_documentation (92%), employment (3%)"
+0,Urgent humanitarian need,251,1278,34.0,"humanitarian_assistance (50%), legal_documentation (16%)"
+2,Building a livelihood,160,249,32.0,"employment (32%), humanitarian_assistance (29%)"
+1,Stuck mid-procedure,129,409,32.0,"legal_documentation (78%), services (15%)"
