@@ -5,6 +5,9 @@ function that touches disk. `run_pipeline.py` is the sole production caller. See
 docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md.
 """
 from __future__ import annotations
+import hashlib
+from pathlib import Path
+
 import pandas as pd
 
 from . import metrics, taxonomy, qa
@@ -222,3 +225,24 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.
                      "reconciliation_value": rv,
                      "match": rv is not None and int(rv) == int(val)})
     return pd.DataFrame(rows)
+
+
+def write_all(out_dir, tables: dict) -> pd.DataFrame:
+    """PII-scan every frame, then write each as CSV + a _manifest.csv. Scans run
+    before any write, so a violation leaves the directory untouched."""
+    out = Path(out_dir)
+    for name, frame in tables.items():
+        hits = qa.pii_scan(frame)
+        if hits:
+            raise ValueError(f"PII in table '{name}': {hits[:3]}")
+    out.mkdir(parents=True, exist_ok=True)
+    manifest = []
+    for name, frame in tables.items():
+        path = out / f"{name}.csv"
+        frame.to_csv(path, index=False, encoding="utf-8")
+        sha1 = hashlib.sha1(path.read_bytes()).hexdigest()
+        manifest.append({"table": name, "rows": len(frame),
+                         "columns": ",".join(map(str, frame.columns)), "sha1": sha1})
+    man = pd.DataFrame(manifest).sort_values("table").reset_index(drop=True)
+    man.to_csv(out / "_manifest.csv", index=False, encoding="utf-8")
+    return man
