@@ -6,7 +6,10 @@ import pandas as pd
 
 from . import config
 
-_PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\d{7,}")]
+# \b anchors keep this from matching a digit run glued to underscores/letters
+# (e.g. a "..._1783087815.xlsx" source-file id) while still catching real
+# phone numbers, which are always set off by a delimiter (+, space, :, etc.).
+_PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\b\d{7,}\b")]
 
 _CRITICAL = {
     "responses": ["Name", "Timestamp", "City", "Age", "Messages", "Chat_summary"],
@@ -29,6 +32,12 @@ def pii_scan(obj) -> list[dict]:
     violations = []
     for col in df.columns:
         if str(col) == "user_id":
+            continue
+        # Only string/object columns can hold raw phone numbers or "whatsapp:"
+        # runs. Numeric (int/float/bool) columns are legitimate metrics —
+        # str()'ing a float routinely produces 7+ consecutive decimal digits
+        # (e.g. a ratio like 0.8724100327) that is not PII.
+        if pd.api.types.is_numeric_dtype(df[col]) or pd.api.types.is_bool_dtype(df[col]):
             continue
         for val in df[col].astype(str).fillna(""):
             if any(p.search(val) for p in _PII_PATTERNS):
