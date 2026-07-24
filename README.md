@@ -10,7 +10,7 @@ This repo holds the data analysis work behind the chatbot's evaluation and metho
 - [`notebooks/02_analisis_general_comportamiento_necesidades.ipynb`](notebooks/02_analisis_general_comportamiento_necesidades.ipynb) — **Notebook 2 · Behaviour, needs & satisfaction.** Everything investigative that is *not* NLP: variable cross-cuts (gender × nationality, engagement by city, age × destination), usage and MEAL satisfaction over time, the most-requested needs and where/when demand concentrates, needs by the original MMC category, and depth-of-use / abandonment.
 - [`notebooks/03_nlp_clustering_usuario_y_sentimiento.ipynb`](notebooks/03_nlp_clustering_usuario_y_sentimiento.ipynb) — **Notebook 3 · Emergent themes & emotion (NLP).** Discovers the semantic structure of the messages automatically and contrasts it with the official 7-category taxonomy: KMeans over sentence embeddings (primary) and lemmatized TF-IDF (comparison), the cluster-vs-taxonomy agreement, the **emergent themes** the taxonomy misses, PCA-tinted 2D/3D embedding maps, qualitative voices (word cloud + thematic read), per-message **sentiment** as an unsolicited distress signal, and a closing geographic synthesis of need + tone by city. The NLP runs **inline on the GPU** (CUDA; automatic CPU fallback) and is not cached; it downloads the embedding/sentiment models and lemmatizes with spaCy's Spanish `es_core_news_sm` on first run.
 
-Source data lives in [`data_&_docs/`](data_&_docs/) (Excel exports from the chatbot platform and Kobo, plus project documentation). The three notebooks are **self-contained** — each inlines its own loaders and brand palette and does not import from [`src/`](src/). The `src/` modules (`mmc_data`, `mmc_entities`, `mmc_text`, `palette`) and the earlier exploratory notebooks in [`notebooks/arxiv/`](notebooks/arxiv/) are retained for reference.
+Source data lives in [`data_&_docs/`](data_&_docs/) (Excel exports from the chatbot platform and Kobo, plus project documentation). The three notebooks import their shared loaders, cleaning, metrics, and NLP logic from the [`src/sami/`](src/sami/) package (see the export-layer section below for the CSV outputs built on top of it). Earlier, fully self-contained exploratory notebooks are retained for reference in [`notebooks/arxiv/`](notebooks/arxiv/).
 
 ## Getting Started
 
@@ -49,6 +49,39 @@ pip install -r requirements.txt
 
 `requirements.txt` is kept in sync with the runtime dependencies in `pyproject.toml`. `torch` is installed in a separate step so you can choose the GPU or CPU build — installing it before `requirements.txt` means pip keeps the wheel you picked. The `geopandas` / `shapely` / `cartopy` / `contextily` geospatial stack installs from prebuilt wheels on Windows, macOS, and Linux, so no system GEOS/PROJ libraries are required.
 
+## Export layer (Power BI)
+
+The project deliverable includes a refreshable Power BI report. `exports/` is
+the **gold layer** it binds to: a set of tidy CSVs (dimensional `dim_*` /
+`fact_*` / `agg_*` / `nlp_*` tables, plus `meta_run` and `parity_check`) from
+which every plot in the three notebooks can be reproduced in Power BI. It is
+generated — never hand-edited — by the "father" script:
+
+```powershell
+.venv/Scripts/python.exe run_pipeline.py            # full run incl. GPU NLP -> all tables
+.venv/Scripts/python.exe run_pipeline.py --skip-nlp  # fast CPU run -> non-NLP tables only
+```
+
+`run_pipeline.py` re-runs the same load/embed/cluster/sentiment pipeline the
+notebooks do (GPU by default, automatic CPU fallback), then writes the tables
+via `src/sami/export.py`, PII-scanning every frame first and refusing to write
+anything if a scan hits. It prints a `parity_check` reconciliation and exits
+non-zero if any metric fails to match, so a bad export never gets committed
+silently.
+
+**Tone is directional-only.** The sentiment model's agreement with the human
+gold labels (κ=0.604) falls below the 0.7 quotability gate, so `meta_run`
+carries `tone_gate_passed=false` / `sentiment_quotable=false`. Sentiment
+signal ships in the exports but must be read as directional, never as a
+published percentage.
+
+`exports/` (the CSVs + `_manifest.csv`) is committed to the repo so the Power
+BI report always has a known-good source to point at. See
+[`exports/_schema.md`](exports/_schema.md) for the full table-by-table
+reference (grain, columns, which notebook plot each table feeds), and
+[`docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md`](docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md)
+for the design rationale.
+
 ## Usage
 
 Run the notebooks with the project's environment, e.g. from VS Code (select the `.venv` kernel) or from the command line:
@@ -64,7 +97,7 @@ If you set up the environment with plain pip + venv (above), activate it first a
 jupyter lab
 ```
 
-Run the notebooks in order (01 → 02 → 03) from the `notebooks/` directory. Each is self-contained — it inlines its own data loaders and brand palette, so no `src/` import or path setup is required.
+Run the notebooks in order (01 → 02 → 03) from the `notebooks/` directory. They import shared loaders and analysis logic from [`src/sami/`](src/sami/), so run them with the project's `.venv` (via `uv sync`, above) rather than a bare Python environment.
 
 ## Contributing
 
