@@ -91,3 +91,50 @@ def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
     f = meal.copy()
     f["rating_num"] = f["usefulness_rating"].map(RATING_NUM)
     return f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy()
+
+
+def build_agg_city(dim_user: pd.DataFrame) -> pd.DataFrame:
+    return (dim_user.groupby(["city_canon", "department"], dropna=False)
+            .size().reset_index(name="n_users"))
+
+
+def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
+    f = metrics.funnel_stages(responses, messages, meal).reset_index(drop=True)
+    f.insert(0, "stage_order", range(len(f)))
+    return f
+
+
+def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
+    by_kind = taxonomy.entity_counts_by_kind(messages["message"])
+    rows = [{"kind": kind, "entity": ent, "n": int(n)}
+            for kind, s in by_kind.items() for ent, n in s.items()]
+    return pd.DataFrame(rows, columns=["kind", "entity", "n"])
+
+
+def build_agg_weekly_category(messages: pd.DataFrame) -> pd.DataFrame:
+    wk = metrics.weekly_category_counts(messages, top_n=4)
+    return (wk.reset_index()
+            .melt(id_vars="week_start", var_name="category", value_name="n")
+            .rename(columns={"week_start": "week"}))
+
+
+def build_agg_daily_volume(messages: pd.DataFrame) -> pd.DataFrame:
+    d = messages.dropna(subset=["ts"]).set_index("ts").resample("D").size()
+    return d.reset_index(name="n").rename(columns={"ts": "day"})
+
+
+def build_agg_weekly_rating(fact_meal: pd.DataFrame) -> pd.DataFrame:
+    m = (fact_meal.dropna(subset=["ts", "rating_num"]).set_index("ts")
+         .resample("W")["rating_num"].agg(["mean", "count"]))
+    return m.reset_index().rename(columns={"ts": "week", "mean": "mean_rating",
+                                           "count": "n"})
+
+
+def build_agg_priority_matrix(messages, fact_meal, dim_user,
+                              neg_by_cat: "pd.Series | None" = None) -> pd.DataFrame:
+    msgs_pm = messages[messages["dominant_category"] != "unclassified"]
+    meal_cat = fact_meal.merge(
+        dim_user[["user_id", "dominant_category"]].drop_duplicates("user_id"),
+        on="user_id", how="left")
+    pm = metrics.priority_matrix_frame(msgs_pm, meal_cat, neg_by_category=neg_by_cat)
+    return pm.reset_index().rename(columns={"dominant_category": "category"})

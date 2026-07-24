@@ -57,3 +57,42 @@ def test_fact_meal_rating_num(SD):
     # rating_num is 1-5 or NaN, never a raw string
     vals = f["rating_num"].dropna().unique()
     assert set(vals).issubset({1, 2, 3, 4, 5})
+
+
+def test_agg_city(SD):
+    du = export.build_dim_user(SD.responses, SD.messages)
+    c = export.build_agg_city(du)
+    assert list(c.columns) == ["city_canon", "department", "n_users"]
+    assert c["n_users"].sum() == len(du)
+
+
+def test_agg_funnel_top_equals_users(SD):
+    f = export.build_agg_funnel(SD.responses, SD.messages, SD.meal)
+    assert list(f.columns[:3]) == ["stage_order", "stage", "n"]
+    assert int(f["n"].iloc[0]) == SD.responses["user_id"].nunique()
+
+
+def test_agg_entities_by_kind(SD):
+    e = export.build_agg_entities_by_kind(SD.messages)
+    assert set(e.columns) == {"kind", "entity", "n"}
+    assert (e["n"] > 0).all()
+
+
+def test_agg_weekly_category_long(SD):
+    w = export.build_agg_weekly_category(SD.messages)
+    assert set(w.columns) == {"week", "category", "n"}
+
+
+def test_agg_daily_volume(SD):
+    d = export.build_agg_daily_volume(SD.messages)
+    assert set(d.columns) == {"day", "n"}
+    assert d["n"].sum() == SD.messages["ts"].notna().sum()
+
+
+def test_agg_priority_matrix_no_sentiment(SD):
+    du = export.build_dim_user(SD.responses, SD.messages)
+    fm = export.build_fact_meal(SD.meal)
+    pm = export.build_agg_priority_matrix(SD.messages, fm, du)
+    assert "category" in pm.columns and "unmet_need" in pm.columns
+    assert "unclassified" not in set(pm["category"])   # excluded
+    assert (pm["n_axes"] <= 2).all()                    # no sentiment axis
