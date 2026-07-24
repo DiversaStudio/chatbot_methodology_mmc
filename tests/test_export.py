@@ -131,3 +131,39 @@ def test_nlp_emergent_themes(SD):
     e = export.build_nlp_emergent_themes(SD.messages)
     assert set(e.columns) == {"theme", "slug", "n_messages", "n_users"}
     assert (e["n_users"] >= 0).all()
+
+
+def test_dim_cluster_synthetic():
+    prof = pd.DataFrame(
+        {"n_users": [10, 5], "n_messages": [40, 12],
+         "median_age": [30.0, 28.0],
+         "top_categories": ["legal (50%)", "employment (40%)"]},
+        index=pd.Index([0, 1], name="archetype"))
+    names = {0: "Doc-seeker", 1: "Job-seeker"}
+    d = export.build_dim_cluster(prof, names)
+    assert list(d.columns) == ["cluster_id", "name", "n_users",
+                               "n_messages", "median_age", "top_categories"]
+    assert d.loc[d["cluster_id"] == 0, "name"].iloc[0] == "Doc-seeker"
+
+
+def test_nlp_voices_picks_marker_quote():
+    from sami import taxonomy
+    cid = sorted(taxonomy.ARCHETYPE_NAMES)[0]
+    marker = taxonomy.ARCHETYPE_NAMES[cid]["marker"]
+    names = {cid: taxonomy.ARCHETYPE_NAMES[cid]["name"]}
+    msg = ((marker + " ") * 20)[:150]          # 60-190 chars, contains the marker
+    msgs_lab = pd.DataFrame({"archetype": [cid, cid], "user_id": ["u1", "u2"],
+                             "seq": [0, 1], "message": [msg, "corto"]})
+    v = export.build_nlp_voices(msgs_lab, names)
+    assert list(v.columns) == ["cluster_id", "name", "message"]
+    assert v.loc[0, "message"] == msg
+    assert v.loc[0, "name"] == names[cid]
+
+
+def test_nlp_voices_dash_fallback_when_no_match():
+    from sami import taxonomy
+    cid = sorted(taxonomy.ARCHETYPE_NAMES)[0]
+    msgs_lab = pd.DataFrame({"archetype": [cid], "user_id": ["u1"],
+                             "seq": [0], "message": ["corto"]})   # too short, no marker
+    v = export.build_nlp_voices(msgs_lab, {cid: "X"})
+    assert v.loc[0, "message"] == "—"
