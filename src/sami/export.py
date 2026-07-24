@@ -189,3 +189,36 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
         rows.append({"cluster_id": int(cid), "name": names.get(cid),
                      "message": g["message"].iloc[0] if len(g) else "—"})
     return pd.DataFrame(rows)
+
+
+def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None) -> pd.DataFrame:
+    merged = {k: v for k, v in run_meta.items() if k != "checks"}
+    if nlp_meta:
+        merged.update(nlp_meta)
+    return pd.DataFrame([{"key": k, "value": str(v)} for k, v in merged.items()])
+
+
+# exported-key -> reconciliation metric label
+_PARITY_MAP = {
+    "users": "users",
+    "messages": "messages",
+    "users_with_text": "users_with_text",
+    "meal_responses": "meal_responses",
+}
+
+
+def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.DataFrame:
+    recon = reconciliation.set_index("metric")["value"].to_dict()
+    exported = {
+        "users": dim_user["user_id"].nunique(),
+        "messages": len(fact_message),
+        "users_with_text": int(dim_user["has_text"].sum()),
+        "meal_responses": len(fact_meal),
+    }
+    rows = []
+    for key, val in exported.items():
+        rv = recon.get(_PARITY_MAP[key])
+        rows.append({"metric": key, "exported_value": int(val),
+                     "reconciliation_value": rv,
+                     "match": rv is not None and int(rv) == int(val)})
+    return pd.DataFrame(rows)
