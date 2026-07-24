@@ -24,7 +24,9 @@ def pii_scan(obj) -> list[dict]:
     Skips the `user_id` column: it is a non-reversible sha256 hash and, by
     chance, some hex hashes contain a 7+-digit run. That is not PII and must
     not be flagged (raw Excel exports have no user_id column, so raw-file
-    scans are unaffected)."""
+    scans are unaffected). Also skips numeric and boolean dtype columns:
+    they hold metrics, not raw phone/`whatsapp:` text, so the scan only
+    covers string/object columns."""
     if isinstance(obj, (str, Path)):
         df = pd.read_excel(obj, header=config.DATA_HEADER_ROW, dtype=str)
     else:
