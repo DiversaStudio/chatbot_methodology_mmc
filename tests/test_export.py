@@ -186,3 +186,23 @@ def test_parity_check_all_match(SD):
     p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
     assert set(p.columns) == {"metric", "exported_value", "reconciliation_value", "match"}
     assert p["match"].all(), p[~p["match"]]
+
+
+def test_write_all_writes_and_manifests(tmp_path):
+    tables = {
+        "dim_category": export.build_dim_category(),
+        "tiny": pd.DataFrame({"a": [1, 2], "b": ["x", "y"]}),
+    }
+    manifest = export.write_all(tmp_path, tables)
+    assert (tmp_path / "dim_category.csv").exists()
+    assert (tmp_path / "tiny.csv").exists()
+    assert (tmp_path / "_manifest.csv").exists()
+    assert set(manifest["table"]) == {"dim_category", "tiny"}
+    assert int(manifest.set_index("table").loc["tiny", "rows"]) == 2
+
+
+def test_write_all_aborts_on_pii(tmp_path):
+    bad = pd.DataFrame({"txt": ["reach me at whatsapp:+573001234567"]})
+    with pytest.raises(ValueError, match="PII"):
+        export.write_all(tmp_path, {"bad": bad})
+    assert not (tmp_path / "bad.csv").exists()          # nothing partially written
