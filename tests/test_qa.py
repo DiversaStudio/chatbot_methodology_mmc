@@ -16,6 +16,27 @@ def test_pii_scan_clean_on_loaded_frames():
     assert qa.pii_scan(resp) == []
 
 
+def test_pii_scan_catches_phone_in_numeric_heavy_frame():
+    # A real phone in a string column must still be caught even when the frame
+    # is mostly numeric metric columns (the dtype-skip must not hide text PII).
+    df = pd.DataFrame({
+        "score": [0.8724100327, 0.13],                  # numeric metric — long decimals, not PII
+        "note": ["escríbeme al 3001234567", "hola"],    # object col with a real phone
+    })
+    cols = {h["column"] for h in qa.pii_scan(df)}
+    assert cols == {"note"}
+
+
+def test_pii_scan_ignores_file_id_and_float_ratios():
+    # Locks in the two false positives the change deliberately stopped flagging:
+    # an underscore-glued source-file id and stringified float ratios.
+    df = pd.DataFrame({
+        "value": ["MMC_bot_responses_1783087815.xlsx", "0.604"],  # object, but id / short
+        "ratio": [0.8724100327, 0.5],                             # numeric metric col
+    })
+    assert qa.pii_scan(df) == []
+
+
 def test_validate_schema_responses_ok():
     info = qa.validate_schema(load.config.RESPONSES_PATH, kind="responses")
     assert info["rows"] > 0
