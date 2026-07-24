@@ -67,3 +67,27 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     agg["cluster_id"] = (agg.index.to_series().map(lab.to_dict())
                          if lab is not None else pd.NA)
     return agg.reset_index()
+
+
+_FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
+                  "dominant_category", "seq", "n_msgs_user", "message"]
+
+
+def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
+                       lab: "pd.Series | None" = None) -> pd.DataFrame:
+    f = messages.reset_index().rename(columns={"index": "message_id"})
+    f = f[[c for c in _FACT_MSG_COLS if c in f.columns]].copy()
+    f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
+                            if sentiment is not None else pd.NA)
+    f["cluster_id"] = (f["user_id"].map(lab.to_dict()) if lab is not None else pd.NA)
+    return f
+
+
+_FACT_MEAL_COLS = ["user_id", "ts", "usefulness_rating", "rating_num",
+                   "would_recommend", "recommendation_text", "discovery_channel"]
+
+
+def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
+    f = meal.copy()
+    f["rating_num"] = f["usefulness_rating"].map(RATING_NUM)
+    return f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy()
