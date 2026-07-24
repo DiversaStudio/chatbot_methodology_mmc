@@ -117,6 +117,25 @@ DEPARTMENT_OF_CITY: dict[str, str] = {
 }
 
 
+# Canonical city coordinates (lat, lon, decimal degrees) for the dashboard bubble
+# map — the spec forbids geocoding-by-name. Keys must match DEPARTMENT_OF_CITY.
+CITY_COORDS: dict[str, tuple[float, float]] = {
+    "Bogotá": (4.7110, -74.0721),
+    "Medellín": (6.2442, -75.5812),
+    "Cali": (3.4516, -76.5320),
+    "Barranquilla": (10.9685, -74.7813),
+    "Cúcuta": (7.8939, -72.5078),
+    "Cartagena": (10.3910, -75.4794),
+    "Bucaramanga": (7.1193, -73.1227),
+    "Santa Marta": (11.2408, -74.1990),
+    "Ipiales": (0.8303, -77.6450),
+    "Riohacha": (11.5444, -72.9072),
+    "Maicao": (11.3776, -72.2389),
+    "Soacha": (4.5794, -74.2140),
+    "Necoclí": (8.4256, -76.7789),
+}
+
+
 def department_of(city_canon_name) -> str | None:
     """Department for a canonical city name; None for 'Otra'/unknown."""
     return DEPARTMENT_OF_CITY.get(city_canon_name)

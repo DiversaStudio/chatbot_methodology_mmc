@@ -11,9 +11,69 @@ def SD():
 
 def test_dim_category_schema():
     d = export.build_dim_category()
-    assert list(d.columns) == ["category_key", "category_es", "category_en"]
+    assert list(d.columns) == ["category_key", "category_es", "category_en",
+                               "color_hex", "display_order"]
     assert "legal_documentation" in set(d["category_key"])
     assert d["category_key"].is_unique
+
+
+def test_dim_category_colors_and_order():
+    d = export.build_dim_category()
+    assert d["color_hex"].str.match(r"^#[0-9a-fA-F]{6}$").all()
+    assert sorted(d["display_order"]) == list(range(len(d)))
+    unc = d[d["category_key"] == "unclassified"].iloc[0]
+    assert unc["color_hex"].lower() == "#b7b7b7"
+    assert int(unc["display_order"]) == 7
+
+
+def test_dim_city_schema_and_coords():
+    from sami import canon
+    d = export.build_dim_city()
+    assert list(d.columns) == ["city_canon", "department", "lat", "lon"]
+    assert "Otra" not in set(d["city_canon"])
+    assert d["lat"].notna().all() and d["lon"].notna().all()
+    assert d["city_canon"].is_unique
+    for _, r in d.iterrows():
+        assert r["department"] == canon.department_of(r["city_canon"])
+
+
+def test_city_coords_cover_all_departmented_cities():
+    from sami import canon
+    assert set(canon.DEPARTMENT_OF_CITY) == set(canon.CITY_COORDS)
+
+
+def test_dim_user_new_flags(SD):
+    d = export.build_dim_user(SD.responses, SD.messages)
+    for c in ["first_seen", "is_repeat_asker", "intends_to_stay"]:
+        assert c in d.columns
+    assert d["is_repeat_asker"].dtype == bool
+    assert d["intends_to_stay"].dtype == bool
+    assert pd.api.types.is_datetime64_any_dtype(d["first_seen"])
+    q = SD.responses.groupby("user_id")["n_questions"].max()
+    p90 = q.quantile(0.90)
+    assert int(d["is_repeat_asker"].sum()) == int((q >= p90).sum())
+
+
+def test_fact_message_no_text(SD):
+    f = export.build_fact_message(SD.messages)
+    assert "message" not in f.columns
+    for c in ["message_id", "user_id", "ts", "dominant_category"]:
+        assert c in f.columns
+
+
+def test_meta_run_schema_version():
+    m = export.build_meta_run({"responses_file": "x.xlsx"})
+    kv = dict(zip(m["key"], m["value"]))
+    assert kv["schema_version"] == "2"
+
+
+def test_parity_check_includes_repeat_askers(SD):
+    du = export.build_dim_user(SD.responses, SD.messages)
+    fmsg = export.build_fact_message(SD.messages)
+    fmeal = export.build_fact_meal(SD.meal)
+    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
+    assert "repeat_askers_pct" in set(p["metric"])
+    assert p["match"].all(), p[~p["match"]]
 
 
 def test_dim_user_one_row_per_user(SD):
@@ -57,13 +117,6 @@ def test_fact_meal_rating_num(SD):
     # rating_num is 1-5 or NaN, never a raw string
     vals = f["rating_num"].dropna().unique()
     assert set(vals).issubset({1, 2, 3, 4, 5})
-
-
-def test_agg_city(SD):
-    du = export.build_dim_user(SD.responses, SD.messages)
-    c = export.build_agg_city(du)
-    assert list(c.columns) == ["city_canon", "department", "n_users"]
-    assert c["n_users"].sum() == len(du)
 
 
 def test_agg_funnel_top_equals_users(SD):
