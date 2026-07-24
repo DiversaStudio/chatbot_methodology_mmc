@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import metrics, taxonomy, qa
+from . import metrics, taxonomy, qa, canon, theme
 
 # EN display for the official categories (chart text only) — mirrors the notebooks.
 CAT_EN = {
@@ -49,9 +49,21 @@ _RAW_RENAME = {"Minors": "minors", "Age Ranges": "age_range",
 
 
 def build_dim_category() -> pd.DataFrame:
+    # CAT_EN is ordered like taxonomy.OFFICIAL_CATEGORIES + ["unclassified"];
+    # theme.CAT is the fixed categorical palette (unclassified -> grey #b7b7b7).
     return pd.DataFrame(
-        [{"category_key": k, "category_es": k, "category_en": v} for k, v in CAT_EN.items()]
-    )
+        [{"category_key": k, "category_es": k, "category_en": v,
+          "color_hex": theme.CAT[i], "display_order": i}
+         for i, (k, v) in enumerate(CAT_EN.items())])
+
+
+def build_dim_city() -> pd.DataFrame:
+    """One row per canonical city with coordinates for the dashboard bubble map.
+    The 'Otra'/Other bucket is excluded — it has no location."""
+    rows = [{"city_canon": city, "department": canon.department_of(city),
+             "lat": lat, "lon": lon}
+            for city, (lat, lon) in canon.CITY_COORDS.items()]
+    return pd.DataFrame(rows, columns=["city_canon", "department", "lat", "lon"])
 
 
 def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
@@ -67,13 +79,28 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     mpu = messages.groupby("user_id").size()
     agg["n_msgs_user"] = agg.index.to_series().map(mpu).fillna(0).astype(int)
     agg["has_text"] = agg["n_msgs_user"] > 0
+    # first message timestamp per user (NaT if the user has no text)
+    first = messages.groupby("user_id")["ts"].min()
+    agg["first_seen"] = agg.index.to_series().map(first)
+    # repeat asker — the exact definition behind reconciliation.repeat_askers_pct
+    q = responses.groupby("user_id")["n_questions"].max()
+    p90 = q.quantile(0.90)
+    agg["is_repeat_asker"] = agg.index.to_series().map(q >= p90).fillna(False).astype(bool)
+    # intends to stay: no onward destination stated, or destination folds to Colombia
+    def _stay(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)) or str(v).strip() == "":
+            return True
+        return canon.fold(str(v)) == canon.fold("Colombia")
+    dest = (agg["destination_country"] if "destination_country" in agg.columns
+            else pd.Series(index=agg.index, dtype=object))
+    agg["intends_to_stay"] = dest.map(_stay).astype(bool)
     agg["cluster_id"] = (agg.index.to_series().map(lab.to_dict())
                          if lab is not None else pd.NA)
     return agg.reset_index()
 
 
 _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
-                  "dominant_category", "seq", "n_msgs_user", "message"]
+                  "dominant_category", "seq", "n_msgs_user"]
 
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
@@ -94,11 +121,6 @@ def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
     f = meal.copy()
     f["rating_num"] = f["usefulness_rating"].map(RATING_NUM)
     return f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy()
-
-
-def build_agg_city(dim_user: pd.DataFrame) -> pd.DataFrame:
-    return (dim_user.groupby(["city_canon", "department"], dropna=False)
-            .size().reset_index(name="n_users"))
 
 
 def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
@@ -194,8 +216,10 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None) -> pd.DataFrame:
+def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
+                   schema_version: str = "2") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
+    merged["schema_version"] = schema_version
     if nlp_meta:
         merged.update(nlp_meta)
     return pd.DataFrame([{"key": k, "value": str(v)} for k, v in merged.items()])
@@ -224,6 +248,12 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.
         rows.append({"metric": key, "exported_value": int(val),
                      "reconciliation_value": rv,
                      "match": rv is not None and int(rv) == int(val)})
+    # repeat-asker share (float %) — mirrors reconciliation.repeat_askers_pct
+    rap_exp = round(100 * float(dim_user["is_repeat_asker"].mean()), 1)
+    rap_rec = recon.get("repeat_askers_pct")
+    rows.append({"metric": "repeat_askers_pct", "exported_value": rap_exp,
+                 "reconciliation_value": rap_rec,
+                 "match": rap_rec is not None and float(rap_rec) == rap_exp})
     return pd.DataFrame(rows)
 
 
