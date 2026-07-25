@@ -1,5 +1,6 @@
 metric,exported_value,reconciliation_value,match
-users,917,917,True
-messages,2991,2991,True
-users_with_text,800,800,True
-meal_responses,69,69,True
+users,917.0,917.0,True
+messages,2991.0,2991.0,True
+users_with_text,800.0,800.0,True
+meal_responses,69.0,69.0,True
+repeat_askers_pct,11.9,11.9,True
