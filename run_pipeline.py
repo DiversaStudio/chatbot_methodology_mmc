@@ -98,7 +98,7 @@ def main(argv=None) -> int:
         "fact_message": fact_message,
         "fact_meal": fact_meal,
         "dim_category": export.build_dim_category(),
-        "agg_city": export.build_agg_city(dim_user),
+        "dim_city": export.build_dim_city(),
         "agg_funnel": export.build_agg_funnel(SD.responses, SD.messages, SD.meal),
         "agg_entities_by_kind": export.build_agg_entities_by_kind(SD.messages),
         "agg_weekly_category": export.build_agg_weekly_category(SD.messages),

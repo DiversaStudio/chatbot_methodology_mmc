@@ -1,9 +1,9 @@
-category_key,category_es,category_en
-legal_documentation,legal_documentation,Legal & documentation
-humanitarian_assistance,humanitarian_assistance,Humanitarian assistance
-protection,protection,Protection
-employment,employment,Employment
-organization_search,organization_search,Finding organizations
-journey_information,journey_information,Journey information
-services,services,Services
-unclassified,unclassified,Unclassified
+category_key,category_es,category_en,color_hex,display_order
+legal_documentation,legal_documentation,Legal & documentation,#009ba4,0
+humanitarian_assistance,humanitarian_assistance,Humanitarian assistance,#671e42,1
+protection,protection,Protection,#62c8ce,2
+employment,employment,Employment,#a3557a,3
+organization_search,organization_search,Finding organizations,#000031,4
+journey_information,journey_information,Journey information,#c78fa4,5
+services,services,Services,#a6dfe3,6
+unclassified,unclassified,Unclassified,#b7b7b7,7
