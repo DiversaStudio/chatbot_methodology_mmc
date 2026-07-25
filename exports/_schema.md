@@ -52,6 +52,9 @@ profile value in timestamp order), joined to message counts.
 | `n_questions` | messages sent, from the responses sheet |
 | `n_msgs_user` | messages sent, recomputed from `SD.messages` |
 | `has_text` | `n_msgs_user > 0` |
+| `first_seen` | earliest message timestamp for the user (drives "New users this period") |
+| `is_repeat_asker` | boolean, `n_questions ≥ p90` — same definition as `reconciliation.repeat_askers_pct` |
+| `intends_to_stay` | boolean; no onward destination stated, or destination is Colombia |
 | `cluster_id` | archetype id; null when `--skip-nlp` |
 
 Feeds: NB1 §2 gender/age/minors/nationality/city, §3 away-duration; NB2
@@ -69,7 +72,8 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `seq`, `n_msgs_user` | position in / length of the user's message sequence |
 | `sentiment_label` | null when `--skip-nlp` |
 | `cluster_id` | user's archetype; null when `--skip-nlp` |
-| `message` | message text (pseudonymized + PII-run-redacted by the loaders) |
+
+**Text-free by design.** `fact_message` carries **no** message text (dashboard spec §7 — "no message text in the model"). Verbatim quotes live in `nlp_voices`; word-cloud terms in `nlp_cluster_terms`; neither needs raw text.
 
 Feeds: NB2 §1 category share, §2 volume/category time series; NB3
 negative-by-category, sentiment distribution, voices; the Power-BI-native
@@ -95,6 +99,8 @@ Static ES→EN lookup for the 7 taxonomy categories + `unclassified`.
 |---|---|
 | `category_key`, `category_es` | same value (category slug) |
 | `category_en` | display label the notebooks use |
+| `color_hex` | fixed category color (`theme.CAT`), pipeline-driven — set the Power BI palette from this |
+| `display_order` | 0–7 canonical order; `unclassified` = 7 (grey `#b7b7b7`) |
 
 Feeds: label lookup wherever `dominant_category` is charted.
 
@@ -130,17 +136,18 @@ Cols: `week, mean_rating, n`. Weekly MEAL usefulness mean. Feeds NB2 §5.
 
 ---
 
-## Geo / profile aggregates
+## Geo dimension
 
-### `agg_city` — 1 row per city (16 rows)
-Cols: `city_canon, department, n_users`. Feeds NB1 top-cities bar and (grouped
-to department) the choropleth map.
+### `dim_city` — 1 row per canonical city (13 rows)
+Cols: `city_canon, department, lat, lon`. Canonical coordinates (from
+`canon.CITY_COORDS`) for the dashboard **bubble map** — the spec forbids
+geocoding-by-name. The "Otra"/Other bucket is excluded (no location). Relates to
+`dim_user[city_canon]`; users-per-city and bubble size come from a live `Users`
+measure (not a stored count). Feeds the Tab-1 map and the top-cities bar.
+Replaces the former `agg_city` count table.
 
-*Discrepancy: the design spec also listed `agg_onward` (destination-country
-counts, for the flow-map arrow weights). No `build_agg_onward` exists in
-`export.py` and it is not in the manifest — the onward-flow map must be built
-in Power BI directly from `dim_user.destination_country`, or the table added
-in a future pass.*
+*Onward-migration: build from `dim_user.destination_country` in Power BI (no
+dedicated table).*
 
 ---
 
@@ -204,21 +211,18 @@ from `fact_message.sentiment_label` × `dominant_category` instead.*
 
 ## Meta / parity
 
-### `meta_run` — key/value (16 rows)
+### `meta_run` — key/value (17 rows)
 The run's identity card. Keys include: `responses_file`, `meal_file`,
 `responses_rows`, `meal_rows`, `ts_min`, `ts_max`, `generated_at`,
-`embed_model`, `sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`,
-`tone_gate_passed`, `sentiment_quotable`, `nlp_included`. **Always check
-`tone_gate_passed` / `sentiment_quotable` before publishing any
-sentiment-derived number** — both are `false` for this run (κ=0.604 < 0.7).
+`schema_version`, `embed_model`, `sentiment_model`, `chosen_k`, `stability_ari`,
+`tone_kappa`, `tone_gate_passed`, `sentiment_quotable`, `nlp_included`.
+`schema_version = "2"` marks the dashboard-additions contract (assert it on the
+About page). **Always check `tone_gate_passed` / `sentiment_quotable` before
+publishing any sentiment-derived number** — both are `false` (κ=0.604 < 0.7).
 
-### `parity_check` — 1 row per metric (4 rows)
+### `parity_check` — 1 row per metric (5 rows)
 Cols: `metric, exported_value, reconciliation_value, match`. Proves the
-exported tables reconcile to `SD.reconciliation`'s headline totals: `users`,
-`messages`, `users_with_text`, `meal_responses`. `run_pipeline.py` exits
-non-zero if any row's `match` is false.
-
-*Discrepancy: the design spec's larger metric list (`records`, `meal_users`,
-`sub18_flagged`, plus `meal_rows` renamed to `meal_responses`) was trimmed in
-the shipped `build_parity_check` to the 4 metrics `SD.reconciliation`
-actually carries a matching label for.*
+exported tables reconcile to `SD.reconciliation`: `users`, `messages`,
+`users_with_text`, `meal_responses` (counts), and `repeat_askers_pct` (the
+`dim_user.is_repeat_asker` share vs the reconciliation figure). `run_pipeline.py`
+exits non-zero if any row's `match` is false.
