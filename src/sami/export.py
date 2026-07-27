@@ -37,6 +37,65 @@ RATING_NUM = {
     "Muy útil": 5, "Útil": 4, "Medianamente útil": 3, "Poco útil": 2, "Nada útil": 1,
 }
 
+
+def _translate(frame: pd.DataFrame, col: str, fn) -> None:
+    """Apply an EN display mapping to `col` in place, if the column exists."""
+    if col in frame.columns:
+        frame[col] = frame[col].map(fn)
+
+
+def _mapper(table: dict):
+    """Value-preserving lookup: NA stays NA, unmapped values pass through."""
+    def _f(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return v
+        return table.get(v, v)
+    return _f
+
+
+# Explicit non-response bucket. The canon functions return None for a survey
+# answer they cannot place on the scale (blank, or free text off the vocabulary);
+# on a Power BI axis that renders as an unlabelled bar, so the gold layer names
+# it. Order -1 sits *below* the real scale (0..n-1): ascending sort puts it at
+# the top, away from the ordered ramp, and it takes the light end of any
+# gradient keyed on the order column — "no information", not "longest".
+NO_RESPONSE_EN = "Did not respond"
+NO_RESPONSE_ORDER = -1
+
+
+def _fill_non_response(frame: pd.DataFrame, label_col: str, order_col: str) -> None:
+    """Name the null bucket of an ordered survey scale, in place."""
+    if label_col in frame.columns:
+        frame[label_col] = frame[label_col].fillna(NO_RESPONSE_EN).replace(
+            "", NO_RESPONSE_EN)
+    if order_col in frame.columns:
+        frame[order_col] = frame[order_col].fillna(NO_RESPONSE_ORDER)
+
+
+def to_english_user(agg: pd.DataFrame) -> pd.DataFrame:
+    """Rewrite dim_user's Spanish survey values as their EN dashboard labels.
+    Values are replaced in place — the *_order columns carry the sort, and the
+    analysis frames keep the Spanish source values untouched."""
+    _translate(agg, "gender_clean", canon.gender_display)
+    _translate(agg, "minors", canon.yes_no_display)
+    _translate(agg, "away_duration_canon", _mapper(canon.AWAY_DURATION_DISPLAY_EN))
+    _translate(agg, "city_duration_canon", _mapper(canon.CITY_DURATION_DISPLAY_EN))
+    _translate(agg, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
+    _translate(agg, "nationality_canon", _mapper(canon.OTHER_BUCKET_EN))
+    _fill_non_response(agg, "away_duration_canon", "away_duration_order")
+    _fill_non_response(agg, "city_duration_canon", "city_duration_order")
+    return agg
+
+
+def to_english_meal(f: pd.DataFrame) -> pd.DataFrame:
+    """Same for fact_meal. Call *after* rating_num, which keys off the Spanish
+    usefulness vocabulary."""
+    _translate(f, "usefulness_rating", _mapper(canon.USEFULNESS_DISPLAY_EN))
+    _translate(f, "would_recommend", canon.yes_no_display)
+    _translate(f, "discovery_channel", _mapper(canon.DISCOVERY_DISPLAY_EN))
+    return f
+
+
 # Profile columns collapsed one-row-per-user (first non-null in ts order).
 _PROFILE_COLS = [
     "gender_clean", "age_num", "age_flag", "city_canon", "department",
@@ -96,7 +155,7 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     agg["intends_to_stay"] = dest.map(_stay).astype(bool)
     agg["cluster_id"] = (agg.index.to_series().map(lab.to_dict())
                          if lab is not None else pd.NA)
-    return agg.reset_index()
+    return to_english_user(agg.reset_index())
 
 
 _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
@@ -110,6 +169,7 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)
     f["cluster_id"] = (f["user_id"].map(lab.to_dict()) if lab is not None else pd.NA)
+    _translate(f, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     return f
 
 
@@ -120,7 +180,7 @@ _FACT_MEAL_COLS = ["user_id", "ts", "usefulness_rating", "rating_num",
 def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
     f = meal.copy()
     f["rating_num"] = f["usefulness_rating"].map(RATING_NUM)
-    return f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy()
+    return to_english_meal(f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy())
 
 
 def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:

@@ -86,6 +86,33 @@ def test_gender_display_and_consolidation():
     assert canon.clean_gender("Mujer", None) == "Mujer"
 
 
+def test_gender_display_closed_set():
+    # the measured free-text variants all fold into the dashboard legend
+    assert canon.gender_display("Mujer") == "Woman"
+    assert canon.gender_display("Hombre") == "Man"
+    assert canon.gender_display("transgenero") == "Transgender"
+    assert canon.gender_display("Soy una mujer trans") == "Transgender"
+    assert canon.gender_display("lgtbQ+") == "LGBTQ+"
+    assert canon.gender_display("Gay") == "LGBTQ+"
+    assert canon.gender_display("Prefiero no responder") == "Prefer not to say"
+    # empty stays empty; unknown free text never leaks to a chart
+    assert canon.gender_display("") == ""
+    assert canon.gender_display(None) == ""
+    assert canon.gender_display("cualquier otra cosa") == "Other"
+
+
+def test_survey_vocabularies_are_english():
+    assert canon.yes_no_display("Si") == "Yes"
+    assert canon.yes_no_display("Sí") == "Yes"
+    assert canon.yes_no_display("No") == "No"
+    assert canon.yes_no_display("Prefiero no responder") == "Prefer not to say"
+    assert canon.yes_no_display(None) == ""
+    # every ordered duration bucket has an EN label
+    assert set(canon.AWAY_DURATION_DISPLAY_EN) == set(canon.AWAY_DURATION_ORDER)
+    assert set(canon.CITY_DURATION_DISPLAY_EN) == set(canon.CITY_DURATION_ORDER)
+    assert canon.OTHER_BUCKET_EN[canon.city_canon("Otra")] == "Other"
+
+
 def test_city_duration_canon_and_order():
     from sami import canon
     labels = canon.CITY_DURATION_ORDER
