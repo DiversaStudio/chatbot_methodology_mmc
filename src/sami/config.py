@@ -7,7 +7,11 @@ _ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = _ROOT / "data_&_docs"
 RESPONSES_PATH = DATA_DIR / "MMC_bot_responses_1783087815.xlsx"
 MEAL_PATH = DATA_DIR / "MMC_MEAL_1783087939.xlsx"
-DATA_HEADER_ROW = 2  # 0-indexed; real header is the 3rd row of the export
+# 0-indexed; real header is the 3rd row of the export. This is the historical
+# default, kept for qa.py's fixture-tolerant readers. The loaders no longer rely
+# on it — they call schema.detect_header_row(), so a re-export with a different
+# number of banner rows still loads.
+DATA_HEADER_ROW = 2
 
 
 def _load_dotenv(path: Path = _ROOT / ".env") -> dict[str, str]:

@@ -3,7 +3,15 @@
 # (see the README "Alternative: plain pip + venv" section).
 #
 # NOTE: torch is intentionally NOT listed here -- install it separately so you
-# can pick the GPU (CUDA) or CPU build. See the README.
+# can pick the CPU or GPU build. See the README.
+#
+#   pip install "torch>=2.10"     <- CPU, works on any machine, ~200 MB. Use
+#                                    this unless you have an NVIDIA GPU.
+#   pip install "torch>=2.10" --index-url https://download.pytorch.org/whl/cu128
+#                                 <- CUDA 12.8, NVIDIA only, ~3 GB.
+#
+# Nothing in this repo requires a GPU; it only makes the notebook-03 / pipeline
+# NLP faster (~3 min vs ~8 min for a full run on this project's data).
 
 pandas>=2.2
 numpy>=1.26

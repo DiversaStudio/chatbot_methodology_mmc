@@ -89,6 +89,54 @@ def test_dim_user_one_row_per_user(SD):
     assert d["cluster_id"].isna().all()
 
 
+_SPANISH_TOKENS = ("Mujer", "Hombre", "Otra", "Desconocida", "meses", "años",
+                   "útil", "Recomendación", "Redes sociales", "Sí")
+
+
+def _no_spanish(frame, cols):
+    for col in cols:
+        vals = {str(v) for v in frame[col].dropna().unique()}
+        bad = [v for v in vals if any(t in v for t in _SPANISH_TOKENS)]
+        assert not bad, f"{col}: {bad}"
+
+
+def test_dim_user_display_values_are_english(SD):
+    d = export.build_dim_user(SD.responses, SD.messages)
+    _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
+                    "city_duration_canon", "city_canon", "nationality_canon"])
+    assert set(d["gender_clean"].dropna()) <= {
+        "Woman", "Man", "Transgender", "LGBTQ+", "Prefer not to say", "Other", ""}
+    # the ordering columns still carry the sort after the labels are translated
+    if d["away_duration_order"].notna().any():
+        pairs = d.dropna(subset=["away_duration_order"])
+        assert pairs.groupby("away_duration_canon")["away_duration_order"].nunique().eq(1).all()
+
+
+def test_duration_scales_name_their_non_response_bucket(SD):
+    d = export.build_dim_user(SD.responses, SD.messages)
+    for label_col, order_col in (("away_duration_canon", "away_duration_order"),
+                                 ("city_duration_canon", "city_duration_order")):
+        # no unlabelled bar on the axis, and no null in the sort-by column
+        assert d[label_col].notna().all()
+        assert (d[label_col].astype(str).str.strip() != "").all()
+        assert d[order_col].notna().all()
+        # the bucket sorts below the real scale, so it never reads as "longest"
+        nr = d[d[label_col] == export.NO_RESPONSE_EN][order_col]
+        if len(nr):
+            assert (nr == export.NO_RESPONSE_ORDER).all()
+            assert nr.iat[0] < d.loc[d[label_col] != export.NO_RESPONSE_EN,
+                                     order_col].min()
+
+
+def test_fact_meal_english_labels_keep_rating_num(SD):
+    f = export.build_fact_meal(SD.meal)
+    _no_spanish(f, ["usefulness_rating", "would_recommend", "discovery_channel"])
+    # rating_num keys off the Spanish vocabulary — translation must not break it
+    scored = f.dropna(subset=["usefulness_rating"])
+    if len(scored):
+        assert scored["rating_num"].notna().all()
+
+
 def test_dim_user_no_pii(SD):
     from sami import qa
     assert qa.pii_scan(export.build_dim_user(SD.responses, SD.messages)) == []

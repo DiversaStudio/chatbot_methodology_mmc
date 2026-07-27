@@ -9,10 +9,34 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
+import contextily as cx
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 
 from . import theme, canon
+
+# A shaded-relief tiled basemap so the shapes read as real geography (terrain,
+# coastline, neighbouring countries, ocean) instead of floating on white — the
+# Esri WorldShadedRelief tiles are the drop-in equivalent of Basemap's
+# .shadedrelief(), but served as tiles that contextily warps onto the data frame.
+# Passing crs="EPSG:4326" lets contextily warp the tiles onto the data's own
+# lon/lat frame, so no geometry (or arrow centroid) needs reprojecting. A
+# transparent labels-only layer rides on top for place names.
+_BASEMAP = cx.providers.Esri.WorldShadedRelief
+_BASEMAP_LABELS = cx.providers.CartoDB.PositronOnlyLabels
+
+
+def _add_basemap(ax, labels=True, zorder=-1):
+    """Drop a recognizable tiled basemap under whatever is already on `ax`.
+
+    zorder < 0 keeps it beneath the plotted data. Neighbour-country place labels
+    then show through the ocean/land around the shapes while the opaque fills hide
+    the labels sitting under them.
+    """
+    cx.add_basemap(ax, crs="EPSG:4326", source=_BASEMAP, attribution=False, zorder=zorder)
+    if labels:
+        cx.add_basemap(ax, crs="EPSG:4326", source=_BASEMAP_LABELS,
+                       attribution=False, zorder=zorder)
 
 # Assets live inside the package (data_&_docs/ is gitignored) so they travel
 # with the code and the pipeline stays deterministic + offline.
@@ -56,14 +80,18 @@ def dept_choropleth(ax, counts, cmap=None):
     gdf = load_colombia_departments()
     gdf["value"] = gdf["dept_key"].map(keyed)
 
-    gdf.plot(ax=ax, color=theme.CIELO, edgecolor="white", linewidth=0.4)  # base
+    # Departments with no users stay faintly translucent so the basemap's
+    # coastline and neighbours read through them; the shaded ones sit opaque.
+    gdf.plot(ax=ax, color=theme.CIELO, edgecolor="white", linewidth=0.4,
+             alpha=0.55, zorder=2)  # base
     has = gdf[gdf["value"].notna()]
     vmax = float(gdf["value"].max()) if gdf["value"].notna().any() else 1.0
     norm = Normalize(vmin=0, vmax=vmax)
     cmap = cmap or theme.blue_cmap()
     if not has.empty:
         has.plot(ax=ax, column="value", cmap=cmap, norm=norm,
-                 edgecolor="white", linewidth=0.4)
+                 edgecolor="white", linewidth=0.4, zorder=3)
+    _add_basemap(ax, labels=True)
     ax.set_axis_off()
     ax.set_aspect("equal")
     sm = ScalarMappable(norm=norm, cmap=cmap)
@@ -80,12 +108,18 @@ def americas_flow_map(ax, origin, hub, onward, origin_country="Venezuela",
     the hub centroid to each onward-country centroid (excluding the hub itself).
     """
     amer = load_americas_countries()
-    amer.plot(ax=ax, color=theme.CIELO, edgecolor="white", linewidth=0.4)
+    # Frame first so the warped basemap tiles fill exactly the map window, then
+    # lay the recognizable basemap (coastlines, country labels, ocean) underneath.
+    ax.set_xlim(-120, -30)
+    ax.set_ylim(-56, 40)
+    ax.set_aspect("equal")
+    _add_basemap(ax, labels=True)
 
     def _fill(name, color):
         g = _country_geom(amer, name)
         if g is not None:
-            gpd.GeoSeries([g]).plot(ax=ax, color=color, edgecolor="white", linewidth=0.5)
+            gpd.GeoSeries([g]).plot(ax=ax, color=color, edgecolor="white",
+                                    linewidth=0.6, alpha=0.85, zorder=3)
             return g
         return None
 
@@ -105,9 +139,10 @@ def americas_flow_map(ax, origin, hub, onward, origin_country="Venezuela",
             c = g.centroid
             ax.annotate("", xy=(c.x, c.y), xytext=(hub_c.x, hub_c.y),
                         arrowprops=dict(arrowstyle="-|>", color=theme.AMEBA,
-                                        lw=0.8 + 4.0 * n / total, alpha=0.85,
-                                        connectionstyle="arc3,rad=0.15"))
+                                        lw=0.8 + 4.0 * n / total, alpha=0.9,
+                                        connectionstyle="arc3,rad=0.15"), zorder=5)
 
+    # geopandas .plot autoscaled the axes to the filled countries — restore frame.
     ax.set_xlim(-120, -30)
     ax.set_ylim(-56, 40)
     ax.set_axis_off()

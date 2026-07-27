@@ -3,9 +3,12 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+import warnings
+from pathlib import Path
+
 import pandas as pd
 
-from . import config, canon, taxonomy
+from . import config, canon, taxonomy, schema
 
 _NOISE = {"undefined", "?", ""}
 
@@ -66,9 +69,32 @@ def is_courtesy(text: str) -> bool:
 
 
 # ---- responses loader ----
-def _read_whatsapp(path) -> pd.DataFrame:
-    df = pd.read_excel(path, header=config.DATA_HEADER_ROW)
+def _read_whatsapp(path, source: str = "responses") -> pd.DataFrame:
+    """Read a platform export, keeping only the WhatsApp channel rows.
+
+    The header row is detected, not assumed (schema.detect_header_row), and a
+    missing file or an export with no WhatsApp rows raises with the fix rather
+    than a bare FileNotFoundError / empty frame."""
+    path = Path(path)
+    if not path.exists():
+        raise schema.SchemaError(
+            f"{source.capitalize()} export not found.\n"
+            f"  file: {path}\n"
+            "  fix:  The raw exports are not in the repo (data_&_docs/ is "
+            "gitignored — they carry phone numbers). Obtain them out-of-band, "
+            "put them in data_&_docs/, or pass an explicit path:\n"
+            "        python run_pipeline.py --responses PATH --meal PATH\n"
+            "        Run `python run_pipeline.py --check` to verify your setup.")
+    df = pd.read_excel(path, header=schema.detect_header_row(path))
+    schema.require_columns(df, schema.BASE_REQUIRED, path, source)
     df = df[df["Name"].astype(str).str.startswith("whatsapp")].copy()
+    if df.empty:
+        raise schema.SchemaError(
+            f"{source.capitalize()} export has no WhatsApp rows.\n"
+            f"  file: {path}\n"
+            "  fix:  Rows are kept only when 'Name' starts with 'whatsapp'. "
+            "This export's Name column holds something else — check you "
+            "downloaded the WhatsApp channel export.")
     df.reset_index(drop=True, inplace=True)
     return df
 
@@ -94,7 +120,14 @@ def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
 def load_responses(path=None, salt=None) -> pd.DataFrame:
     path = path or config.RESPONSES_PATH
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path)
+    df = _read_whatsapp(path, source="responses")
+    schema.require_columns(df, schema.RESPONSES_REQUIRED, path, "responses")
+    unknown = schema.report_unknown_columns(df, "responses")
+    if unknown:
+        warnings.warn(
+            f"responses export has {len(unknown)} column(s) the schema contract "
+            f"does not know about (ignored): {', '.join(unknown)}",
+            stacklevel=2)
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df = df.drop(columns=[c for c in ["Name"] if c in df.columns])
     def _col(name):  # missing-column-safe accessor (schema drifts between exports)
@@ -147,17 +180,14 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
 def load_meal(path=None, salt=None) -> pd.DataFrame:
     path = path or config.MEAL_PATH
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path)
+    df = _read_whatsapp(path, source="meal")
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
-    cols = list(df.columns)
-    rename = {                    # positional: the 5 survey question columns
-        cols[2]: "usefulness_rating",
-        cols[3]: "would_recommend",
-        cols[4]: "recommendation_text",
-        cols[5]: "discovery_channel",
-        cols[6]: "discovery_other",
-    }
+    # The 5 survey questions are matched by their question text, not by column
+    # position — an inserted column used to shift every rating silently.
+    rename, notes = schema.meal_column_map(df.columns, path)
+    for note in notes:
+        warnings.warn(f"{note}\n  file: {path}", stacklevel=2)
     df = df.rename(columns=rename)
     keep = ["user_id", "ts", "usefulness_rating", "would_recommend",
             "recommendation_text", "discovery_channel", "discovery_other"]
