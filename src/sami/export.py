@@ -213,6 +213,8 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
 # and answered with negations ("no", "Todo bien gracias"). Counting all 118 as
 # reasons-for-failure is 64% noise, so the validity is carried in the data
 # rather than in a note nobody reads.
+# CRITICAL: Keep these values in SPANISH. The flag is computed BEFORE to_english_meal
+# translates the vocabulary. Translating them would silently make reason_is_valid all-False.
 REASON_VALID_RATINGS = frozenset({"Nada útil", "Poco útil", "Medianamente útil"})
 
 _FACT_MEAL_COLS = ["user_id", "ts", "usefulness_rating", "rating_num",

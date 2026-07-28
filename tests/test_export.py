@@ -502,3 +502,26 @@ def test_every_fact_meal_column_has_a_cohort_policy():
     f = export.build_fact_meal(_meal_frame())
     for col in f.columns:
         cohort.policy_for(col)
+
+
+def test_reason_is_valid_ordering_pins_computation_before_translation():
+    """CRITICAL: reason_is_valid is computed on Spanish rating values
+    BEFORE to_english_meal translates them. If this test fails because
+    English labels are being matched, the flag is being computed after
+    translation and will silently become all-False. This test pins the
+    ordering dependency: the flag MUST be computed on Spanish input."""
+    # Input with ENGLISH labels (as if to_english_meal had already run)
+    english_frame = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-01"] * 4),
+        "usefulness_rating": ["Very useful", "Not useful", "Moderately useful", "Useful"],
+        "no_usefulness_reason": ["no", "te confundiste de ciudad",
+                                 "faltó info", "Todo bien gracias"],
+    })
+    # The flag won't match on English strings, so all should be False.
+    # This proves the code is matching on Spanish input as intended.
+    f = export.build_fact_meal(english_frame)
+    assert not f["reason_is_valid"].any(), (
+        "reason_is_valid matched English labels, meaning it was computed after "
+        "translation. It must be computed BEFORE to_english_meal runs, on Spanish input."
+    )
