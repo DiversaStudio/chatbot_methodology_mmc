@@ -196,3 +196,45 @@ def test_user_ids_match_the_pre_migration_exports():
     new_ids = set(facade.load_sami().responses["user_id"])
     missing = old_ids - new_ids
     assert not missing, f"{len(missing)} user_ids changed in the migration"
+
+
+# ---- KPI2: session time -------------------------------------------------------
+def test_last_message_ts_keeps_only_the_iso_utc_vintage():
+    """`Last Message At` mixes v2 ISO-UTC with legacy naive local timestamps.
+    Only the former is trusted; everything else must become NaT rather than a
+    plausible-looking session length."""
+    out = load.last_message_ts([
+        "2026-07-24T13:55:47.169Z",  # v2 platform, trusted
+        "2026-07-24T13:55:47Z",      # trusted without fractional seconds
+        "2026-07-10 18:02",          # legacy naive local -> dropped
+        None,
+        "",
+        12345,                       # not a string at all
+    ])
+    assert out.notna().tolist() == [True, True, False, False, False, False]
+    assert out.iloc[0] == pd.Timestamp("2026-07-24 13:55:47.169")
+    assert out.dt.tz is None  # naive, like every other ts in the pipeline
+
+
+def test_last_message_ts_survives_an_all_untrusted_column():
+    out = load.last_message_ts(["2026-07-10 18:02", None])
+    assert out.isna().all()
+
+
+def test_session_minutes_is_raw_and_drops_negatives(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
+    assert "session_minutes" in df.columns
+    vals = df["session_minutes"].dropna()
+    # raw: no capping, but a last message before the record was created is
+    # nonsense, not a zero-length session
+    assert (vals >= 0).all()
+
+
+def test_session_minutes_matches_the_timestamp_difference(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
+    pair = df[df["session_minutes"].notna()]
+    if pair.empty:
+        return  # fixture carries no trusted last-message timestamps
+    expected = (pair["last_message_ts"] - pair["ts"]).dt.total_seconds() / 60
+    pd.testing.assert_series_equal(
+        pair["session_minutes"], expected, check_names=False)

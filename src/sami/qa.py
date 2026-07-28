@@ -11,12 +11,13 @@ from . import config, schema, taxonomy
 # phone numbers, which are always set off by a delimiter (+, space, :, etc.).
 _PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\b\d{7,}\b")]
 
-# The v2 platform emits a timestamped prose summary instead of the short
-# taxonomy label v1 emitted ("[2026-07-24 14:15] El usuario preguntó sobre...").
-# taxonomy.normalize_category is an exact-match lookup, so prose becomes
-# 'unclassified'. At 1.4% of rows that is honest noise; left unattended it grows
-# until dominant_category means nothing, with the charts still rendering. This
-# check fails the run at the point the field stops being usable.
+# From July 2026 the v2 platform emits a timestamped prose summary instead of
+# the short taxonomy label v1 emitted ("[2026-07-24 14:15] El usuario preguntó
+# sobre..."). taxonomy.normalize_category is an exact-match lookup, so prose
+# becomes 'unclassified' — which is the ACCEPTED outcome: those records, and all
+# future ones, land in the 'Suggestion' bucket alongside the records that never
+# carried a category (checkpoint 2026-07-28). P9 therefore gates on the
+# label-shaped summaries only; see labelled_unmappable_share.
 _SUMMARY_PROSE = re.compile(r"^\s*\[\d{4}-\d{2}-\d{2}")
 SUMMARY_PROSE_THRESHOLD = 0.05
 
@@ -141,10 +142,10 @@ def summary_unmappable_share(responses: pd.DataFrame,
 
 def _count_prose_share(responses: pd.DataFrame,
                        col: str = "Chat_summary") -> float:
-    """Diagnostic: share of non-null summaries in v2 timestamped-prose format.
+    """Share of non-null summaries in v2 timestamped-prose format.
 
-    Used only for enriching the check message. The actual check uses
-    summary_unmappable_share, which is format-agnostic.
+    Reported on every run so the migration is visible, but NOT itself a failure
+    condition — see labelled_unmappable_share.
     """
     if col not in responses.columns:
         return 0.0
@@ -153,6 +154,33 @@ def _count_prose_share(responses: pd.DataFrame,
         return 0.0
     prose = values.astype(str).str.match(_SUMMARY_PROSE)
     return float(prose.mean())
+
+
+def labelled_unmappable_share(responses: pd.DataFrame,
+                              col: str = "Chat_summary") -> float:
+    """Share of *label-shaped* summaries the taxonomy cannot place.
+
+    Timestamped-prose summaries are excluded from both numerator and
+    denominator. From the July 2026 platform change onward the summary field is
+    free prose carrying no category at all, and those records go to the
+    'Suggestion' bucket by design (checkpoint 2026-07-28) — so a growing prose
+    share is the expected new normal, not a regression, and gating on it would
+    fail every future run.
+
+    What this still catches is the thing that would actually be a bug: a summary
+    that LOOKS like a v1 taxonomy label but no longer maps, i.e. the platform
+    renamed a category or the taxonomy drifted. Returns 0.0 when there are no
+    label-shaped summaries left to check.
+    """
+    if col not in responses.columns:
+        return 0.0
+    values = responses[col].dropna().astype(str)
+    labelled = values[~values.str.match(_SUMMARY_PROSE)]
+    if labelled.empty:
+        return 0.0
+    unmappable = labelled.apply(
+        lambda v: taxonomy.normalize_category(v) == "unclassified")
+    return float(unmappable.mean())
 
 
 def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
@@ -164,17 +192,33 @@ def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     per_user = messages.groupby("user_id")["n_msgs_user"].first().sum()
     checks.append(("P6_spine_invariant", bool(per_user == len(messages)), f"{per_user} == {len(messages)}"))
     checks.append(("P8_meal_unique", bool(meal["user_id"].is_unique), "one MEAL row per user"))
-    unclass = (responses["dominant_category"] == "unclassified").mean()
-    checks.append(("P7_unclassified_share", bool(unclass < 0.10), f"{unclass:.1%} unclassified"))
-    unmappable = summary_unmappable_share(responses)
+    # P7 asks one question: of the summaries we HOLD, how many can the taxonomy
+    # place? Records with no summary at all (306 of 1460 in the 28-Jul export —
+    # users who registered but never chatted) are not a taxonomy failure, and
+    # counting them put the gate at 22.6% against a 10% limit. They are reported
+    # alongside so a jump in silent registrations is still visible.
+    has_summary = responses["Chat_summary"].notna()
+    n_summary = int(has_summary.sum())
+    unclass = float(
+        (responses.loc[has_summary, "dominant_category"] == "unclassified").mean()
+    ) if n_summary else 0.0
+    no_summary = float((~has_summary).mean())
+    checks.append((
+        "P7_unclassified_share",
+        bool(unclass < 0.10),
+        f"{unclass:.1%} of {n_summary} summaries unclassified "
+        f"({no_summary:.1%} of records carry no summary at all)"))
+    labelled_unmappable = labelled_unmappable_share(responses)
     prose = _count_prose_share(responses)
+    overall = summary_unmappable_share(responses)
     msg = (
-        f"{unmappable:.1%} of non-null summaries cannot be mapped to a category "
-        f"(limit {SUMMARY_PROSE_THRESHOLD:.0%}); {prose:.1%} are in v2 timestamped-prose "
-        f"format. Remedy: if the platform summary format changed, raise with the platform "
-        f"team; otherwise, extend the taxonomy in src/sami/taxonomy.py.")
+        f"{labelled_unmappable:.1%} of label-shaped summaries cannot be mapped "
+        f"(limit {SUMMARY_PROSE_THRESHOLD:.0%}); {prose:.1%} are v2 timestamped prose "
+        f"(expected — those go to the 'Suggestion' bucket); {overall:.1%} unmappable "
+        f"overall. Remedy: if a v1 category label stopped mapping, extend the "
+        f"taxonomy in src/sami/taxonomy.py.")
     checks.append((
         "P9_summary_format",
-        bool(unmappable <= SUMMARY_PROSE_THRESHOLD),
+        bool(labelled_unmappable <= SUMMARY_PROSE_THRESHOLD),
         msg))
     return checks

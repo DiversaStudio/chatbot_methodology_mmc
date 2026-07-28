@@ -205,12 +205,41 @@ def test_summary_format_check_passes_below_threshold():
     assert ok is True
 
 
-def test_summary_format_check_fails_above_threshold():
+def test_summary_format_check_ignores_prose_share():
+    """Prose is the expected post-migration format, not a failure. Half the
+    summaries being prose must NOT fail the run while the labelled ones map."""
     df = pd.DataFrame({"Chat_summary": ["#employment"] * 5
                        + ["[2026-07-24 10:00] prosa"] * 5})
     name, ok, detail = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
+    assert ok is True
+    assert "50.0%" in detail  # prose share still reported
+
+
+def test_summary_format_check_fails_when_labels_stop_mapping():
+    """The regression P9 still guards: label-shaped summaries the taxonomy
+    cannot place (a renamed category), independent of the prose share."""
+    df = pd.DataFrame({"Chat_summary": ["#employment"] * 5
+                       + ["#nueva categoria del proveedor"] * 5
+                       + ["[2026-07-24 10:00] prosa"] * 90})
+    name, ok, detail = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
     assert ok is False
-    assert "50" in detail or "0.5" in detail
+    assert "50.0%" in detail
+
+
+def test_labelled_unmappable_share_excludes_prose():
+    df = pd.DataFrame({"Chat_summary": [
+        "#legal documentation",       # maps
+        "[2026-07-24 14:15] prose",   # prose — excluded entirely
+        None,                          # null — excluded
+    ]})
+    assert qa.labelled_unmappable_share(df) == 0.0
+
+
+def test_labelled_unmappable_share_is_zero_with_no_labels_left():
+    """All-prose export: nothing label-shaped remains to check, so the gate is
+    vacuously satisfied rather than failing every run."""
+    df = pd.DataFrame({"Chat_summary": ["[2026-07-24 14:15] prose"] * 10})
+    assert qa.labelled_unmappable_share(df) == 0.0
 
 
 def _checks_for(responses):

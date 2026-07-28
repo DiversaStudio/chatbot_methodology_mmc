@@ -107,6 +107,21 @@ of their earliest record — the survey they actually answered.
 | `is_returning` | raw pass-through of the platform's `Is Returning User` field. **New in schema v3, v2-only** — not a closed Yes/No set, check actual values before building a slicer |
 | `safety_alert` | free-text incident note where the platform flagged a safety concern; populated for a handful of users only (5 in the July run). **New in schema v3, v2-only** |
 | `escalation_status` | escalation state tied to `safety_alert` (e.g. `🔴 Urgent`); same small population. **New in schema v3, v2-only** |
+| `session_minutes` | minutes from record creation (`Timestamp`) to the user's last message; the user's LONGEST session when they have several records. **Feeds KPI2 — see the warning below.** |
+
+**⚠️ KPI2 (average session time) covers 5% of users.** `session_minutes` is null
+for 1,322 of 1,392 users, so the dashboard card must use a null-tolerant measure
+(`MEDIAN(dim_user[session_minutes])`, not a manual sum/count). Two reasons for
+the sparsity: the platform only populates `Last Message At` for some records,
+and of those, only the ISO-UTC vintage written from 2026-07-24 onward is
+trusted. The earlier records carry a naive local timestamp that sits on a hard
+~2h floor against a UTC `Timestamp` — a timezone/semantics artifact, not a
+session length; pooling them put KPI2 at ~44h. They are dropped rather than
+shifted, because the correction would be a guess about the platform. Values are
+**raw** (no outlier capping, by decision), which is why the card shows the
+**median** (3.7 min) and not the mean (146 min — one user's 3.4-day tail).
+Coverage will grow on its own as v2-era records accumulate. See
+`load.last_message_ts`.
 
 Feeds: NB1 §2 gender/age/minors/nationality/city, §3 away-duration and the new
 registration-funnel/language sections; NB2 cross-cuts (gender × nationality,
@@ -172,6 +187,18 @@ Static ES→EN lookup for the 7 taxonomy categories + `unclassified`.
 | `display_order` | 0–7 canonical order; `unclassified` = 7 (grey `#b7b7b7`) |
 
 Feeds: label lookup wherever `dominant_category` is charted.
+
+**The `unclassified` key displays as "Suggestion" (21.8% of users).** The
+platform's own categorisation is presented as a *suggestion*, not ground truth
+(checkpoint 2026-07-28), and this bucket holds everything the taxonomy cannot
+place: users who registered but never chatted (20.9% of records carry no summary
+at all) plus the v2 timestamped-prose summaries, which carry no category label.
+From the July 2026 platform change onward every new summary is prose, so this
+bucket grows by design — QA gate `P9_summary_format` therefore checks only
+*label-shaped* summaries (0.4% unmappable), and `P7_unclassified_share` measures
+against summaries held rather than all records (2.1%). The key stays
+`unclassified` so joins and every existing chart keep working; only the display
+label changed.
 
 ### `dim_cluster` — 1 row per archetype (NLP-only; absent in the current v2 export)
 Source: `clusters.archetype_profiles`, absent when `--skip-nlp`. **NB3 and all NLP
