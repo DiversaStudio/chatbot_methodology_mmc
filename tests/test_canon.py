@@ -148,10 +148,19 @@ def test_all_v2_dropdown_cities_are_mappable():
         assert city in canon.CITY_COORDS, f"{city} has no coordinates"
 
 
-def test_both_discovery_wordings_share_a_label():
-    """v2 reworded the options. Unmapped values pass through untranslated, so
-    'Otro migrante' would sit beside 'Referral from another migrant' as a
-    separate slice of the same thing."""
+def test_v2_discovery_options_are_complete_and_consistent():
+    """The v2 survey reworded three of five discovery options; an unmapped option
+    passes through untranslated and splits one answer across two slices in a
+    pooled chart. This test ensures the complete v2 dropdown set is mapped and
+    that each v2 option resolves to the same English string as its v1 counterpart.
+    """
     d = canon.DISCOVERY_DISPLAY_EN
+    # All v2 dropdown options are keys in DISCOVERY_DISPLAY_EN
+    v2_options = ("Otro migrante", "Recomendación de ONG", "Redes sociales",
+                  "Punto de atención", "Otro")
+    for option in v2_options:
+        assert option in d, f"v2 option {option!r} is not mapped"
+    # The three reworded pairs map to identical English strings
     assert d["Otro migrante"] == d["Recomendación de otro migrante"]
     assert d["Recomendación de ONG"] == d["Recomendación de una ONG"]
+    assert d["Punto de atención"] == d["Cartelera en un punto de atención"]
