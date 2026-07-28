@@ -243,26 +243,37 @@ def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
 # exposed nothing about people who started the survey and never finished, so
 # this is new ground rather than a re-cut of the existing funnel.
 _REG_STAGES = ("registration started", "registration completed",
-               "abandoned", "in progress")
+               "abandoned", "in progress", "other")
 
 
 def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
     """Ordered pre-conversation funnel from the v2 registration fields.
 
     Empty (with the right columns) when the export predates those fields, so a
-    v1-only archive still writes a well-formed table.
+    v1-only archive still writes a well-formed table. The "other" bucket holds
+    rows with unrecognized status values (new states, typos, nulls), ensuring
+    stages always sum to started by construction.
     """
     cols = ["stage_order", "stage", "n", "pct_of_started"]
     if "Registration Status" not in responses.columns:
         return pd.DataFrame(columns=cols)
     status = responses["Registration Status"].astype("string").str.strip().str.lower()
-    started = len(responses)
+    # Count rows where Registration Started is non-null as the true denominator.
+    # Fall back to len(responses) for exports lacking that column.
+    if "Registration Started" in responses.columns:
+        started = int(responses["Registration Started"].notna().sum())
+    else:
+        started = len(responses)
     counts = {
         "registration started": started,
         "registration completed": int((status == "completed").sum()),
         "abandoned": int((status == "abandoned").sum()),
         "in progress": int((status == "in progress").sum()),
     }
+    # Count unrecognized statuses in "other" so stages always sum to started.
+    # This includes unknown strings and nulls.
+    recognized = {"completed", "abandoned", "in progress"}
+    counts["other"] = int((~status.isin(recognized)).sum())
     rows = [{"stage_order": i, "stage": stage, "n": counts[stage],
              "pct_of_started": (round(100 * counts[stage] / started, 1)
                                 if started else 0.0)}
