@@ -1,19 +1,19 @@
 kind,entity,n
-institution,Migración Colombia,53
-institution,Cancillería,10
-institution,ACNUR,7
+institution,Migración Colombia,70
+institution,Cancillería,15
+institution,ACNUR,8
+institution,Registraduría,3
+institution,ICBF,2
 institution,SENA,2
-institution,ICBF,1
-institution,Registraduría,1
-procedure,PPT,304
-procedure,Trabajo/Empleo,117
-procedure,Visa,82
-procedure,Pasaporte,80
-procedure,Ayuda humanitaria,66
-procedure,EPS,52
-procedure,Refugio/Asilo,42
-procedure,Vivienda/Arriendo,25
-procedure,PEP,23
-procedure,SISBÉN,21
-procedure,Educación,20
-procedure,Cédula de extranjería,19
+procedure,PPT,534
+procedure,Trabajo/Empleo,164
+procedure,Visa,128
+procedure,Pasaporte,122
+procedure,Ayuda humanitaria,77
+procedure,EPS,75
+procedure,Refugio/Asilo,57
+procedure,SISBÉN,40
+procedure,Vivienda/Arriendo,33
+procedure,Educación,32
+procedure,Cédula de extranjería,30
+procedure,PEP,30
