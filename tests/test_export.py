@@ -617,3 +617,48 @@ def test_agg_language_empty_without_the_column():
     f = export.build_agg_language(df)
     assert list(f.columns) == ["language", "instrument_version", "n_users"]
     assert len(f) == 0
+
+
+def test_agg_language_reconciles_with_dim_user():
+    """agg_language and dim_user must agree about cohort membership.
+
+    These two tables must agree about per-cohort user counts or the dashboard
+    contradicts itself. A user who appears in both cohorts is assigned to their
+    earliest record's cohort in both tables. (Note: users without a Language
+    value do not appear in agg_language, so this test uses only users with
+    Language values and checks the per-cohort counts match.)
+    """
+    # Frame with a user appearing in both cohorts (different records)
+    df = pd.DataFrame({
+        "user_id": ["u1", "u1", "u2", "u3"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-25", "2026-07-20", "2026-06-15"]),
+        "gender_clean": ["Mujer", "Mujer", "Hombre", "Mujer"],
+        "age_num": [30.0, 30.0, 28.0, 25.0],
+        "city_canon": ["Medellín", "Medellín", "Ipiales", "Bogotá"],
+        "dominant_category": ["employment", "employment", "unclassified", "employment"],
+        "n_questions": [2, 2, 1, 1],
+        "Migrated From v1": ["v1:100", None, None, None],  # u1 is v1, u2/u3 are v2
+        "Language": ["es", "en", "en", "es"],  # all users have Language
+        "Registration Status": ["Completed", "Completed", "Completed", "Completed"],
+        "Registration Started": ["2026-04-01T09:00:00Z"] * 4,
+    })
+    messages = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-20", "2026-06-15"]),
+        "message": ["msg1", "msg2", "msg3"],
+        "seq": [0, 0, 0],
+        "n_msgs_user": [1, 1, 1],
+    })
+
+    du = export.build_dim_user(df, messages)
+    lg = export.build_agg_language(df)
+
+    # dim_user assigns u1 to v1 (earliest record), u2/u3 to v2
+    dim_v1 = (du["instrument_version"] == "v1").sum()
+    dim_v2 = (du["instrument_version"] == "v2").sum()
+
+    # agg_language should also assign u1 to v1, u2/u3 to v2
+    lg_by_cohort = lg.groupby("instrument_version")["n_users"].sum()
+
+    assert lg_by_cohort.get("v1", 0) == dim_v1
+    assert lg_by_cohort.get("v2", 0) == dim_v2

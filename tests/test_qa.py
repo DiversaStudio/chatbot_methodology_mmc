@@ -40,6 +40,27 @@ def test_pii_scan_ignores_file_id_and_float_ratios():
     assert qa.pii_scan(df) == []
 
 
+def test_pii_scan_exempts_message_id_but_flags_regular_columns():
+    # message_id (pipeline-generated hex digest) is exempted from PII scan.
+    # Prove the exemption exists and is not overbroad: same digit run in a regular
+    # column must still be flagged.
+    digit_run = "1234567"  # 7+ digits triggers the PII flag
+
+    # message_id with digit run: must scan clean
+    df_with_message_id = pd.DataFrame({
+        "message_id": [digit_run + "89abcdef"],  # hex digest containing digits
+    })
+    assert qa.pii_scan(df_with_message_id) == []
+
+    # Same digit run in a regular column: must be flagged
+    df_with_regular_col = pd.DataFrame({
+        "notes": [digit_run],  # 7+ digits in regular column triggers flag
+    })
+    issues = qa.pii_scan(df_with_regular_col)
+    assert len(issues) > 0, "PII gate must flag 7+ digit run in regular columns"
+    assert issues[0]["column"] == "notes"
+
+
 @requires_real_data
 def test_validate_schema_responses_ok():
     info = qa.validate_schema(load.config.RESPONSES_PATH, kind="responses")
