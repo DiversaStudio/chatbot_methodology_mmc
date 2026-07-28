@@ -194,3 +194,48 @@ def test_v2_export_produces_no_unknown_column_warnings():
     df = pd.read_excel(FIX / "users_v2.xlsx", header=2)
     df = schema.normalize_columns(df, "responses")
     assert schema.report_unknown_columns(df, "responses") == []
+
+
+def test_normalize_columns_skips_colliding_renames_responses():
+    """A hybrid export carrying both Address and Name must not produce duplicates.
+
+    If a partially-renamed export has both the raw name (Address) and the
+    canonical name (Name), the rename is skipped to avoid duplicate column labels.
+    Duplicate labels cause confusing errors much further downstream, so this guard
+    must never be silently inverted or deleted by refactoring.
+    """
+    # Construct a frame with both Address and Name (plus other required columns)
+    df = pd.DataFrame({
+        "Address": ["user1", "user2"],
+        "Name": ["Alice", "Bob"],
+        "Timestamp": ["2026-01-01", "2026-01-02"],
+        "City": ["Bogotá", "Medellín"],
+        "Age": [25, 35],
+        "Messages": ["msg1", "msg2"],
+        "Chat_summary": ["sum1", "sum2"],
+    })
+    out = schema.normalize_columns(df, "responses")
+
+    # Exactly one Name column, not two
+    assert list(out.columns).count("Name") == 1
+    # The pre-existing Name values are preserved (not overwritten by Address)
+    assert list(out["Name"]) == ["Alice", "Bob"]
+    # Address is still present (no silent column drops)
+    assert "Address" in out.columns
+
+
+def test_normalize_columns_skips_colliding_renames_meal():
+    """Mirror case for meal source: Respondent + Name must not produce duplicates."""
+    df = pd.DataFrame({
+        "Respondent": ["user1", "user2"],
+        "Name": ["Alice", "Bob"],
+        "Recorded At": ["2026-01-01", "2026-01-02"],
+    })
+    out = schema.normalize_columns(df, "meal")
+
+    # Exactly one Name column
+    assert list(out.columns).count("Name") == 1
+    # The pre-existing Name values are preserved
+    assert list(out["Name"]) == ["Alice", "Bob"]
+    # Respondent is still present
+    assert "Respondent" in out.columns
