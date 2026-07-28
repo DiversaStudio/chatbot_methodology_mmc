@@ -33,6 +33,11 @@ range extended from Jul 3 to Jul 28.
    with `whatsapp`. The v2 `Address` is a bare number, so every row is dropped
    and the loader raises "no WhatsApp rows".
 3. **MEAL reads `Name`/`Timestamp` directly** (`load.load_meal`) → `KeyError`.
+3b. **`qa.py` holds a second copy of the contract.** `qa._SHEET` expects sheets
+   `mmc bot - responses` / `mmc-meal`; the v2 files are `users` /
+   `survey responses`. `qa._CRITICAL` lists the old column names. Both are
+   checked by `qa.validate_schema`, which `facade.load_sami` calls *before* the
+   loaders — so this fails first, ahead of defects 1–3.
 
 ### Silent failures — worse, because they produce numbers
 
@@ -173,13 +178,25 @@ export with no migrated rows yields all-v2.
 
 ### 3 · Value canon
 
-`CITY_CANON` + `CITY_COORDS` extended for the ~12 newly-selectable cities
-(missing coordinates silently drop cities from `dim_city` and the NB1 maps);
-`clean_gender` gains a noise rule for junk entries (`bhdhb`, `jj`) and keeps the
-real `Trans` response distinct from `Otro`; `yes_no_display` folds `Sí`/`Si`
-(992 vs 58 — currently two bars); `NATIONALITY_CANON` admits Colombia;
-`DISCOVERY_DISPLAY_EN` maps both v1 and v2 wordings (`Recomendación de otro
-migrante` vs `Otro migrante`) onto shared labels.
+Checked against the running code rather than inferred from the export, which
+cut this section down to two changes:
+
+- **`CITY_CANON` + `CITY_COORDS` gain `Pasto`.** The other 11 relevant cities
+  already canonicalize and already have coordinates — the table was built from
+  the v1 `City_other` free text, which already contained Bogotá, Cali, Soacha,
+  Barranquilla and the rest. Pasto is the one v2 dropdown option nobody had
+  ever typed, so it fell into `Otra` and had no coordinates (which would
+  silently drop it from `dim_city` and the NB1 maps).
+- **`DISCOVERY_DISPLAY_EN` gains the two v2 wordings** (`Otro migrante`,
+  `Recomendación de ONG`), mapped to the same English labels as their v1
+  equivalents. Unmapped values pass through untranslated, so without this one
+  answer renders as two slices.
+
+Three changes that looked necessary are **not**, because the existing code
+already contains the problem: `gender_display` is a closed-set lookup, so junk
+(`bhdhb`, `jj`) already renders as `Other` and `Trans` as `Transgender`;
+`yes_no_display` already folds accents, so `Sí` and `Si` are one bar; and
+`nationality_canon("Colombia")` already works.
 
 ### 4 · Gold layer
 
