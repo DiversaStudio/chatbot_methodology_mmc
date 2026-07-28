@@ -290,3 +290,35 @@ def test_meal_column_map_never_binds_two_fields_to_one_column():
     df = pd.read_excel(FIX / "survey_v2.xlsx", header=2)
     mapping, _ = schema.meal_column_map(df.columns, frame=df)
     assert len(mapping) == len(set(mapping.keys()))
+
+
+def test_meal_column_map_prefers_populated_among_duplicate_labels():
+    """Swallowing duplicate-label errors as 'question retired' would be the
+    worst possible misreport: reporting a bug as a business fact. Use
+    positional indexing (iloc) to eliminate this failure class entirely.
+
+    This test verifies that the function doesn't crash or produce misleading
+    warnings when duplicate column labels exist (which can happen with near-
+    duplicate question columns in the v2 export)."""
+    # Create a frame with two columns: one empty, one populated, both with
+    # the same label (as could happen with v1/v2 duplicate columns)
+    df = pd.DataFrame({
+        "col_a": [None, None, None],
+        "col_b": ["val1", "val2", "val3"],
+    })
+    # Rename both to the same label, making the second one accessible only positionally
+    df.columns = ["Que tan util", "Que tan util"]
+
+    # Pass the columns (which has duplicate labels) and the frame.
+    # Before the fix, this would raise ValueError when _populated tried to
+    # evaluate bool(Series), caught it as Exception, and returned False for both,
+    # leading to the "none carry data; question may have been retired" warning.
+    mapping, warnings = schema.meal_column_map(df.columns, frame=df)
+
+    # Should map usefulness_rating successfully
+    assert "Que tan util" in mapping
+    assert mapping["Que tan util"] == "usefulness_rating"
+    # No warnings should be raised (the function should not report the column
+    # as potentially retired when really it found the populated duplicate)
+    useful_warnings = [w for w in warnings if "usefulness_rating" in w]
+    assert len(useful_warnings) == 0

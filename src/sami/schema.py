@@ -203,8 +203,8 @@ def meal_column_map(columns, path=None, frame=None) -> tuple[dict[str, str], lis
         if frame is None:
             return False
         try:
-            return bool(frame[frame.columns[i]].notna().sum())
-        except Exception:
+            return bool(frame.iloc[:, i].notna().sum())
+        except (IndexError, KeyError):
             return False
 
     for canonical, markers in MEAL_QUESTION_MARKERS.items():
