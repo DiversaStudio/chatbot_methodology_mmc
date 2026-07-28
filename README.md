@@ -95,8 +95,28 @@ the raw platform exports contain users' WhatsApp phone numbers:
 
 | What | Where it goes | Why it isn't committed |
 | --- | --- | --- |
-| The two `.xlsx` exports | `data_&_docs/` (gitignored) | `Name` holds raw `whatsapp:+57…` numbers |
+| The two `.xlsx` exports — `Users_Group_Title_2807.xlsx` (responses) and `Survey_Responses_Group_Title_2807.xlsx` (MEAL survey) | `data_&_docs/` (gitignored) | The phone-number column holds raw numbers |
 | `SAMI_SALT` | `.env` at the repo root (gitignored), or the environment | It is the pseudonymization salt; committing it would make `user_id` reversible |
+
+### Questionnaire versions
+
+The registration survey was rewritten in July 2026 when the chatbot moved to a
+new platform. Every export carries both cohorts in the same file, distinguished
+by `instrument_version` (`v1` / `v2`) in `dim_user`.
+
+Some variables cannot be pooled across them. Most importantly **nationality**:
+the v1 survey ended the conversation for respondents who said they were
+Colombian, so v1 rows contain effectively no Colombians and v2 rows do —
+pooling the two would read as a change in the user base rather than what it
+actually is, a change in who was allowed to finish the survey. Four questions
+were retired between v1 and v2 (time since leaving, previous country,
+would-recommend, improvement suggestions) and one was added (why the
+information was not useful).
+
+`src/sami/cohort.py` holds the policy for every variable that can end up in
+`dim_user` or `fact_meal` — poolable, split-by-cohort, or version-only. If you
+add a new field to either table, classify it there; the pipeline refuses to
+aggregate a column with no policy rather than silently pooling it.
 
 Both travel **out-of-band** — ask the project owner. Then:
 
