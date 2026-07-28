@@ -126,3 +126,32 @@ def test_city_duration_canon_and_order():
     # unknown -> None
     assert canon.city_duration_canon("xyz no such bucket") is None
     assert canon.city_duration_order("xyz no such bucket") is None
+
+
+# --- Pasto and v2 discovery wordings ------------------------------------------
+def test_pasto_canonicalizes():
+    """The one v2 dropdown city absent from CITY_CANON — it never appeared in
+    the v1 City_other free text the table was built from."""
+    assert canon.city_canon(canon.clean_city("Pasto", None)) == "Pasto"
+
+
+def test_pasto_has_map_coordinates():
+    """Without coordinates a city silently vanishes from dim_city and the maps."""
+    assert "Pasto" in canon.CITY_COORDS
+
+
+def test_all_v2_dropdown_cities_are_mappable():
+    """Every option the v2 survey offers must reach the dashboard map."""
+    for city in ("Bogotá", "Cali", "Cúcuta", "Ipiales", "Medellín",
+                 "Necoclí", "Pasto"):
+        assert canon.city_canon(canon.clean_city(city, None)) == city
+        assert city in canon.CITY_COORDS, f"{city} has no coordinates"
+
+
+def test_both_discovery_wordings_share_a_label():
+    """v2 reworded the options. Unmapped values pass through untranslated, so
+    'Otro migrante' would sit beside 'Referral from another migrant' as a
+    separate slice of the same thing."""
+    d = canon.DISCOVERY_DISPLAY_EN
+    assert d["Otro migrante"] == d["Recomendación de otro migrante"]
+    assert d["Recomendación de ONG"] == d["Recomendación de una ONG"]

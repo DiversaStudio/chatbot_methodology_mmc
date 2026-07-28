@@ -14,6 +14,7 @@ CITY_CANON: dict[str, str] = {
     "cartagena": "Cartagena",
     "bucaramanga": "Bucaramanga",
     "ipiales": "Ipiales",
+    "pasto": "Pasto",
     "riohacha": "Riohacha", "maicao": "Maicao",
     "soacha": "Soacha", "soacha cundinamarca": "Soacha",
     "necocli": "Necoclí",
@@ -110,6 +111,7 @@ DEPARTMENT_OF_CITY: dict[str, str] = {
     "Cartagena": "Bolívar",
     "Bucaramanga": "Santander",
     "Ipiales": "Nariño",
+    "Pasto": "Nariño",
     "Riohacha": "La Guajira",
     "Maicao": "La Guajira",
     "Soacha": "Cundinamarca",
@@ -129,6 +131,7 @@ CITY_COORDS: dict[str, tuple[float, float]] = {
     "Bucaramanga": (7.1193, -73.1227),
     "Santa Marta": (11.2408, -74.1990),
     "Ipiales": (0.8303, -77.6450),
+    "Pasto": (1.2136, -77.2811),
     "Riohacha": (11.5444, -72.9072),
     "Maicao": (11.3776, -72.2389),
     "Soacha": (4.5794, -74.2140),
@@ -269,6 +272,10 @@ DISCOVERY_DISPLAY_EN: dict[str, str] = {
     "Cartelera en un punto de atención": "Poster at a service point",
     "Redes sociales": "Social media",
     "Otro": "Other",
+    # v2 reworded these two options; both vintages map to one label so a
+    # pooled chart does not split the same answer in two.
+    "Otro migrante": "Referral from another migrant",
+    "Recomendación de ONG": "Referral from an NGO",
 }
 # 'Otra' (city) / 'Desconocida' (nationality) are the two catch-all buckets that
 # the canon functions themselves emit.
