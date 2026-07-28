@@ -16,8 +16,13 @@ def test_users_fixture_shape():
     df = pd.read_excel(USERS, header=2)
     assert len(df) == 7  # 6 data rows + 1 empty-id row
     assert "Address" in df.columns and "Created At" in df.columns
-    assert df["Migrated From v1"].notna().sum() == 4   # v1 cohort
-    assert df["Migrated From v1"].isna().sum() == 3    # v2-native cohort (2) + empty-id row (1)
+    # Null-id row must be present and pinned (Task 4 relies on float64 inference from NA)
+    assert df["Address"].isna().sum() == 1, "fixture must have exactly one null Address"
+    assert df["Address"].dtype == "float64", "Address column must be float64 (for .0 parsing)"
+    # Cohort counts against non-null rows only
+    non_null_rows = df[df["Address"].notna()]
+    assert non_null_rows[non_null_rows["Migrated From v1"].notna()].shape[0] == 4  # v1 cohort
+    assert non_null_rows[non_null_rows["Migrated From v1"].isna()].shape[0] == 2   # v2-native cohort
 
 
 def test_users_fixture_reproduces_float_phone_parsing():
@@ -35,6 +40,13 @@ def test_survey_fixture_has_empty_v1_duplicate_columns():
     assert len(useful) == 2, "fixture must carry BOTH usefulness columns"
     assert df[useful[0]].notna().sum() == 0, "first (v1) must be empty"
     assert df[useful[1]].notna().sum() == 4, "second (v2) must carry data"
+
+
+def test_survey_fixture_shape():
+    """Survey fixture must have null-id row pinned (Task 4 relies on float64 inference)."""
+    df = pd.read_excel(SURVEY, header=2)
+    assert df["Respondent"].isna().sum() == 1, "fixture must have exactly one null Respondent"
+    assert df["Respondent"].dtype == "float64", "Respondent column must be float64 (for .0 parsing)"
 
 
 def test_fixtures_contain_no_real_phone_numbers():
