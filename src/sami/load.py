@@ -185,12 +185,13 @@ def load_meal(path=None, salt=None) -> pd.DataFrame:
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
     # The 5 survey questions are matched by their question text, not by column
     # position — an inserted column used to shift every rating silently.
-    rename, notes = schema.meal_column_map(df.columns, path)
+    rename, notes = schema.meal_column_map(df.columns, path, frame=df)
     for note in notes:
         warnings.warn(f"{note}\n  file: {path}", stacklevel=2)
     df = df.rename(columns=rename)
     keep = ["user_id", "ts", "usefulness_rating", "would_recommend",
-            "recommendation_text", "discovery_channel", "discovery_other"]
+            "recommendation_text", "discovery_channel", "discovery_other",
+            "no_usefulness_reason"]
     df = df[[c for c in keep if c in df.columns]].copy()
     # P8: keep most recent response per user (stable sort so ties are well-defined)
     df = df.sort_values("ts", kind="stable").drop_duplicates("user_id", keep="last").reset_index(drop=True)
