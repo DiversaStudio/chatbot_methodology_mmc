@@ -67,7 +67,10 @@ def validate_schema(path, kind: str) -> dict:
         # header detected, not assumed — matches the loaders
         df = pd.read_excel(path, header=schema.detect_header_row(path, source=kind))
         df = schema.normalize_columns(df, kind)
-    except (ValueError, schema.SchemaError):
+    except ValueError:
+        # fixture/file too short for the real export's header offset: there is
+        # no way the critical columns can be present, so fall through to the
+        # missing-columns check below with an empty frame.
         df = pd.DataFrame()
     missing = [c for c in _CRITICAL[kind] if c not in df.columns]
     if missing:
