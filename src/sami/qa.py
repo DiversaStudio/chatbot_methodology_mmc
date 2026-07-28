@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from . import config, schema
+from . import config, schema, taxonomy
 
 # \b anchors keep this from matching a digit run glued to underscores/letters
 # (e.g. a "..._1783087815.xlsx" source-file id) while still catching real
@@ -114,16 +114,37 @@ def reconciliation_table(responses: pd.DataFrame, messages: pd.DataFrame,
     return pd.DataFrame(rows, columns=["metric", "value"])
 
 
-def summary_prose_share(responses: pd.DataFrame,
-                        col: str = "Chat_summary") -> float:
-    """Share of non-null summaries in the v2 prose format. 0.0 if absent."""
+def summary_unmappable_share(responses: pd.DataFrame,
+                             col: str = "Chat_summary") -> float:
+    """Share of non-null summaries that taxonomy.normalize_category cannot map.
+
+    This measures what actually matters: a summary we hold but cannot turn into
+    a category. The underlying cause (format change, taxonomy gap, etc.) is
+    diagnosed separately. Returns 0.0 if the column is absent or all-null.
+    """
     if col not in responses.columns:
         return 0.0
     values = responses[col].dropna()
     if values.empty:
         return 0.0
-    hits = values.astype(str).str.match(_SUMMARY_PROSE)
-    return float(hits.mean())
+    unmappable = values.apply(lambda v: taxonomy.normalize_category(v) == "unclassified")
+    return float(unmappable.mean())
+
+
+def _count_prose_share(responses: pd.DataFrame,
+                       col: str = "Chat_summary") -> float:
+    """Diagnostic: share of non-null summaries in v2 timestamped-prose format.
+
+    Used only for enriching the check message. The actual check uses
+    summary_unmappable_share, which is format-agnostic.
+    """
+    if col not in responses.columns:
+        return 0.0
+    values = responses[col].dropna()
+    if values.empty:
+        return 0.0
+    prose = values.astype(str).str.match(_SUMMARY_PROSE)
+    return float(prose.mean())
 
 
 def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
@@ -137,11 +158,15 @@ def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     checks.append(("P8_meal_unique", bool(meal["user_id"].is_unique), "one MEAL row per user"))
     unclass = (responses["dominant_category"] == "unclassified").mean()
     checks.append(("P7_unclassified_share", bool(unclass < 0.10), f"{unclass:.1%} unclassified"))
-    prose = summary_prose_share(responses)
+    unmappable = summary_unmappable_share(responses)
+    prose = _count_prose_share(responses)
+    msg = (
+        f"{unmappable:.1%} of non-null summaries cannot be mapped to a category "
+        f"(limit {SUMMARY_PROSE_THRESHOLD:.0%}); {prose:.1%} are in v2 timestamped-prose "
+        f"format. Remedy: if the platform summary format changed, raise with the platform "
+        f"team; otherwise, extend the taxonomy in src/sami/taxonomy.py.")
     checks.append((
         "P9_summary_format",
-        bool(prose <= SUMMARY_PROSE_THRESHOLD),
-        f"{prose:.1%} of summaries are v2 prose (limit "
-        f"{SUMMARY_PROSE_THRESHOLD:.0%}) — above this, dominant_category is no "
-        f"longer meaningful. See the spec's 'Summary field changed format'."))
+        bool(unmappable <= SUMMARY_PROSE_THRESHOLD),
+        msg))
     return checks

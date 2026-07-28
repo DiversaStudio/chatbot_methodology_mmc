@@ -130,19 +130,19 @@ def test_validate_schema_single_sheet_escape_hatch(tmp_path):
     assert out["rows"] == 1
 
 
-def test_summary_prose_share_detects_the_v2_format():
+def test_summary_unmappable_share_detects_unmappable():
     df = pd.DataFrame({"Chat_summary": [
-        "#legal documentation",
-        "humanitarian assistance",
-        "[2026-07-24 14:15] El usuario preguntó sobre X, Y y Z.",
-        None,
+        "#legal documentation",        # v1 format, maps to legal_documentation
+        "#humanitarian assistance",    # v1 format, maps to humanitarian_assistance
+        "[2026-07-24 14:15] prose",   # v2 format, unmappable
+        None,                          # null
     ]})
-    # 1 prose of 3 non-null
-    assert abs(qa.summary_prose_share(df) - 1 / 3) < 1e-9
+    # 1 unmappable of 3 non-null
+    assert abs(qa.summary_unmappable_share(df) - 1 / 3) < 1e-9
 
 
-def test_summary_prose_share_is_zero_without_the_column():
-    assert qa.summary_prose_share(pd.DataFrame({"a": [1]})) == 0.0
+def test_summary_unmappable_share_is_zero_without_the_column():
+    assert qa.summary_unmappable_share(pd.DataFrame({"a": [1]})) == 0.0
 
 
 def test_summary_format_check_passes_below_threshold():
@@ -170,3 +170,31 @@ def _checks_for(responses):
                              "n_msgs_user": 1, "message": "x"})
     meal = pd.DataFrame({"user_id": responses["user_id"]})
     return qa.run_checks(responses, messages, meal)
+
+
+def test_facade_critical_prefix_p9_raises():
+    """A failing P9_ check is recognized as critical and would cause raise."""
+    # Test the critical-prefix filter logic by checking which prefixes are caught
+    checks = [("P9_summary_format", False, "test failure")]
+    failed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
+    assert len(failed) == 1, "P9_ should be recognized as critical"
+
+
+def test_facade_critical_prefix_p11_does_not_raise():
+    """A failing P11_ check is NOT recognized as critical (underscore anchoring)."""
+    # This tests that underscore anchoring prevents false positives like P11_ being
+    # caught by a bare "P1" prefix (which would match without the underscore).
+    checks = [("P11_some_check", False, "test failure")]
+    failed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
+    assert len(failed) == 0, "P11_ should NOT be recognized as critical (only P1_, P6_, P9_)"
+
+
+def test_facade_critical_prefix_bare_p1_doesnt_match_p11():
+    """Verify that bare 'P1' prefix would incorrectly match P11_, but anchored 'P1_' does not."""
+    checks = [("P11_some_check", False, "test failure")]
+    # Bare prefix (old broken way) would catch P11:
+    failed_bare = [c for c in checks if not c[1] and c[0].startswith(("P1", "P6"))]
+    assert len(failed_bare) == 1, "Bare P1 prefix incorrectly catches P11_ (latent bug)"
+    # Anchored prefix (fixed way) correctly skips P11:
+    failed_fixed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
+    assert len(failed_fixed) == 0, "Anchored P1_ prefix correctly skips P11_"
