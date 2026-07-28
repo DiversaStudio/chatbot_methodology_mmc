@@ -159,33 +159,39 @@ def report_unknown_columns(frame: pd.DataFrame, source: str) -> list[str]:
 
 
 # ---- MEAL survey columns ------------------------------------------------------
-# The five survey questions are long Spanish sentences, so they are matched by a
-# distinctive fold-normalized fragment rather than by exact text (which carries
-# punctuation and could be reworded) and rather than by POSITION (which is what
-# this replaces: a single inserted column used to shift every rating one field
-# to the left, with no error raised).
-MEAL_QUESTION_MARKERS: dict[str, str] = {
-    "usefulness_rating": "que tan util",
-    "would_recommend": "recomendarias este servicio",
-    "recommendation_text": "alguna recomendacion para mejorar",
-    "discovery_channel": "como conociste",
-    "discovery_other": "escribe el medio",
-}
-# Column positions these fields occupied in every export seen so far. Used only
-# as a last resort, and never silently.
-MEAL_FALLBACK_POSITIONS: dict[str, int] = {
-    "usefulness_rating": 2, "would_recommend": 3, "recommendation_text": 4,
-    "discovery_channel": 5, "discovery_other": 6,
+# The survey questions are long Spanish sentences, matched by a distinctive
+# fold-normalized fragment rather than exact text (which carries punctuation and
+# gets reworded) and rather than POSITION.
+#
+# Each field accepts several fragments because the v2 export carries BOTH
+# question vintages. Two rules matter:
+#
+#   1. The v1 duplicates come FIRST and are EMPTY. Binding to the first match
+#      produced all-null ratings with no error, and the old positional fallback
+#      then relabelled the real usefulness data as discovery_other. So when a
+#      marker matches several columns, the one CARRYING DATA wins.
+#   2. There is no positional fallback. A field that cannot be matched is absent
+#      from the mapping and raises a warning naming it. Absent-and-loud beats
+#      present-and-wrong.
+MEAL_QUESTION_MARKERS: dict[str, tuple[str, ...]] = {
+    "usefulness_rating":    ("que tan util",),
+    "would_recommend":      ("recomendarias este servicio", "v1 recomendarias"),
+    "recommendation_text":  ("alguna recomendacion para mejorar",),
+    "discovery_channel":    ("como conociste",),
+    "discovery_other":      ("escribe el medio", "v1 medio otro"),
+    "no_usefulness_reason": ("por que la informacion entregada no fue util",),
 }
 
 
-def meal_column_map(columns, path=None) -> tuple[dict[str, str], list[str]]:
+def meal_column_map(columns, path=None, frame=None) -> tuple[dict[str, str], list[str]]:
     """Map MEAL survey columns to their canonical names.
 
-    Returns `({source_column: canonical_name}, warnings)`. Matches on question
-    text first; any field that does not match falls back to its historical
-    position and emits a warning naming the exact column it guessed, so a wrong
-    guess is visible in the run log instead of silently mislabelling ratings.
+    Returns `({source_column: canonical_name}, warnings)`.
+
+    When `frame` is supplied and a marker matches several columns, the populated
+    one is chosen; ties break on the LAST occurrence, which is the newer vintage
+    in every export seen. Without a frame the last match wins, which is still
+    right for the v2 layout.
     """
     cols = [str(c) for c in columns]
     folded = [fold(c) for c in cols]
@@ -193,23 +199,31 @@ def meal_column_map(columns, path=None) -> tuple[dict[str, str], list[str]]:
     warnings: list[str] = []
     taken: set[int] = set()
 
-    for canonical, marker in MEAL_QUESTION_MARKERS.items():
-        hit = next((i for i, f in enumerate(folded)
-                    if marker in f and i not in taken), None)
-        if hit is not None:
-            taken.add(hit)
-            mapping[cols[hit]] = canonical
+    def _populated(i: int) -> bool:
+        if frame is None:
+            return False
+        try:
+            return bool(frame[frame.columns[i]].notna().sum())
+        except Exception:
+            return False
+
+    for canonical, markers in MEAL_QUESTION_MARKERS.items():
+        hits = [i for i, f in enumerate(folded)
+                if i not in taken and any(m in f for m in markers)]
+        if not hits:
+            warnings.append(
+                f"MEAL column '{canonical}' not found by question text "
+                f"(looked for {' | '.join(markers)}); it will be absent from "
+                "fact_meal. If the platform reworded the question, add the new "
+                "fragment to MEAL_QUESTION_MARKERS in src/sami/schema.py.")
             continue
-        pos = MEAL_FALLBACK_POSITIONS[canonical]
-        if pos < len(cols) and pos not in taken:
-            taken.add(pos)
-            mapping[cols[pos]] = canonical
+        with_data = [i for i in hits if _populated(i)]
+        chosen = (with_data or hits)[-1]
+        taken.add(chosen)
+        mapping[cols[chosen]] = canonical
+        if len(hits) > 1 and not with_data and frame is not None:
             warnings.append(
-                f"MEAL column '{canonical}' did not match its question text "
-                f"(looked for {marker!r}); fell back to position {pos}: "
-                f"{cols[pos][:70]!r}. VERIFY THIS IS THE RIGHT FIELD.")
-        else:
-            warnings.append(
-                f"MEAL column '{canonical}' not found by question text or "
-                f"position {pos}; it will be absent from fact_meal.")
+                f"MEAL column '{canonical}' matched {len(hits)} columns and "
+                f"none carry data; bound to {cols[chosen][:70]!r}. The question "
+                "may have been retired.")
     return mapping, warnings

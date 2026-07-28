@@ -92,8 +92,11 @@ def test_unknown_columns_flags_new_field():
 # ---- MEAL question matching ---------------------------------------------------
 def test_meal_maps_real_question_text_without_warnings():
     mapping, warnings = schema.meal_column_map(REAL_MEAL_COLS)
-    assert warnings == []
-    assert set(mapping.values()) == set(schema.MEAL_QUESTION_MARKERS)
+    # REAL_MEAL_COLS doesn't include no_usefulness_reason, so we expect one warning
+    assert len(warnings) == 1
+    assert "no_usefulness_reason" in warnings[0]
+    # The other 5 fields should all map
+    assert set(mapping.values()) == set(schema.MEAL_QUESTION_MARKERS) - {"no_usefulness_reason"}
     assert mapping[REAL_MEAL_COLS[3]] == "would_recommend"
     assert mapping[REAL_MEAL_COLS[5]] == "discovery_channel"
     assert mapping[REAL_MEAL_COLS[6]] == "discovery_other"
@@ -104,7 +107,9 @@ def test_meal_survives_an_inserted_column():
     shift every survey field one position left, silently mislabelling ratings."""
     shifted = REAL_MEAL_COLS[:2] + ["Channel"] + REAL_MEAL_COLS[2:]
     mapping, warnings = schema.meal_column_map(shifted)
-    assert warnings == []
+    # One warning for the missing no_usefulness_reason field
+    assert len(warnings) == 1
+    assert "no_usefulness_reason" in warnings[0]
     # each canonical name still points at its own question, not its neighbour's
     assert mapping[REAL_MEAL_COLS[2]] == "usefulness_rating"
     assert mapping[REAL_MEAL_COLS[4]] == "recommendation_text"
@@ -114,19 +119,22 @@ def test_meal_survives_an_inserted_column():
 def test_meal_reordered_columns_still_map():
     reordered = [REAL_MEAL_COLS[i] for i in (0, 1, 5, 6, 2, 4, 3)]
     mapping, warnings = schema.meal_column_map(reordered)
-    assert warnings == []
+    # One warning for the missing no_usefulness_reason field
+    assert len(warnings) == 1
+    assert "no_usefulness_reason" in warnings[0]
     assert mapping[REAL_MEAL_COLS[2]] == "usefulness_rating"
     assert mapping[REAL_MEAL_COLS[3]] == "would_recommend"
 
 
 def test_meal_positional_fallback_warns_loudly():
-    """When question text does not match, falling back is allowed — silently is not."""
+    """Unmatched fields are absent and loud — no positional fallback."""
     unmatchable = ["Name", "Timestamp", "Q1", "Q2", "Q3", "Q4", "Q5"]
     mapping, warnings = schema.meal_column_map(unmatchable)
-    assert len(warnings) == 5
-    assert all("VERIFY" in w for w in warnings)
-    assert mapping["Q1"] == "usefulness_rating"
-    assert mapping["Q5"] == "discovery_other"
+    # All 6 fields should produce warnings since none match the markers
+    assert len(warnings) == 6
+    assert all("not found" in w for w in warnings)
+    # No fields should be mapped since none match
+    assert mapping == {}
 
 
 def test_meal_missing_column_reported_not_guessed():
@@ -139,7 +147,9 @@ def test_meal_accent_and_case_insensitive():
     stripped = list(REAL_MEAL_COLS)
     stripped[2] = "PARA MEJORAR, ¿QUE TAN UTIL FUE LA INFORMACION?"
     mapping, warnings = schema.meal_column_map(stripped)
-    assert warnings == []
+    # One warning for the missing no_usefulness_reason field
+    assert len(warnings) == 1
+    assert "no_usefulness_reason" in warnings[0]
     assert mapping[stripped[2]] == "usefulness_rating"
 
 
@@ -239,3 +249,44 @@ def test_normalize_columns_skips_colliding_renames_meal():
     assert list(out["Name"]) == ["Alice", "Bob"]
     # Respondent is still present
     assert "Respondent" in out.columns
+
+
+def test_meal_column_map_prefers_the_populated_duplicate():
+    """Defect 4: the survey export carries empty v1 duplicates BEFORE the
+    populated v2 columns. First-match binding produced all-null ratings."""
+    df = pd.read_excel(FIX / "survey_v2.xlsx", header=2)
+    mapping, warnings = schema.meal_column_map(df.columns, frame=df)
+    useful_src = [k for k, v in mapping.items() if v == "usefulness_rating"]
+    assert len(useful_src) == 1
+    assert df[useful_src[0]].notna().sum() == 4, "bound to the EMPTY duplicate"
+
+
+def test_meal_column_map_binds_legacy_recommend_column():
+    """Q13 was retired, so the v2-worded column is empty; the surviving v1
+    data lives in 'v1 Recomendarias' and must still be reachable."""
+    df = pd.read_excel(FIX / "survey_v2.xlsx", header=2)
+    mapping, _ = schema.meal_column_map(df.columns, frame=df)
+    src = [k for k, v in mapping.items() if v == "would_recommend"]
+    assert src == ["v1 Recomendarias"]
+
+
+def test_meal_column_map_binds_the_new_reason_question():
+    df = pd.read_excel(FIX / "survey_v2.xlsx", header=2)
+    mapping, _ = schema.meal_column_map(df.columns, frame=df)
+    assert "no_usefulness_reason" in mapping.values()
+
+
+def test_meal_column_map_has_no_positional_fallback():
+    """The old position-based fallback mislabelled usefulness data as
+    discovery_other. An unmatched field must be ABSENT plus a warning."""
+    cols = ["Name", "Timestamp", "something", "unrelated"]
+    mapping, warnings = schema.meal_column_map(cols)
+    assert mapping == {}
+    assert len(warnings) == len(schema.MEAL_QUESTION_MARKERS)
+    assert all("not found" in w for w in warnings)
+
+
+def test_meal_column_map_never_binds_two_fields_to_one_column():
+    df = pd.read_excel(FIX / "survey_v2.xlsx", header=2)
+    mapping, _ = schema.meal_column_map(df.columns, frame=df)
+    assert len(mapping) == len(set(mapping.keys()))
