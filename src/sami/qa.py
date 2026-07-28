@@ -11,6 +11,15 @@ from . import config, schema
 # phone numbers, which are always set off by a delimiter (+, space, :, etc.).
 _PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\b\d{7,}\b")]
 
+# The v2 platform emits a timestamped prose summary instead of the short
+# taxonomy label v1 emitted ("[2026-07-24 14:15] El usuario preguntó sobre...").
+# taxonomy.normalize_category is an exact-match lookup, so prose becomes
+# 'unclassified'. At 1.4% of rows that is honest noise; left unattended it grows
+# until dominant_category means nothing, with the charts still rendering. This
+# check fails the run at the point the field stops being usable.
+_SUMMARY_PROSE = re.compile(r"^\s*\[\d{4}-\d{2}-\d{2}")
+SUMMARY_PROSE_THRESHOLD = 0.05
+
 # Checked AFTER schema.normalize_columns, so these are the canonical names.
 _CRITICAL = {
     "responses": ["Name", "Timestamp", "City", "Age", "Messages", "Chat_summary"],
@@ -105,6 +114,18 @@ def reconciliation_table(responses: pd.DataFrame, messages: pd.DataFrame,
     return pd.DataFrame(rows, columns=["metric", "value"])
 
 
+def summary_prose_share(responses: pd.DataFrame,
+                        col: str = "Chat_summary") -> float:
+    """Share of non-null summaries in the v2 prose format. 0.0 if absent."""
+    if col not in responses.columns:
+        return 0.0
+    values = responses[col].dropna()
+    if values.empty:
+        return 0.0
+    hits = values.astype(str).str.match(_SUMMARY_PROSE)
+    return float(hits.mean())
+
+
 def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     # Second element is always a plain Python bool (not numpy.bool_) so run_meta
     # stays JSON-serializable when a later task persists it.
@@ -116,4 +137,11 @@ def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     checks.append(("P8_meal_unique", bool(meal["user_id"].is_unique), "one MEAL row per user"))
     unclass = (responses["dominant_category"] == "unclassified").mean()
     checks.append(("P7_unclassified_share", bool(unclass < 0.10), f"{unclass:.1%} unclassified"))
+    prose = summary_prose_share(responses)
+    checks.append((
+        "P9_summary_format",
+        bool(prose <= SUMMARY_PROSE_THRESHOLD),
+        f"{prose:.1%} of summaries are v2 prose (limit "
+        f"{SUMMARY_PROSE_THRESHOLD:.0%}) — above this, dominant_category is no "
+        f"longer meaningful. See the spec's 'Summary field changed format'."))
     return checks

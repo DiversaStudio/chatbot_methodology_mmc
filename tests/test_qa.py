@@ -128,3 +128,45 @@ def test_validate_schema_single_sheet_escape_hatch(tmp_path):
     # Should accept due to single-sheet escape hatch
     out = qa.validate_schema(p, kind="responses")
     assert out["rows"] == 1
+
+
+def test_summary_prose_share_detects_the_v2_format():
+    df = pd.DataFrame({"Chat_summary": [
+        "#legal documentation",
+        "humanitarian assistance",
+        "[2026-07-24 14:15] El usuario preguntó sobre X, Y y Z.",
+        None,
+    ]})
+    # 1 prose of 3 non-null
+    assert abs(qa.summary_prose_share(df) - 1 / 3) < 1e-9
+
+
+def test_summary_prose_share_is_zero_without_the_column():
+    assert qa.summary_prose_share(pd.DataFrame({"a": [1]})) == 0.0
+
+
+def test_summary_format_check_passes_below_threshold():
+    df = pd.DataFrame({"Chat_summary": ["#employment"] * 99
+                       + ["[2026-07-24 10:00] prosa"]})
+    name, ok, _ = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
+    assert ok is True
+
+
+def test_summary_format_check_fails_above_threshold():
+    df = pd.DataFrame({"Chat_summary": ["#employment"] * 5
+                       + ["[2026-07-24 10:00] prosa"] * 5})
+    name, ok, detail = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
+    assert ok is False
+    assert "50" in detail or "0.5" in detail
+
+
+def _checks_for(responses):
+    """run_checks needs three frames; build the minimal messages/meal shapes."""
+    responses = responses.assign(
+        user_id=[f"u{i}" for i in range(len(responses))],
+        dominant_category="employment",
+        n_questions=1)
+    messages = pd.DataFrame({"user_id": responses["user_id"],
+                             "n_msgs_user": 1, "message": "x"})
+    meal = pd.DataFrame({"user_id": responses["user_id"]})
+    return qa.run_checks(responses, messages, meal)

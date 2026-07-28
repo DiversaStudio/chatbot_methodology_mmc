@@ -30,7 +30,8 @@ def load_sami(responses_path=None, meal_path=None) -> SamiData:
     reconciliation = qa.reconciliation_table(responses, messages, meal)
     checks = qa.run_checks(responses, messages, meal)
 
-    failed = [c for c in checks if not c[1] and c[0].startswith(("P1", "P6"))]
+    # Underscore-anchored: bare "P1" would also match "P9"/"P11" style names.
+    failed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
     if failed:
         raise RuntimeError(f"critical QA checks failed: {failed}")
 
