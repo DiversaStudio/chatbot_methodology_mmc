@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from sami import load, config
+from conftest import requires_real_data
 
 SALT = "test_salt"
 
@@ -12,8 +13,8 @@ def test_pseudonymize_is_stable_and_salted():
     assert a != load.pseudonymize("whatsapp:+573001188778", "other_salt")  # salted
 
 
-def test_load_responses_has_no_raw_identifiers():
-    df = load.load_responses(salt=SALT)
+def test_load_responses_has_no_raw_identifiers(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
     assert "Name" not in df.columns
     assert not any(c.lower() in {"phone", "digits"} for c in df.columns)
     # user_id is the intended pseudonymized hex hash: a 12-char hex string can
@@ -25,28 +26,30 @@ def test_load_responses_has_no_raw_identifiers():
     assert not re.search(r"\d{7,}", joined)
 
 
-def test_load_responses_counts():
-    df = load.load_responses(salt=SALT)
-    assert len(df) == 946                      # records (whatsapp rows)
-    assert df["user_id"].nunique() == 917      # users; doc reference ~918
-    assert (df["age_num"] < 18).sum() == 36    # P9 sub-18 count
+def test_load_responses_counts(users_fixture):
+    # Exact counts against the committed synthetic fixture (6 rows survive the
+    # null-id row; row 3 is the only sub-18 age). The real export's counts
+    # change every time MMC refreshes the download -- see the requires_real_data
+    # invariants below for the checks that must hold on THAT data instead.
+    df = load.load_responses(users_fixture, salt=SALT)
+    assert len(df) == 6                        # records (rows with a valid id)
+    assert df["user_id"].nunique() == 6        # users
+    assert (df["age_num"] < 18).sum() == 1     # P9 sub-18 count
 
 
-def test_age_flag_marks_sub18():
-    df = load.load_responses(salt=SALT)
+def test_age_flag_marks_sub18(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
     sub = df[df["age_num"] < 18]
     assert (sub["age_flag"] == "unreliable_sub18").all()
     assert (df[df["age_num"] >= 18]["age_flag"] == "ok").all()
 
 
-def test_derived_audience_columns():
-    df = load.load_responses(salt=SALT)
+def test_derived_audience_columns(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
     # new NB1 columns exist and are populated
     for col in ["department", "gender_clean", "nationality_canon",
                 "away_duration_canon", "away_duration_order"]:
         assert col in df.columns
-    # ~96% Venezuelan (measured 905 of 919 non-null nationality)
-    assert (df["nationality_canon"] == "Venezuela").sum() >= 900
     # department only set for priority cities; every non-null value is a real dept
     from sami import canon
     depts = set(df["department"].dropna())
@@ -56,8 +59,17 @@ def test_derived_audience_columns():
     assert set(orders).issubset({0, 1, 2, 3, 4})
 
 
-def test_dominant_category_in_official_set():
+@requires_real_data
+def test_nationality_is_overwhelmingly_venezuelan_on_real_export():
+    """Invariant, not a loosened count: the Venezuelan share must stay >= 90%
+    regardless of how many rows the December export has."""
     df = load.load_responses(salt=SALT)
+    share = (df["nationality_canon"] == "Venezuela").mean()
+    assert share >= 0.9
+
+
+def test_dominant_category_in_official_set(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
     from sami.taxonomy import OFFICIAL_CATEGORIES
     allowed = set(OFFICIAL_CATEGORIES) | {"unclassified"}
     assert set(df["dominant_category"]).issubset(allowed)
@@ -84,31 +96,28 @@ def test_split_messages_keeps_lines_with_embedded_pii_redacted():
     assert not re.search(r"\d{7,}", msgs[0])
 
 
+@requires_real_data
 def test_message_spine_has_no_phantom_redacted_messages():
     # End-to-end: the full pipeline (load_responses -> split_messages on the
     # already-redacted Messages column) must not manufacture phantom "[redacted]"
-    # messages out of lines that were originally pure digit runs.
+    # messages out of lines that were originally pure digit runs. This is a
+    # regression for a specific shape (a standalone "+<12 digits>" phone-number
+    # line) that the small committed fixture does not reproduce, so it stays on
+    # real data. The unit-level behavior is also covered, fixture-free, by
+    # test_split_messages_drops_redacted_only_lines above.
     #
-    # Measured count is 2991, not the design doc's 2993 (see docs/superpowers/plans/
-    # 2026-07-22-sami-pipeline-foundation.md). The 2993 baseline was measured on raw,
-    # unredacted text, where two standalone "+<12 digits>" phone-number lines
-    # (e.g. "+573208471248") were counted as real messages only because a leading
-    # "+" defeated the original `t.isdigit()` noise check -- not because they held
-    # any conversational content. After PII redaction (required for the hard PII
-    # gate) those lines become "+[redacted]", which the redaction-invariant noise
-    # check correctly drops as noise. That's 2 fewer messages than the stale
-    # baseline: 2993 - 2 = 2991. The export/actual behavior is the source of truth
-    # per project convention; this constant reflects the produced value, not the
-    # doc reference.
+    # This used to assert an exact count (2991, not the design doc's 2993 -- see
+    # docs/superpowers/plans/2026-07-22-sami-pipeline-foundation.md for why).
+    # That count is specific to the July export and would go stale the moment
+    # MMC re-downloads; the invariant that survives is that no phantom
+    # "[redacted]"-only message exists in the spine.
     df = load.load_responses(salt=SALT)
     spine = [m for blob in df["Messages"] for m in load.split_messages(blob)]
     assert not any(m.strip() == "[redacted]" for m in spine)
-    assert len(spine) == 2991
 
 
-def test_load_responses_has_city_duration_derivations():
-    from sami import load
-    df = load.load_responses()
+def test_load_responses_has_city_duration_derivations(users_fixture):
+    df = load.load_responses(users_fixture, salt=SALT)
     assert "city_duration_canon" in df.columns
     assert "city_duration_order" in df.columns
     # every non-null order is a valid index into the canon order list
@@ -170,3 +179,20 @@ def test_load_responses_old_export_has_917_users():
     df = load.load_responses(old_export, salt=SALT)
     assert len(df) == 946
     assert df["user_id"].nunique() == 917
+
+
+@requires_real_data
+def test_user_ids_match_the_pre_migration_exports():
+    """The migration must not re-pseudonymize. Every user_id in the previous
+    dim_user export must still be present after the v2 switch."""
+    from pathlib import Path
+    import pytest
+    from sami import facade
+
+    previous = Path(__file__).resolve().parent.parent / "exports" / "dim_user.csv"
+    if not previous.exists():
+        pytest.skip("no previous export to compare against")
+    old_ids = set(pd.read_csv(previous)["user_id"])
+    new_ids = set(facade.load_sami().responses["user_id"])
+    missing = old_ids - new_ids
+    assert not missing, f"{len(missing)} user_ids changed in the migration"

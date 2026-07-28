@@ -1,11 +1,17 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sami import metrics, load_sami
+from sami import metrics, load_sami, config
 
 
 @pytest.fixture(scope="module")
 def data():
+    # metrics.py's functions are exercised here against the full facade output;
+    # there is no fixture-based substitute small enough to be worth building.
+    # Skip cleanly rather than error when the real, gitignored export is absent.
+    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
+        pytest.skip("real export not present (data_&_docs/ is gitignored)")
     return load_sami()
 
 

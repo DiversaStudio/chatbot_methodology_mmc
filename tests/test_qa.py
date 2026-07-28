@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from sami import qa, load, schema
+from conftest import requires_real_data
 
 SALT = "test_salt"
 FIX = Path(__file__).resolve().parent / "fixtures"
@@ -13,8 +14,8 @@ def test_pii_scan_flags_phone_and_whatsapp():
     assert len(violations) >= 1
 
 
-def test_pii_scan_clean_on_loaded_frames():
-    resp = load.load_responses(salt=SALT)
+def test_pii_scan_clean_on_loaded_frames(users_fixture):
+    resp = load.load_responses(users_fixture, salt=SALT)
     assert qa.pii_scan(resp) == []
 
 
@@ -39,6 +40,7 @@ def test_pii_scan_ignores_file_id_and_float_ratios():
     assert qa.pii_scan(df) == []
 
 
+@requires_real_data
 def test_validate_schema_responses_ok():
     info = qa.validate_schema(load.config.RESPONSES_PATH, kind="responses")
     assert info["rows"] > 0
@@ -67,16 +69,41 @@ def test_validate_schema_missing_critical_raises(tmp_path):
         qa.validate_schema(p_bad_cols, kind="responses")
 
 
-def test_reconciliation_table():
+def test_reconciliation_table_computes_correct_values():
+    """Reconciliation arithmetic, verified on small constructed frames so this
+    needs no real or fixture data at all -- the exact-count version of this test
+    used to assert 917/946/2991/69, all specific to one MMC download."""
+    resp = pd.DataFrame({
+        "user_id": ["a", "a", "b", "c"],
+        "n_questions": [1, 3, 2, 5],
+    })
+    msgs = pd.DataFrame({
+        "user_id": ["a", "a", "b"],
+        "dominant_category": ["legal_documentation", "employment", "legal_documentation"],
+    })
+    meal = pd.DataFrame({"user_id": ["a", "b"]})
+    table = qa.reconciliation_table(resp, msgs, meal)
+    d = dict(zip(table["metric"], table["value"]))
+    assert d["users"] == 3
+    assert d["records"] == 4
+    assert d["messages"] == 3
+    assert d["users_with_text"] == 2
+    assert d["meal_responses"] == 2
+    assert d["negative_tone_pct"] == "pending"
+
+
+@requires_real_data
+def test_reconciliation_table_matches_real_export():
     resp = load.load_responses(salt=SALT)
     msgs = load.load_messages(resp)
     meal = load.load_meal(salt=SALT)
     table = qa.reconciliation_table(resp, msgs, meal)
     d = dict(zip(table["metric"], table["value"]))
-    assert d["users"] == 917
-    assert d["records"] == 946
-    assert d["messages"] == 2991
-    assert d["meal_responses"] == 69
+    assert d["users"] == resp["user_id"].nunique()
+    assert d["records"] == len(resp)
+    assert d["messages"] == len(msgs)
+    assert d["users_with_text"] <= d["users"]
+    assert d["meal_responses"] <= d["users"]
     assert d["negative_tone_pct"] == "pending"
 
 
