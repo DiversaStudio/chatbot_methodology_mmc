@@ -5,8 +5,7 @@ carry real data. Re-run with:
     .venv/Scripts/python.exe tests/fixtures/make_fixtures.py
 """
 from pathlib import Path
-from decimal import Decimal
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
 
 HERE = Path(__file__).resolve().parent
 
@@ -118,30 +117,6 @@ def _write(path: Path, title: str, header: list, rows: list) -> None:
     ws.append(header)                        # header row 2
     for r in rows:
         ws.append(list(r))
-    wb.save(path)
-
-    # Post-process to ensure phone number columns (Address, Respondent) are stored as floats
-    # so pandas reads them with float64 dtype, reproducing the real export's .0 behaviour
-    wb = load_workbook(path)
-    ws = wb.active
-    try:
-        addr_col_idx = header.index("Address") + 1
-        for row_idx in range(4, 4 + len(rows)):
-            cell = ws.cell(row=row_idx, column=addr_col_idx)
-            if cell.value is not None and isinstance(cell.value, int):
-                cell.value = float(cell.value)
-    except (ValueError, IndexError):
-        pass
-
-    try:
-        resp_col_idx = header.index("Respondent") + 1
-        for row_idx in range(4, 4 + len(rows)):
-            cell = ws.cell(row=row_idx, column=resp_col_idx)
-            if cell.value is not None and isinstance(cell.value, int):
-                cell.value = float(cell.value)
-    except (ValueError, IndexError):
-        pass
-
     wb.save(path)
 
 
