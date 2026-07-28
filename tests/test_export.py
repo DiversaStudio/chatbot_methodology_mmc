@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export
+from sami import load_sami, export, cohort
 
 
 @pytest.fixture(scope="module")
@@ -416,3 +416,50 @@ def test_message_id_changes_on_backfilled_earlier_message():
     assert tercera_id_before != tercera_id_after, (
         "Backfilled earlier message renumbers seq, so message_ids change"
     )
+
+
+def _responses_two_cohorts():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-25"]),
+        "gender_clean": ["Mujer", "Hombre"],
+        "age_num": [30.0, 28.0],
+        "city_canon": ["Medellín", "Ipiales"],
+        "dominant_category": ["employment", "unclassified"],
+        "n_questions": [2, 1],
+        "Migrated From v1": ["v1:100", None],
+        "Language": ["es", "en"],
+        "Registration Status": ["Completed", "Completed"],
+        "Attempts": [1, 2],
+        "Is Returning User": [None, "yes"],
+        "Safety Alert": [None, "flagged"],
+        "Escalation Status": [None, "escalated"],
+        "Destination_Country": ["Colombia", "Chile"],
+    })
+
+
+def _messages_two_users():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2"], "ts": pd.to_datetime(["2026-04-01", "2026-07-25"]),
+        "message": ["hola", "help"], "seq": [0, 0], "n_msgs_user": [1, 1],
+    })
+
+
+def test_dim_user_carries_instrument_version():
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    assert dict(zip(d["user_id"], d["instrument_version"])) == {"u1": "v1", "u2": "v2"}
+
+
+def test_dim_user_carries_the_new_v2_fields():
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    for col in ("language", "registration_status", "attempts", "is_returning",
+                "safety_alert", "escalation_status"):
+        assert col in d.columns, f"{col} missing from dim_user"
+    assert d.set_index("user_id").loc["u2", "language"] == "en"
+
+
+def test_every_dim_user_column_has_a_cohort_policy():
+    """The guard is only a guard if it cannot fall behind the schema."""
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    for col in d.columns:
+        cohort.policy_for(col)   # raises CohortError if unclassified
