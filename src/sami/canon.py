@@ -272,10 +272,11 @@ DISCOVERY_DISPLAY_EN: dict[str, str] = {
     "Cartelera en un punto de atención": "Poster at a service point",
     "Redes sociales": "Social media",
     "Otro": "Other",
-    # v2 reworded these two options; both vintages map to one label so a
-    # pooled chart does not split the same answer in two.
+    # v2 reworded these three options; both vintages map to one label so a
+    # pooled chart does not split the same answer in multiple slices.
     "Otro migrante": "Referral from another migrant",
     "Recomendación de ONG": "Referral from an NGO",
+    "Punto de atención": "Poster at a service point",
 }
 # 'Otra' (city) / 'Desconocida' (nationality) are the two catch-all buckets that
 # the canon functions themselves emit.
