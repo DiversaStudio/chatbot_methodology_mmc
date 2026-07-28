@@ -4,18 +4,24 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from . import config
+from . import config, schema
 
 # \b anchors keep this from matching a digit run glued to underscores/letters
 # (e.g. a "..._1783087815.xlsx" source-file id) while still catching real
 # phone numbers, which are always set off by a delimiter (+, space, :, etc.).
 _PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\b\d{7,}\b")]
 
+# Checked AFTER schema.normalize_columns, so these are the canonical names.
 _CRITICAL = {
     "responses": ["Name", "Timestamp", "City", "Age", "Messages", "Chat_summary"],
     "meal": ["Name", "Timestamp"],
 }
-_SHEET = {"responses": "mmc bot - responses", "meal": "mmc-meal"}
+# Accepted sheet names per source. v2 renamed them ('users', 'survey responses');
+# the v1 names are kept so archived exports still validate.
+_SHEET = {
+    "responses": {"users", "mmc bot - responses"},
+    "meal": {"survey responses", "mmc-meal"},
+}
 
 
 def pii_scan(obj) -> list[dict]:
@@ -50,16 +56,18 @@ def pii_scan(obj) -> list[dict]:
 
 def validate_schema(path, kind: str) -> dict:
     xl = pd.ExcelFile(path)
-    if _SHEET[kind] not in xl.sheet_names:
+    names = {str(s).strip().lower() for s in xl.sheet_names}
+    if not (names & _SHEET[kind]):
         # tolerate single-sheet test fixtures; only enforce for real exports
         if len(xl.sheet_names) != 1:
-            raise ValueError(f"expected sheet {_SHEET[kind]!r}, got {xl.sheet_names}")
+            raise ValueError(
+                f"expected one of {sorted(_SHEET[kind])} for {kind}, "
+                f"got {xl.sheet_names}")
     try:
-        df = pd.read_excel(path, header=config.DATA_HEADER_ROW)
-    except ValueError:
-        # fixture/file too short for the real export's header offset: there is
-        # no way the critical columns can be present, so fall through to the
-        # missing-columns check below with an empty frame.
+        # header detected, not assumed — matches the loaders
+        df = pd.read_excel(path, header=schema.detect_header_row(path, source=kind))
+        df = schema.normalize_columns(df, kind)
+    except (ValueError, schema.SchemaError):
         df = pd.DataFrame()
     missing = [c for c in _CRITICAL[kind] if c not in df.columns]
     if missing:

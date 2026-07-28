@@ -1,8 +1,10 @@
+from pathlib import Path
 import pandas as pd
 import pytest
 from sami import qa, load
 
 SALT = "test_salt"
+FIX = Path(__file__).resolve().parent / "fixtures"
 
 
 def test_pii_scan_flags_phone_and_whatsapp():
@@ -61,3 +63,14 @@ def test_reconciliation_table():
     assert d["messages"] == 2991
     assert d["meal_responses"] == 69
     assert d["negative_tone_pct"] == "pending"
+
+
+def test_validate_schema_accepts_v2_users_export():
+    out = qa.validate_schema(FIX / "users_v2.xlsx", kind="responses")
+    assert out["rows"] == 7
+    assert out["ts_parse_rate"] == 1.0
+
+
+def test_validate_schema_accepts_v2_survey_export():
+    out = qa.validate_schema(FIX / "survey_v2.xlsx", kind="meal")
+    assert out["rows"] == 5
