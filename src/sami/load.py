@@ -138,6 +138,37 @@ def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# ---- session time (KPI2) ----
+# `Last Message At` carries TWO vintages in one column:
+#   - ISO-8601 UTC ('2026-07-24T13:55:47.169Z'), written by the v2 platform for
+#     records from 2026-07-24 onward. Differenced against Timestamp these are
+#     plausible chatbot sessions (median 4.4 min, n=81 in the 28-Jul export).
+#   - naive local 'YYYY-MM-DD HH:MM', carried over from the legacy platform for
+#     earlier records. Against a UTC Timestamp these sit on a hard ~2h floor
+#     (p25 121 min, median 123 min, n=503) — a timezone/semantics artifact, not
+#     a session length. Pooling the two puts KPI2 at ~44h.
+# Only the ISO-Z vintage is trusted. The legacy rows are DROPPED rather than
+# shifted by 2h, because that correction would be a guess about a platform we
+# cannot query, and a wrong-but-plausible KPI is worse than a smaller n.
+_LAST_MSG_ISO_UTC = re.compile(r"^\s*\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s*$")
+
+
+def last_message_ts(values) -> pd.Series:
+    """Parse `Last Message At`, keeping only the trusted ISO-UTC vintage.
+
+    Anything else — legacy naive local timestamps, blanks, junk — becomes NaT,
+    so `session_minutes` is null for that record and the KPI simply covers
+    fewer users.
+    """
+    s = pd.Series(list(values), dtype="object")
+    trusted = s.map(lambda v: isinstance(v, str) and bool(_LAST_MSG_ISO_UTC.match(v)))
+    # format="ISO8601" (not inference): the column mixes fractional and
+    # whole-second stamps, and a single inferred format coerces one of them away.
+    parsed = pd.to_datetime(s.where(trusted), errors="coerce", utc=True,
+                            format="ISO8601")
+    return parsed.dt.tz_localize(None)
+
+
 def load_responses(path=None, salt=None) -> pd.DataFrame:
     path = path or config.RESPONSES_PATH
     salt = salt if salt is not None else config.get_salt()
@@ -159,6 +190,11 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     df["age_num"] = pd.to_numeric(df["Age"], errors="coerce")
     df["age_flag"] = df["age_num"].map(lambda a: "unreliable_sub18" if pd.notna(a) and a < 18 else "ok")
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
+    # KPI2: record creation -> last message. Kept RAW (no capping) by decision;
+    # a negative delta would be nonsense, not a short session, so it is dropped.
+    df["last_message_ts"] = last_message_ts(_col("Last Message At")).values
+    _session = (df["last_message_ts"] - df["ts"]).dt.total_seconds() / 60
+    df["session_minutes"] = _session.where(_session >= 0)
     df["n_questions"] = pd.to_numeric(df.get("Questions per user"), errors="coerce")
     df["dominant_category"] = df["Chat_summary"].map(taxonomy.normalize_category)
     # P4: *_other consolidation (city already done above) + display-ready derivations

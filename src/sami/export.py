@@ -21,7 +21,11 @@ CAT_EN = {
     "organization_search": "Finding organizations",
     "journey_information": "Journey information",
     "services": "Services",
-    "unclassified": "Unclassified",
+    # The platform's own categorisation is presented as a SUGGESTION, not
+    # ground truth (checkpoint 2026-07-28). This bucket holds every record the
+    # taxonomy cannot place: users with no summary at all, and the v2
+    # timestamped-prose summaries that carry no category label.
+    "unclassified": "Suggestion",
 }
 # EN display for the emergent-need probes (mirrors NB3).
 PROBE_EN = {
@@ -167,6 +171,12 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     for raw, new in _RAW_RENAME.items():
         if raw in r.columns:
             agg[new] = r.groupby("user_id")[raw].first()
+    # KPI2 feeds off this column. A user with several response records has
+    # several sessions; the longest is taken, so the value is one real observed
+    # session rather than a sum across days. Null wherever load could not trust
+    # `Last Message At` — Power BI's MEDIAN ignores those rows.
+    if "session_minutes" in r.columns:
+        agg["session_minutes"] = r.groupby("user_id")["session_minutes"].max()
     mpu = messages.groupby("user_id").size()
     agg["n_msgs_user"] = agg.index.to_series().map(mpu).fillna(0).astype(int)
     agg["has_text"] = agg["n_msgs_user"] > 0

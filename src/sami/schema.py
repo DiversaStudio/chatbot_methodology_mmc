@@ -118,6 +118,10 @@ RESPONSES_OPTIONAL = (
     "Language", "Registration Status", "Registration Started",
     "Registration Completed", "Attempts", "Is Returning User",
     "Safety Alert", "Escalation Status", "Migrated From v1", "Survey Completed",
+    # KPI2 (average session time) differences this against Timestamp. Absent or
+    # unparseable, session_minutes is null and the KPI reports on fewer users —
+    # it never breaks the run. See load.last_message_ts.
+    "Last Message At",
 )
 # Present in the export and deliberately unused. Listed so `report_unknown_columns`
 # stays quiet on a known-good export and only speaks up for genuinely NEW fields —
@@ -125,7 +129,7 @@ RESPONSES_OPTIONAL = (
 RESPONSES_IGNORED = (
     "Subitems", "Consent", "City Location", "Prev_country", "Prev_country_other",
     "Destination", "Destination_other", "Survey sent", "Summarize", "Text",
-    "Text 1", "Last Message At",
+    "Text 1",
     "Drop-off Question", "Re-engagement Sent At", "transit", "origin_country",
 )
 
