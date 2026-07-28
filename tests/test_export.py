@@ -619,16 +619,14 @@ def test_agg_language_empty_without_the_column():
     assert len(f) == 0
 
 
-def test_agg_language_reconciles_with_dim_user():
-    """agg_language and dim_user must agree about cohort membership.
+def test_agg_language_reconciles_with_dim_user_per_cohort():
+    """agg_language's per-cohort user counts reconcile with dim_user.
 
-    These two tables must agree about per-cohort user counts or the dashboard
-    contradicts itself. A user who appears in both cohorts is assigned to their
-    earliest record's cohort in both tables. (Note: users without a Language
-    value do not appear in agg_language, so this test uses only users with
-    Language values and checks the per-cohort counts match.)
+    A user is assigned to ONE cohort (earliest record's instrument_version) in
+    both tables. Language is per-record (multilingual users appear in multiple
+    rows). This test uses single-language users to check per-cohort totals match.
     """
-    # Frame with a user appearing in both cohorts (different records)
+    # Frame with users in both cohorts; each user speaks one language
     df = pd.DataFrame({
         "user_id": ["u1", "u1", "u2", "u3"],
         "ts": pd.to_datetime(["2026-04-01", "2026-07-25", "2026-07-20", "2026-06-15"]),
@@ -638,7 +636,7 @@ def test_agg_language_reconciles_with_dim_user():
         "dominant_category": ["employment", "employment", "unclassified", "employment"],
         "n_questions": [2, 2, 1, 1],
         "Migrated From v1": ["v1:100", None, None, None],  # u1 is v1, u2/u3 are v2
-        "Language": ["es", "en", "en", "es"],  # all users have Language
+        "Language": ["es", "es", "en", "es"],  # each user speaks one language consistently
         "Registration Status": ["Completed", "Completed", "Completed", "Completed"],
         "Registration Started": ["2026-04-01T09:00:00Z"] * 4,
     })
@@ -653,12 +651,58 @@ def test_agg_language_reconciles_with_dim_user():
     du = export.build_dim_user(df, messages)
     lg = export.build_agg_language(df)
 
-    # dim_user assigns u1 to v1 (earliest record), u2/u3 to v2
+    # dim_user: u1 -> v1, u2/u3 -> v2
     dim_v1 = (du["instrument_version"] == "v1").sum()
     dim_v2 = (du["instrument_version"] == "v2").sum()
 
-    # agg_language should also assign u1 to v1, u2/u3 to v2
-    lg_by_cohort = lg.groupby("instrument_version")["n_users"].sum()
+    # agg_language per-cohort distinct users must match dim_user per-cohort
+    # With single-language users, the sum of n_users per cohort = distinct users per cohort
+    lg_v1_total = lg[lg["instrument_version"] == "v1"]["n_users"].sum()
+    lg_v2_total = lg[lg["instrument_version"] == "v2"]["n_users"].sum()
 
-    assert lg_by_cohort.get("v1", 0) == dim_v1
-    assert lg_by_cohort.get("v2", 0) == dim_v2
+    assert lg_v1_total == dim_v1, "v1 per-cohort distinct users must match dim_user"
+    assert lg_v2_total == dim_v2, "v2 per-cohort distinct users must match dim_user"
+
+
+def test_agg_language_counts_multilingual_users_per_language():
+    """A multilingual user appears in multiple language rows.
+
+    Language is a per-record attribute. A user using multiple languages appears
+    in multiple (language, instrument_version) rows. The sum of n_users > user
+    count because multilingual users are counted once per language used.
+    """
+    # User u1 uses both Spanish and English in the v2 cohort (different records)
+    df = pd.DataFrame({
+        "user_id": ["u1", "u1"],
+        "ts": pd.to_datetime(["2026-07-20", "2026-07-25"]),
+        "gender_clean": ["Mujer", "Mujer"],
+        "age_num": [30.0, 30.0],
+        "city_canon": ["Medellín", "Medellín"],
+        "dominant_category": ["employment", "employment"],
+        "n_questions": [1, 1],
+        "Migrated From v1": [None, None],  # v2 user
+        "Language": ["es", "en"],
+        "Registration Status": ["Completed", "Completed"],
+        "Registration Started": ["2026-07-20T09:00:00Z"] * 2,
+    })
+    messages = pd.DataFrame({
+        "user_id": ["u1"],
+        "ts": pd.to_datetime(["2026-07-20"]),
+        "message": ["msg1"],
+        "seq": [0],
+        "n_msgs_user": [1],
+    })
+
+    du = export.build_dim_user(df, messages)
+    lg = export.build_agg_language(df)
+
+    # dim_user: 1 user (u1) in v2 cohort
+    assert (du["instrument_version"] == "v2").sum() == 1
+
+    # agg_language: same user appears in both es/v2 and en/v2 rows
+    assert len(lg) == 2  # two language rows
+    assert lg["n_users"].sum() == 2  # sum is 2 (user counted twice), but only 1 distinct user
+    assert (lg["instrument_version"] == "v2").all()  # both rows are v2
+    assert set(lg["language"]) == {"es", "en"}
+    # Per-cohort distinct users still matches dim_user (max n_users per cohort)
+    assert lg[lg["instrument_version"] == "v2"]["n_users"].max() == 1

@@ -286,27 +286,36 @@ def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_agg_language(responses: pd.DataFrame) -> pd.DataFrame:
-    """Users per interface language, split by instrument version.
+    """Distinct users per interface language, split by instrument version.
 
     Split because the language selector is v2-only: a pooled count would read
     as 99% Spanish when the question simply did not exist for v1 users.
 
-    Each user is assigned to ONE cohort (their earliest record's cohort), matching
-    dim_user's logic, so agg_language's per-cohort user counts reconcile with dim_user.
+    SEMANTICS: instrument_version is a per-user attribute (which registration
+    survey the user answered); language is per-record (the same person can use
+    multiple languages). Each user is assigned to ONE cohort (their earliest
+    record's instrument_version). A user who used multiple languages appears in
+    multiple rows. Therefore, n_users does NOT sum to the total user count — a
+    multilingual user is counted under each language they used. This is correct
+    and intentional.
+
+    Per-cohort user counts still reconcile with dim_user on per-cohort basis
+    (e.g., v1 users = count of distinct users with v1 instrument_version across
+    all languages they used).
     """
     cols = ["language", "instrument_version", "n_users"]
     if "Language" not in responses.columns:
         return pd.DataFrame(columns=cols)
-    # Sort by ts and assign instrument_version per record, then take each user's
-    # first record to get their cohort membership (matching dim_user logic).
+    # Assign each user one instrument_version (their earliest record's cohort).
     r = responses.sort_values("ts", kind="stable")
     r = r.assign(instrument_version=cohort.instrument_version(r).values)
-    # Per-user first record keeps the earliest Language value and cohort membership
-    user_cohort = r.groupby("user_id")[["Language", "instrument_version"]].first()
-    # Group by (Language, instrument_version) counting distinct users
-    g = (user_cohort.dropna(subset=["Language"])
-         .reset_index()
-         .groupby(["Language", "instrument_version"])["user_id"]
+    user_cohort = r.groupby("user_id")["instrument_version"].first()
+    # Join per-user cohort onto the full record-level frame.
+    r = r.merge(user_cohort.rename("user_instrument_version"), left_on="user_id", right_index=True)
+    # Group by (Language, user_instrument_version) at the RECORD level,
+    # counting distinct users. A multilingual user appears in multiple rows.
+    g = (r.dropna(subset=["Language"])
+         .groupby(["Language", "user_instrument_version"])["user_id"]
          .nunique().reset_index())
     g.columns = cols
     return g.sort_values(["instrument_version", "n_users"],
