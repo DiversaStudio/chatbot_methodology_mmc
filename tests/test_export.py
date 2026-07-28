@@ -370,3 +370,49 @@ def test_message_id_differs_for_identical_text_from_different_users():
 def test_message_id_contains_no_pii():
     f = export.build_fact_message(_spine())
     assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()
+
+
+def test_message_id_changes_on_backfilled_earlier_message():
+    """Limitation: seq is based on timestamp order, so a backfilled message
+    with an earlier timestamp renumbers the entire user's sequence."""
+    base_messages = pd.DataFrame({
+        "user_id": ["u1", "u1"],
+        "ts": pd.to_datetime(["2026-04-02", "2026-04-03"]),
+        "message": ["segunda", "tercera"],
+        "seq": [0, 1],
+        "n_msgs_user": [2, 2],
+        "city_canon": ["Medellín", "Medellín"],
+        "dominant_category": ["employment", "employment"],
+    })
+    before = export.build_fact_message(base_messages)
+    # Save message_id for the second row (seq=1, "tercera") before backfill
+    tercera_before_seq = 1
+    tercera_id_before = before[before["seq"] == tercera_before_seq].iloc[0]["message_id"]
+
+    # Backfill an earlier message. After concat + sort by (user_id, ts),
+    # seq will be recomputed: 0=primera, 1=segunda, 2=tercera.
+    backfilled = pd.concat([
+        pd.DataFrame({
+            "user_id": ["u1"],
+            "ts": pd.to_datetime(["2026-04-01"]),
+            "message": ["primera"],
+            "seq": [0],  # This will be wrong after sorting
+            "n_msgs_user": [3],
+            "city_canon": ["Medellín"],
+            "dominant_category": ["employment"],
+        }), base_messages
+    ]).sort_values(["user_id", "ts"]).reset_index(drop=True)
+
+    # Recompute seq (mimicking load.load_messages behavior)
+    backfilled["seq"] = backfilled.groupby("user_id").cumcount()
+
+    after = export.build_fact_message(backfilled)
+
+    # The "tercera" message was seq=1 before, now it's seq=2 after backfill.
+    # Since message_key uses seq, the id must change.
+    tercera_after_seq = 2
+    tercera_id_after = after[after["seq"] == tercera_after_seq].iloc[0]["message_id"]
+
+    assert tercera_id_before != tercera_id_after, (
+        "Backfilled earlier message renumbers seq, so message_ids change"
+    )
