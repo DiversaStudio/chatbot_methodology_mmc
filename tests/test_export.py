@@ -558,6 +558,7 @@ def test_agg_registration_funnel_stages_and_counts():
     assert counts["registration completed"] == 2
     assert counts["abandoned"] == 1
     assert counts["in progress"] == 1
+    assert counts["other"] == 0
 
 
 def test_agg_registration_funnel_is_ordered():
@@ -585,4 +586,34 @@ def test_agg_registration_funnel_empty_without_the_columns():
     df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
     f = export.build_agg_registration_funnel(df)
     assert list(f.columns) == ["stage_order", "stage", "n", "pct_of_started"]
+    assert len(f) == 0
+
+
+def test_agg_registration_funnel_stages_sum_to_started_invariant():
+    """Stages must always sum to 'registration started', even with unknown statuses.
+
+    A status the pipeline does not recognise must be visible as 'other', never
+    silently dropped.
+    """
+    df = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4", "u5"],
+        "ts": pd.to_datetime(["2026-07-25"] * 5),
+        "Registration Status": ["Completed", "Abandoned", "In Progress",
+                                "unknown_state", None],  # includes unknown and null
+        "Registration Started": ["2026-07-25T09:00:00Z"] * 5,
+    })
+    f = export.build_agg_registration_funnel(df)
+    counts = dict(zip(f["stage"], f["n"]))
+    # Stages should sum to "registration started"
+    stage_sum = (counts["registration completed"] + counts["abandoned"] +
+                 counts["in progress"] + counts["other"])
+    assert stage_sum == counts["registration started"]
+    assert counts["other"] == 2  # the unknown_state and the null
+
+
+def test_agg_language_empty_without_the_column():
+    """A v1-only archive export has no language selector."""
+    df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
+    f = export.build_agg_language(df)
+    assert list(f.columns) == ["language", "instrument_version", "n_users"]
     assert len(f) == 0
