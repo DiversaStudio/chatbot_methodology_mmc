@@ -51,6 +51,40 @@ is forbidden by the rule above.
 >    deliberately does not sum to the total user count — don't build a percentage of total from
 >    it without checking for double-counting first.
 
+> ### The house style — settled at the 2026-07-27 design review
+>
+> Francisco reviewed the draft dashboard visual by visual. These apply to **every tab**; build
+> them once and copy-paste the formatting rather than re-deciding per visual. Nothing here is
+> a matter of taste any more.
+>
+> | | Rule |
+> |---|---|
+> | **Filters** | Every multi-select filter is a **dropdown**, never a loose list. Date filters are **calendar pickers only** — delete the slider (delete, don't hide). Filter *titles* are grey and a size smaller than the chart titles; the text inside a dropdown must not be larger than the title above it. |
+> | **Filter rail** | Give the rail its own light-green background so it reads as a different surface from the canvas. Roughly **1/7 of the page width** — narrower looks starved. Shared filters appear in the same order on every tab. |
+> | **KPI cards** | Each card sits in a box with a **discreet border and a soft shadow**. On a white canvas an unboxed card looks like it is floating. |
+> | **Spacing** | More margin between plots, and more space between a chart's title and its plot area. Four large visuals per page have room to breathe — use it. |
+> | **Chart chrome** | **Delete sub-titles and footnotes inside charts** (`n = 154 active users` and friends). That is what tooltips are for, and the space is worth more. Drop the colour legend wherever the axis already names the categories. |
+> | **Titles** | Plain and descriptive. No poetry — "Where SAMI reaches and where it doesn't" became "Users by city". Also stop naming charts after the requirement document; name them after what the reader sees. |
+> | **Bars** | **Vertical**, not horizontal, wherever a horizontal bar chart would sit directly under another one — two stacked horizontal charts read as the same chart twice. |
+> | **Tables** | No grey row banding. Bold or enlarge the header row instead, and colour the **values** conditionally — that is the instant-read format for a dense table. |
+> | **Interactivity** | Every visual **and every KPI card** responds to the slicers *and* to clicks on other charts. The KPI cards were deliberately frozen in an earlier draft of this guide — **that is reversed**, see Part 7.2. |
+>
+> **Deliberately dropped, do not reopen:** Colombian department shapefiles (Part 7.3), word
+> clouds (deferred to a later page), and anything tone-derived with a number attached.
+
+> ### `unclassified` now displays as **"Suggestion"**
+>
+> The platform's own message categorisation is presented as a *suggestion*, not ground truth.
+> From the July 2026 platform change the summary field became free prose carrying no category
+> label at all, so that bucket now holds two populations: users who registered and never
+> chatted, and everyone whose summary carries no label. It is **21.8% of users** and it will
+> grow — that is expected, not a data quality failure.
+>
+> The **key** is still `unclassified`, so every relationship, filter and measure you already
+> wrote keeps working; only `dim_category[category_en]` changed. It keeps its grey `#b7b7b7`.
+> Do not filter it out of category charts without saying so in the subtitle — it is the second
+> largest bucket, and hiding it would silently inflate every other category's share.
+
 ---
 
 ## Contents
@@ -69,7 +103,7 @@ is forbidden by the rule above.
 | [9](#part-9--tab-3--is-it-working) | Tab 3 — 4 KPIs + 4 visuals | 75 min |
 | [10](#part-10--the-hidden-about-page) | About page + ⓘ buttons | 30 min |
 | [11](#part-11--interactions-dynamic-titles-accessibility) | Interactions, dynamic subtitles, alt text | 40 min |
-| [12](#part-12--save-refresh-runbook-acceptance-tests) | Save, refresh runbook, acceptance tests | 30 min |
+| [12](#part-12--save-refresh-runbook-acceptance-tests) | Save, refresh runbook, acceptance tests, **is the data anonymised?** | 30 min |
 | [A](#appendix-a--five-things-doc-03-asks-for-that-cannot-be-built-literally) | Deviations from doc 03 | — |
 | [B](#appendix-b--charts-that-did-not-make-the-twelve) | Charts deliberately left out | — |
 
@@ -291,6 +325,15 @@ If your screen doesn't match "How to know it worked", stop and fix it there. Err
   It should finish without errors and `exports/` should contain 21 `.csv` files (fewer with
   `--skip-nlp`, which drops `dim_cluster` and the `nlp_*` tables) plus `_manifest.csv` and
   `_schema.md` — check `_manifest.csv` for the authoritative current list and row counts.
+
+  > **⚠️ `--skip-nlp` does not delete the NLP tables it skips — it leaves the previous run's
+  > files sitting on disk.** `_manifest.csv` lists only what the run actually wrote, so the
+  > tell is a file that isn't in the manifest. At the time of writing, `dim_cluster` and the
+  > five `nlp_*` files in `exports/` are a day older than everything else and come from a
+  > **different data cut**. Power BI will load them without complaint and you will be looking
+  > at yesterday's clusters joined to today's users. Before building anything NLP-derived,
+  > compare file dates against `_manifest.csv`, or just re-run the pipeline **without**
+  > `--skip-nlp` so the whole folder is one coherent export.
 - **Note the full path to `exports/`.** Open the folder in File Explorer, click the address
   bar, and copy the text. It looks like:
   `C:\Users\you\Desktop\DIVERSA\chatbot_methodology_mmc\exports`
@@ -389,6 +432,7 @@ let
                      "city_duration_canon", "city_duration_order",
                      "dominant_category", "destination_country",
                      "n_questions", "n_msgs_user", "has_text", "first_seen",
+                     "session_minutes",
                      "is_repeat_asker", "intends_to_stay", "cluster_id",
                      "language", "registration_status", "attempts", "is_returning",
                      "safety_alert", "escalation_status"},
@@ -406,6 +450,7 @@ let
                      {"dominant_category", type text}, {"destination_country", type text},
                      {"n_questions", type number}, {"n_msgs_user", Int64.Type},
                      {"has_text", type logical}, {"first_seen", type datetime},
+                     {"session_minutes", type number},
                      {"is_repeat_asker", type logical}, {"intends_to_stay", type logical},
                      {"cluster_id", Int64.Type}, {"language", type text},
                      {"registration_status", type text}, {"attempts", Int64.Type},
@@ -416,9 +461,20 @@ in
     Typed
 ```
 
+> ### ⚠️ If you already built this query, you must edit it — `session_minutes` is new
+>
+> `Table.SelectColumns` picks **by name**, so a column the pipeline adds is silently *ignored*
+> until you list it. Reopen **Home → Transform data → `dim_user` → Advanced Editor** and add
+> `"session_minutes"` to the `Table.SelectColumns` list and
+> `{"session_minutes", type number}` to `Table.TransformColumnTypes`, exactly as shown above.
+> Without this edit the KPI2 card in Part 7 has nothing to bind to, and the field simply won't
+> appear in the Data pane. **This is the only query the 2026-07-28 checkpoint changed** — every
+> other block in §3.3 is unchanged.
+
 **New since the v2 migration:** `instrument_version` (`v1` / `v2` — see the cohort warning box at
 the top of this guide), `language`, `registration_status`, `attempts`, `is_returning`,
-`safety_alert`, `escalation_status`. The last two are populated for only a handful of users
+`safety_alert`, `escalation_status`, and `session_minutes` (KPI2 — see the coverage warning in
+Part 5.1). The `safety_alert` / `escalation_status` pair is populated for only a handful of users
 (5 in the July run) and carry free-text incident notes — treat them as a drill-down detail, not
 a KPI. `is_returning` and `registration_status` are raw pass-through text from the platform
 export, not a closed Yes/No set — check the actual values in Table view before building a
@@ -1403,6 +1459,34 @@ RETURN
 **Format:** Whole number.
 
 ```DAX
+Avg Session Time =
+MEDIANX (
+    FILTER ( dim_user, NOT ( ISBLANK ( dim_user[session_minutes] ) ) ),
+    dim_user[session_minutes]
+)
+```
+**Description:** KPI2 from the 2026-07-28 checkpoint — how long a user's conversation lasts,
+from the record being created to their last message. **Reads ~3.7 minutes.**
+**Format:** Decimal number, **1** decimal place. Label the card **"Avg session (min)"** so the
+unit is on screen; a bare `3.7` next to `1,392 users` reads as a count.
+
+> ### ⚠️ Two things about this measure that will bite you
+>
+> **1. It covers 5% of users — use `MEDIANX`, never a hand-rolled average.**
+> `session_minutes` is blank for 1,322 of 1,392 users, because the platform only fills
+> `Last Message At` for some records and the pipeline only trusts the timestamps written from
+> 2026-07-24 onward (the earlier ones sit on a ~2h clock offset that would push this KPI to
+> ~44 **hours** — see `exports/_schema.md`). `MEDIANX` over a `FILTER`ed table ignores blanks
+> correctly. `DIVIDE(SUM(...), COUNTROWS(dim_user))` would divide by all 1,392 and give you a
+> number about twenty times too small. Coverage grows on its own as v2-era records accumulate;
+> nothing needs changing when it does.
+>
+> **2. Median, not mean — deliberately.** The values are raw, with no outlier capping (that was
+> the decision). One user's session runs 3.4 days, which drags `AVERAGE` to **146 minutes**. If
+> you want the mean visible anyway, put it in the card's tooltip, not the callout —
+> `Avg Session Time (mean) = AVERAGE ( dim_user[session_minutes] )`.
+
+```DAX
 Cities Covered =
 CALCULATE (
     DISTINCTCOUNT ( dim_user[city_canon] ),
@@ -1791,24 +1875,51 @@ The tab title is a question; the visuals answer it. That's doc 03 §5's "5-secon
 | # | Measure | Label shown | Position |
 |---|---|---|---|
 | 1 | `Users` | Users reached | 208, 88 |
-| 2 | `New Users` | New this period | 476, 88 |
-| 3 | `Cities Covered` | Cities covered | 744, 88 |
-| 4 | `% Intending to Stay` | Intend to stay in Colombia | 1012, 88 |
+| 2 | `Avg Session Time` | Avg session (min) | 476, 88 |
+| 3 | `Mean Usefulness` | Usefulness rating | 744, 88 |
+| 4 | `MEAL n` | Surveys submitted | 1012, 88 |
+
+> ### The four KPIs, and why they're in this order (checkpoint 2026-07-28)
+>
+> The band tells one sentence left to right: **how many people → how long they stayed → was it
+> useful → how many told us.** Don't reorder it and don't swap in a different metric because
+> a slot looks empty.
+>
+> - **`Users`** — active users. There is exactly one conversation per user, so a separate
+>   "conversations" KPI would be the same number twice; it was cut for that reason.
+> - **`Avg Session Time`** — see the two warnings in Part 5.1. This slot went through three
+>   candidates before landing here.
+> - **`Mean Usefulness`** — the 1–5 mean. It gets **two** visuals: this number, plus a breakdown
+>   of the responses elsewhere on the page. Francisco asked for both explicitly — one says *how
+>   good*, the other says *how spread out*. The breakdown keeps the **label** categories
+>   (`Muy útil` → `Very useful`, …), not the numeric 1–5 scale; that matches the notebook and
+>   avoids implying the scale is an interval measure.
+> - **`MEAL n`** — surveys submitted.
+>
+> **Rejected: average messages per user.** The funnel already answers it and almost no user
+> sends more than two messages, so the card would have read "2" forever. Don't reinstate it.
 
 To change the label text under the number: in the **Build** pane, double-click the field name
 inside the *Fields* well and type the label.
 
-**⚠️ Now the important bit: make the KPIs ignore cross-highlighting.** By default, clicking a
-bar in a chart would change these headline numbers, which is confusing. Do this **once per
-card**:
-
-1. Select the card.
-2. Ribbon → **Format** tab → **Edit interactions**. Small icon pairs appear at the top-right
-   corner of *every other* visual on the page.
-3. On each of those visuals, click the **⊘ (None)** icon.
-4. Click **Edit interactions** again to turn the mode off.
-
-Repeat for all four cards. You'll do this on each tab.
+> ### ⚠️ Reversed at the 2026-07-27 review: leave the KPI cards CONNECTED
+>
+> An earlier version of this guide told you to set every other visual's interaction to
+> **⊘ None** for each card, so the headline numbers never moved. Francisco reviewed that
+> behaviour live — clicked the Medellín bubble on the map, saw every chart update while the
+> four cards sat frozen — and rejected it. **That is the whole point of the tool**: click a
+> city, and the KPI band tells you that city's story.
+>
+> So: **do nothing here.** Leave the default interactions in place. The cards respond to the
+> slicer rail *and* to clicks on any chart.
+>
+> If you already followed the old instruction, undo it: select each card → ribbon →
+> **Format → Edit interactions** → on every other visual click the **▣ (Filter)** icon to
+> restore it → click **Edit interactions** again to leave the mode. Check it worked by clicking
+> a map bubble: all four numbers must change.
+>
+> The one thing that stays fixed: the cards must show the **same** measure regardless of which
+> chart is highlighted — don't "helpfully" swap a card's measure per selection.
 
 ### 7.3 Visual A — Map: users by city
 
@@ -1827,21 +1938,78 @@ Repeat for all four cards. You'll do this on each tab.
 > Latitude and longitude **must** be set to *Don't summarize*. If you skip this, Power BI sums
 > all 13 latitudes and plots one bubble somewhere in the Arctic.
 
-**Format**
+**Format** — revised at the 2026-07-27 checkpoint
 
-- **Map settings → Style: Grayscale.**
-- **Bubbles → Size: 18.**
+- **Map settings → Style: Grayscale.** (Dark was tried and rejected — it fought the rest of
+  the canvas. Grayscale is the decision.)
+- **Map settings → Auto zoom: On.** The map must open already centred on the data, not on the
+  whole hemisphere.
+- **Map settings → Controls → Lasso select: Off**, **Zoom buttons: On but reduced** — they
+  render huge at default size. The only controls a reader needs are `+` and `−`.
+- **Bubbles → Size: 18**, raised until the default view looks *full*. A sparse map reads as
+  "this project has no reach", which is a presentation artifact, not a finding.
 - **Data colors →** teal `#009ba4`.
-- **General → Title:** `Where SAMI reaches — and where it doesn't`.
+- **General → Title:** `Users by city`. Plain, not poetic — "Where SAMI reaches and where it
+  doesn't" was cut at the checkpoint, along with every other editorialising chart title.
+- **Tooltip:** city name + `Users`. **Check you have not bound `Users` twice** — dragging both
+  the measure and a second copy is easy to do and prints the same number under two labels.
+  Do **not** put `lat`/`lon` in the tooltip.
 
 **Footnote:** Insert → Text box directly under the map, 9 pt grey: "Users whose city is 'Other'
 (unspecified) are not mapped."
 
-**✅ How to know it worked:** 13 teal bubbles over Colombia, biggest on the largest cities.
-Hovering one shows city name, users and messages.
+#### 🔵 Putting the number *on* the bubble
+
+This came up at the checkpoint and there is no toggle for it, so here is the whole picture.
+
+**What does not work.** The built-in **Map** visual has no data-label setting for bubbles.
+`Category labels` looks like the answer, but it prints whatever text field sits in the
+**Location** well — during the review it printed the *category* names, which is why it got
+switched back off. There is no way to make it print a measure.
+
+**The workaround: make the label a column, then use it as Location.** `Category labels` will
+happily print a string like `Medellín · 214`, so build that string as a **DAX calculated
+column** (Modeling ribbon → *New column*, with `dim_city` selected):
+
+```DAX
+map_label =
+VAR n = COUNTROWS ( RELATEDTABLE ( dim_user ) )
+RETURN
+    dim_city[city_canon] & " · " & FORMAT ( n + 0, "#,0" )
+```
+
+`RELATEDTABLE` follows the `dim_city[city_canon] → dim_user[city_canon]` relationship you drew
+in Part 4.1, so it counts the users of *this* row's city. The `n + 0` turns the blank into a
+`0` for cities with no users, which would otherwise render as a bare `Leticia ·` with nothing
+after it.
+
+Then drag `dim_city[map_label]` into **Location**, and turn **Format → Category labels → On**,
+font size 9, colour `#4a4a4a`.
+
+> **The catch, and it is a real one: a calculated column is static.** It is computed once at
+> refresh, so these numbers **do not change when a reader clicks a slicer** — filter to one
+> city and every remaining bubble still shows its all-time count. The bubble *sizes* update
+> correctly; only the printed text lies. That is why the tooltip stayed the default answer at
+> the checkpoint. Use `map_label` only if the numbers must be readable in a static screenshot
+> or a printed page, and if you do, put "counts are unfiltered totals" in the footnote.
+
+**If you want slicer-accurate numbers on screen**, the honest option is a companion visual, not
+a map label: a small horizontal bar chart of `Users` by `city_canon` beside the map, sorted
+descending. It responds to every filter, and the map keeps doing the one job a map is good at —
+showing *where*.
+
+**✅ How to know it worked:** 13 teal bubbles over Colombia, biggest on the largest cities, the
+frame already centred on the country when the page opens. Hovering one shows the city name and
+the user count **once**.
 
 Coordinates come from `dim_city` — **Power BI never geocodes by name here** (doc 03 §8). The
 map needs an internet connection for the background tiles only; the data is local.
+
+> **Colombian department shapefiles were considered and dropped** (checkpoint 2026-07-27).
+> The data is per-city, so a department choropleth would paint huge polygons from a handful of
+> city points and imply a coverage the data does not have. An interactive point map beats a
+> shapefile here. `dim_city[department]` still ships if you ever need to group by department in
+> a *table* — just not on the map. Don't reopen this.
 
 ### 7.4 Visual B — Weekly active users
 
@@ -1881,6 +2049,29 @@ RETURN
 
 **✅ How to know it worked:** the subtitle reads something like "Peak: 84 active users in the
 week of 12 May 2026", and it changes when you move the date slicer.
+
+> ### 📈 Add messages on a secondary axis (checkpoint 2026-07-27)
+>
+> Tab 2's old eight-series "messages over time" chart was deleted; **this** chart absorbs it.
+> One line for people, one for volume, on one time axis.
+>
+> 1. Change the visual type from *Line chart* to **Line and clustered column chart**, or keep
+>    the line chart and use **Line chart** with two values — either works; the field well you
+>    need is **Secondary Y axis**.
+> 2. Drag the `Messages` measure into **Secondary Y axis**.
+> 3. Colour that line **red**, keeping `Active Users` teal. Two units on one frame need two
+>    unmistakably different colours, and red is the accent that survives at 1 px.
+> 4. **Confirm the category filter reaches it.** Click a category in the slicer rail: the red
+>    line must move. `Messages` counts `fact_message`, which relates to `dim_category` via
+>    `dominant_category`, so it should — but check, because this is the exact thing the old
+>    chart was doing per-series and the whole point is not to lose it.
+>
+> **Why this beats the chart it replaces:** eight coloured series on one time axis is
+> unreadable. One line plus a category *filter* reaches every one of those eight views, one at
+> a time, legibly — and gives back a whole visual slot on Tab 2.
+>
+> Label both axes, and keep the left axis starting at zero. A dual axis is already asking the
+> reader to do work; don't also make them check the baseline.
 
 ### 7.5 Visual C — Profile: age × gender
 
@@ -1967,7 +2158,42 @@ Same method as 7.2 — four **Card** visuals in the four KPI slots.
 Cards 3 and 4 show **text**, not numbers. Set their **Callout value → Font size: 18** — a
 category name like "Humanitarian assistance" will not fit at 32.
 
-Set **Edit interactions → None** for all four cards, exactly as in 7.2.
+**Leave the interactions alone**, exactly as in 7.2 — the old "set Edit interactions → None"
+instruction is withdrawn on every tab.
+
+> ### 📐 Tab 2 was restructured at the 2026-07-27 review — read before building 8.2–8.5
+>
+> The page now answers **two** questions in one screen: *what are they asking for* and *is the
+> service any good*. Four visuals, laid out 2×2:
+>
+> | | Left column | Right column |
+> |---|---|---|
+> | **Top** | Bar chart — **institutions**, in green | Donut — **usefulness rating** |
+> | **Bottom** | Bar chart — **procedures / trámites**, in red | **Engagement** — vertical bars *or* a treemap |
+>
+> The two bar charts are the *same analysis run on two fields*, which is why they are colour-
+> paired (one green, one red) and stacked in the same column — the pairing is the point.
+> Build one, copy it, change the field.
+>
+> Four changes from what this guide previously described:
+>
+> 1. **The messages-over-time chart is deleted from this page.** It had eight category series
+>    on one time axis and was unreadable. Its content moved to Tab 1, as a red line on a
+>    secondary Y axis of the Active Users chart — see the note at the end of Part 7.4. Deleting
+>    it is what frees the fourth slot here.
+> 2. **City comes out of the matrix table and becomes a global filter.** The category × city
+>    matrix (old 8.3) is retired. Cross-tabulating in the table meant the page could only be
+>    read one cell at a time; as a filter, city re-cuts all four visuals at once.
+> 3. **Category likewise becomes a filter, not an axis**, on the institutions and procedures
+>    charts. Three filters over one chart reach three levels of analysis — that is the leverage
+>    Francisco wanted, rather than three near-identical bar charts.
+> 4. **The donut should cross usefulness rating with `would_recommend`** as a two-ring donut if
+>    Power BI will build one from `fact_meal` (outer ring rating, inner ring recommend, colour
+>    keyed). If a clean two-ring version fights you, ship the single ring — the rating breakdown
+>    is the part that must be there.
+>
+> **The engagement visual is an open A/B:** build it as vertical bars, build it as a treemap,
+> look at both, keep the one that reads better. Few enough categories that either works.
 
 ### 8.2 Visual A — Category mix
 
@@ -2433,6 +2659,9 @@ the dashboard is not finished.**
 - [ ] No message text and no phone-derived value exists in the model (`fact_message` is
       text-free by design; `nlp_voices` holds 4 curated quotes and appears on **none** of the
       three tabs).
+- [ ] Re-run the PII gate after every pipeline run (it runs automatically inside
+      `run_pipeline.py`, but confirm it passed) — see "Is the data anonymised?" below.
+- [ ] `dim_user[safety_alert]` is **not** on any of the three tabs.
 - [ ] ⚠️ No tone percentage is visible anywhere: axis off, labels off, tooltip off (9.5).
 - [ ] Task-based test with a non-technical reader, under 60 seconds each: "Which city has the
       most users?" · "What does Cúcuta ask about most?" · "Is humanitarian demand growing?" ·
@@ -2440,6 +2669,42 @@ the dashboard is not finished.**
       badly served?"
 - [ ] Page load under 3 s; interactions under 1 s.
 - [ ] The refresh runbook executed once, successfully, by someone other than the builder.
+
+### 12.4 Is the data anonymised?
+
+**Yes, for every user including the new v2 arrivals — with two caveats you should know about
+before this file leaves your machine.**
+
+What was verified against the current export (1,392 users, of which 78 are new v2 registrations):
+
+| Check | Result |
+|---|---|
+| Raw identifiers in `exports/` | **None.** `Name` (the WhatsApp id) is dropped in `load_responses` before anything else touches the frame. |
+| `user_id` format | All 1,392 are 12-character **salted SHA-1 digests** (`0014ad7a21e3`). The salt lives in `SAMI_SALT`, out of band and never in the repo — without it the hash cannot be reversed even by someone holding the export. |
+| New v2 users specifically | Same code path, no exceptions — the loader pseudonymises before the cohort split, so there is no branch where a v2 row could skip it. |
+| Automated PII gate | **21 of 21 shipped tables pass.** `write_all` scans every frame for `whatsapp:` and any 7+ digit run *before* writing anything, so a violation leaves `exports/` untouched rather than half-written. |
+| Free-text columns that do ship | `no_usefulness_reason` (96), `nlp_voices[message]` (4), `safety_alert` (5) — hand-scanned for names, emails, document numbers and phone numbers. Clean. |
+| Message text | Not exported at all. `fact_message` carries a content **hash**, never the message. |
+
+**Caveat 1 — `safety_alert` is a narrative, and narratives re-identify.** Five users carry a
+free-text incident note, some describing a specific person's situation in a named city on a
+named date ("their son is being held in a detention center in Cali"). No name or number appears
+in them, so the automated gate passes and will keep passing — but a small enough population
+plus a specific enough story is identifying regardless of what the regex thinks. **Keep this
+column off the report.** It ships so the pipeline can count escalations, not so anyone can read
+them on a dashboard.
+
+**Caveat 2 — anonymised is not the same as non-sensitive.** The model still holds city, age,
+gender, nationality and migration intent per user. Any visual that slices far enough down
+(one city × one nationality × one age band) can isolate a single person even though no name
+exists anywhere. That is what the small-n suppression rule in the checklist above is for —
+it is a privacy control, not a chart-quality nicety.
+
+**To re-verify at any time:**
+
+```powershell
+.venv\Scripts\python.exe -c "import sys,glob; sys.path.insert(0,'src'); import pandas as pd; from sami import qa; [print(('FAIL' if qa.pii_scan(pd.read_csv(f)) else 'ok  '), f) for f in glob.glob('exports/*.csv') if '_manifest' not in f]"
+```
 
 ---
 
