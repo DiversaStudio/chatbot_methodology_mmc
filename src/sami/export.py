@@ -53,6 +53,20 @@ def _mapper(table: dict):
     return _f
 
 
+def message_key(user_id, seq, message) -> str:
+    """Stable id for one message: sha1(user_id|seq|text)[:16].
+
+    Replaces a positional index. `load.load_messages` sorts the spine by
+    (user_id, ts), so a positional id was re-assigned to a DIFFERENT message
+    every time the corpus grew — silently invalidating anything keyed on it,
+    including the tone gold labels. Keying on the user plus their own message
+    sequence is stable under new users and new messages, because a user's own
+    history only ever appends.
+    """
+    raw = f"{user_id}|{seq}|{message}"
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+
+
 # Explicit non-response bucket. The canon functions return None for a survey
 # answer they cannot place on the scale (blank, or free text off the vocabulary);
 # on a Power BI axis that renders as an unlabelled bar, so the gold layer names
@@ -164,7 +178,9 @@ _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
                        lab: "pd.Series | None" = None) -> pd.DataFrame:
-    f = messages.reset_index().rename(columns={"index": "message_id"})
+    f = messages.copy()
+    f["message_id"] = [message_key(u, s, m) for u, s, m
+                       in zip(f["user_id"], f["seq"], f["message"])]
     f = f[[c for c in _FACT_MSG_COLS if c in f.columns]].copy()
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)

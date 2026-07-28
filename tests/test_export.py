@@ -146,7 +146,7 @@ def test_fact_message_grain_and_join(SD):
     f = export.build_fact_message(SD.messages)
     assert len(f) == len(SD.messages)
     assert f["message_id"].is_unique
-    assert list(f["message_id"]) == list(SD.messages.index)
+    assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()  # 16-char hex hash
     assert f["sentiment_label"].isna().all()   # no sentiment passed
     assert f["cluster_id"].isna().all()
 
@@ -319,3 +319,54 @@ def test_agg_weekly_rating(SD):
     # counts sum to the rated-and-dated MEAL responses
     rated = fm.dropna(subset=["ts", "rating_num"])
     assert int(w["n"].sum()) == len(rated)
+
+
+def _spine():
+    return pd.DataFrame({
+        "user_id": ["u1", "u1", "u2"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-04-02", "2026-04-03"]),
+        "message": ["hola que tal", "necesito ayuda", "busco empleo"],
+        "seq": [0, 1, 0],
+        "n_msgs_user": [2, 2, 1],
+        "city_canon": ["Medellín", "Medellín", "Cúcuta"],
+        "dominant_category": ["employment", "employment", "employment"],
+    })
+
+
+def test_message_id_is_stable_when_other_users_are_added():
+    """Regression: message_id was messages.reset_index(), a POSITIONAL id.
+    The spine is sorted by (user_id, ts), so one new user re-numbered every
+    row — silently re-pointing anything keyed on it."""
+    base = _spine()
+    before = export.build_fact_message(base)
+    grown = pd.concat([
+        pd.DataFrame({
+            "user_id": ["u0"], "ts": pd.to_datetime(["2026-03-01"]),
+            "message": ["mensaje nuevo"], "seq": [0], "n_msgs_user": [1],
+            "city_canon": ["Bogotá"], "dominant_category": ["services"],
+        }), base]).reset_index(drop=True)
+    after = export.build_fact_message(grown)
+
+    got = after.set_index("user_id").loc["u2", "message_id"]
+    want = before.set_index("user_id").loc["u2", "message_id"]
+    assert got == want
+
+
+def test_message_id_is_unique_per_row():
+    f = export.build_fact_message(_spine())
+    assert f["message_id"].is_unique
+
+
+def test_message_id_differs_for_identical_text_from_different_users():
+    df = pd.DataFrame({
+        "user_id": ["u1", "u2"], "ts": pd.to_datetime(["2026-04-01"] * 2),
+        "message": ["gracias", "gracias"], "seq": [0, 0], "n_msgs_user": [1, 1],
+        "city_canon": ["Medellín"] * 2, "dominant_category": ["services"] * 2,
+    })
+    f = export.build_fact_message(df)
+    assert f["message_id"].nunique() == 2
+
+
+def test_message_id_contains_no_pii():
+    f = export.build_fact_message(_spine())
+    assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()
