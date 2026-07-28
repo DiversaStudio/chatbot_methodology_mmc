@@ -103,7 +103,12 @@ def test_reconciliation_table_matches_real_export():
     assert d["records"] == len(resp)
     assert d["messages"] == len(msgs)
     assert d["users_with_text"] <= d["users"]
-    assert d["meal_responses"] <= d["users"]
+    # NOT an invariant: meal_responses <= users. load_meal pseudonymizes its own
+    # id column independently of load_responses, so the survey pool is not
+    # guaranteed to be a subset of the user pool -- on the current export, 3 of
+    # 115 MEAL respondents (112/115) have no matching user_id in responses. The
+    # only guarantee is that the reported figure matches its source length.
+    assert d["meal_responses"] == len(meal)
     assert d["negative_tone_pct"] == "pending"
 
 
