@@ -22,6 +22,12 @@ def test_load_sami_returns_populated_bundle(monkeypatch):
     assert len(d.responses) > 0
     assert d.responses["user_id"].nunique() > 0
     assert len(d.messages) > 0
+    # every message must belong to a user present in responses -- a real
+    # relationship, not just an existence check that 99% data loss would pass
+    assert set(d.messages["user_id"]).issubset(set(d.responses["user_id"]))
+    # P6 spine invariant: sum of per-user message counts == total message rows
+    per_user = d.messages.groupby("user_id")["n_msgs_user"].first().sum()
+    assert per_user == len(d.messages)
     assert d.meal["user_id"].is_unique
     assert not d.reconciliation.empty
     assert d.run_meta["salt_present"] is True
@@ -31,6 +37,12 @@ def test_load_sami_returns_populated_bundle(monkeypatch):
     assert recon["records"] == len(d.responses)
     assert recon["messages"] == len(d.messages)
     assert recon["users_with_text"] <= recon["users"]
+    # NOT an invariant: meal_responses <= users. load_meal pseudonymizes its own
+    # id column independently of load_responses, so the survey pool is not
+    # guaranteed to be a subset of the user pool -- on the current export, 3 of
+    # 115 MEAL respondents (112/115) have no matching user_id in responses. The
+    # only guarantee is that the reported figure matches its source length.
+    assert recon["meal_responses"] == len(d.meal)
 
 
 @requires_real_data
