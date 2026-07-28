@@ -239,6 +239,56 @@ def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
     return f
 
 
+# Registration is the stage BEFORE `agg_funnel`'s "arrived": the v1 platform
+# exposed nothing about people who started the survey and never finished, so
+# this is new ground rather than a re-cut of the existing funnel.
+_REG_STAGES = ("registration started", "registration completed",
+               "abandoned", "in progress")
+
+
+def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
+    """Ordered pre-conversation funnel from the v2 registration fields.
+
+    Empty (with the right columns) when the export predates those fields, so a
+    v1-only archive still writes a well-formed table.
+    """
+    cols = ["stage_order", "stage", "n", "pct_of_started"]
+    if "Registration Status" not in responses.columns:
+        return pd.DataFrame(columns=cols)
+    status = responses["Registration Status"].astype("string").str.strip().str.lower()
+    started = len(responses)
+    counts = {
+        "registration started": started,
+        "registration completed": int((status == "completed").sum()),
+        "abandoned": int((status == "abandoned").sum()),
+        "in progress": int((status == "in progress").sum()),
+    }
+    rows = [{"stage_order": i, "stage": stage, "n": counts[stage],
+             "pct_of_started": (round(100 * counts[stage] / started, 1)
+                                if started else 0.0)}
+            for i, stage in enumerate(_REG_STAGES)]
+    return pd.DataFrame(rows, columns=cols)
+
+
+def build_agg_language(responses: pd.DataFrame) -> pd.DataFrame:
+    """Users per interface language, split by instrument version.
+
+    Split because the language selector is v2-only: a pooled count would read
+    as 99% Spanish when the question simply did not exist for v1 users.
+    """
+    cols = ["language", "instrument_version", "n_users"]
+    if "Language" not in responses.columns:
+        return pd.DataFrame(columns=cols)
+    r = responses.assign(
+        instrument_version=cohort.instrument_version(responses).values)
+    g = (r.dropna(subset=["Language"])
+         .groupby(["Language", "instrument_version"])["user_id"]
+         .nunique().reset_index())
+    g.columns = cols
+    return g.sort_values(["instrument_version", "n_users"],
+                         ascending=[True, False]).reset_index(drop=True)
+
+
 def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
     by_kind = taxonomy.entity_counts_by_kind(messages["message"])
     rows = [{"kind": kind, "entity": ent, "n": int(n)}
@@ -327,7 +377,7 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "2") -> pd.DataFrame:
+                   schema_version: str = "3") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     if nlp_meta:

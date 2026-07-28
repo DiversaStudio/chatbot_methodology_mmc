@@ -64,7 +64,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "2"
+    assert kv["schema_version"] == "3"
 
 
 def test_parity_check_includes_repeat_askers(SD):
@@ -525,3 +525,55 @@ def test_reason_is_valid_ordering_pins_computation_before_translation():
         "reason_is_valid matched English labels, meaning it was computed after "
         "translation. It must be computed BEFORE to_english_meal runs, on Spanish input."
     )
+
+
+def _responses_registration():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-25"] * 4),
+        "Registration Status": ["Completed", "Completed", "Abandoned",
+                                "In Progress"],
+        "Registration Started": ["2026-07-25T09:00:00Z"] * 4,
+        "Registration Completed": ["2026-07-25T09:05:00Z",
+                                   "2026-07-25T09:06:00Z", None, None],
+        "Attempts": [1, 2, 3, 1],
+        "Language": ["es", "es", "en", "es"],
+        "Migrated From v1": [None, None, None, "v1:1"],
+    })
+
+
+def test_agg_registration_funnel_stages_and_counts():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    counts = dict(zip(f["stage"], f["n"]))
+    assert counts["registration started"] == 4
+    assert counts["registration completed"] == 2
+    assert counts["abandoned"] == 1
+    assert counts["in progress"] == 1
+
+
+def test_agg_registration_funnel_is_ordered():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    assert list(f["stage_order"]) == sorted(f["stage_order"])
+
+
+def test_agg_registration_funnel_pct_is_relative_to_started():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    row = f[f["stage"] == "registration completed"].iloc[0]
+    assert abs(row["pct_of_started"] - 50.0) < 1e-9
+
+
+def test_agg_language_splits_by_instrument_version():
+    f = export.build_agg_language(_responses_registration())
+    got = {(r.language, r.instrument_version): r.n_users
+           for r in f.itertuples()}
+    assert got[("es", "v2")] == 2
+    assert got[("en", "v2")] == 1
+    assert got[("es", "v1")] == 1
+
+
+def test_agg_registration_funnel_empty_without_the_columns():
+    """A v1-only archive export has no registration fields."""
+    df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
+    f = export.build_agg_registration_funnel(df)
+    assert list(f.columns) == ["stage_order", "stage", "n", "pct_of_started"]
+    assert len(f) == 0

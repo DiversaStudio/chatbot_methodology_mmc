@@ -147,6 +147,8 @@ def main(argv=None) -> int:
             "dim_category": export.build_dim_category(),
             "dim_city": export.build_dim_city(),
             "agg_funnel": export.build_agg_funnel(SD.responses, SD.messages, SD.meal),
+            "agg_registration_funnel": export.build_agg_registration_funnel(SD.responses),
+            "agg_language": export.build_agg_language(SD.responses),
             "agg_entities_by_kind": export.build_agg_entities_by_kind(SD.messages),
             "agg_weekly_category": export.build_agg_weekly_category(SD.messages),
             "agg_daily_volume": export.build_agg_daily_volume(SD.messages),
