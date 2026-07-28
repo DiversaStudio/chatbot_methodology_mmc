@@ -54,16 +54,24 @@ def _mapper(table: dict):
 
 
 def message_key(user_id, seq, message) -> str:
-    """Stable id for one message: sha1(user_id|seq|text)[:16].
+    """Stable id for one message: sha1(user_id\x00seq\x00text)[:16].
 
     Replaces a positional index. `load.load_messages` sorts the spine by
     (user_id, ts), so a positional id was re-assigned to a DIFFERENT message
     every time the corpus grew — silently invalidating anything keyed on it,
-    including the tone gold labels. Keying on the user plus their own message
-    sequence is stable under new users and new messages, because a user's own
-    history only ever appends.
+    including the tone gold labels.
+
+    Keying on (user_id, seq, message_text) is stable under:
+    - new users being added (the spine re-sorts; other users' seqs unchanged)
+    - new messages appended to existing users (their seq numbers only increase)
+
+    It is NOT stable if a backfilled message lands earlier in an existing user's
+    timeline; `seq` is computed from sorted timestamps, so an earlier insertion
+    renumbers the entire user's sequence and all their message ids change.
+
+    Uses NUL byte (\\x00) as delimiter to prevent collisions in unusual inputs.
     """
-    raw = f"{user_id}|{seq}|{message}"
+    raw = f"{user_id}\x00{seq}\x00{message}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
