@@ -463,3 +463,42 @@ def test_every_dim_user_column_has_a_cohort_policy():
     d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
     for col in d.columns:
         cohort.policy_for(col)   # raises CohortError if unclassified
+
+
+def _meal_frame():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-01"] * 4),
+        "usefulness_rating": ["Muy útil", "Nada útil", "Medianamente útil", "Útil"],
+        "no_usefulness_reason": ["no", "te confundiste de ciudad",
+                                 "faltó info", "Todo bien gracias"],
+    })
+
+
+def test_reason_is_valid_only_for_dissatisfied_ratings():
+    """The v2 skip logic misfired: 'why wasn't it useful' was asked of 118
+    people, 75 of whom rated it Útil/Muy útil and answered with negations.
+    Only the dissatisfied answers are analytically usable."""
+    f = export.build_fact_meal(_meal_frame())
+    valid = dict(zip(f["user_id"], f["reason_is_valid"]))
+    assert valid == {"u1": False, "u2": True, "u3": True, "u4": False}
+
+
+def test_reason_is_valid_is_false_when_no_reason_given():
+    df = _meal_frame().assign(no_usefulness_reason=[None] * 4)
+    f = export.build_fact_meal(df)
+    assert not f["reason_is_valid"].any()
+
+
+def test_fact_meal_survives_a_missing_reason_column():
+    """A v1-only archive export has no Q12a at all."""
+    df = _meal_frame().drop(columns=["no_usefulness_reason"])
+    f = export.build_fact_meal(df)
+    assert "reason_is_valid" in f.columns
+    assert not f["reason_is_valid"].any()
+
+
+def test_every_fact_meal_column_has_a_cohort_policy():
+    f = export.build_fact_meal(_meal_frame())
+    for col in f.columns:
+        cohort.policy_for(col)

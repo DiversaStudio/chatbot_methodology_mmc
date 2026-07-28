@@ -207,13 +207,27 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
     return f
 
 
+# Ratings for which the v2 "¿Por qué la información entregada no fue útil?"
+# question was SUPPOSED to fire. Its skip logic misfired in production: it was
+# asked of 118 respondents, 75 of whom had rated the service Útil or Muy útil
+# and answered with negations ("no", "Todo bien gracias"). Counting all 118 as
+# reasons-for-failure is 64% noise, so the validity is carried in the data
+# rather than in a note nobody reads.
+REASON_VALID_RATINGS = frozenset({"Nada útil", "Poco útil", "Medianamente útil"})
+
 _FACT_MEAL_COLS = ["user_id", "ts", "usefulness_rating", "rating_num",
-                   "would_recommend", "recommendation_text", "discovery_channel"]
+                   "would_recommend", "recommendation_text", "discovery_channel",
+                   "no_usefulness_reason", "reason_is_valid"]
 
 
 def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
     f = meal.copy()
     f["rating_num"] = f["usefulness_rating"].map(RATING_NUM)
+    # Computed BEFORE to_english_meal, which rewrites the Spanish vocabulary.
+    if "no_usefulness_reason" not in f.columns:
+        f["no_usefulness_reason"] = pd.NA
+    f["reason_is_valid"] = (f["usefulness_rating"].isin(REASON_VALID_RATINGS)
+                            & f["no_usefulness_reason"].notna())
     return to_english_meal(f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy())
 
 
