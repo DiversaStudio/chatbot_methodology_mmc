@@ -97,8 +97,13 @@ def _check_export(path: Path, source: str, required) -> Result:
                       f"        python run_pipeline.py --{source} PATH")
     try:
         import pandas as pd
-        header = schema.detect_header_row(path)
+        # Header detection and column normalization must match what the loaders
+        # do (load._read_export), or preflight reports a healthy export as
+        # broken: the v2 platform renamed the key columns, so `required` is
+        # stated in canonical names that only exist after normalize_columns.
+        header = schema.detect_header_row(path, source=source)
         frame = pd.read_excel(path, header=header, nrows=5)
+        frame = schema.normalize_columns(frame, source)
         schema.require_columns(frame, required, path, source)
     except schema.SchemaError as exc:
         return Result(source, FAIL, str(exc).splitlines()[0],
