@@ -89,6 +89,10 @@ def _read_export(path, source: str = "responses") -> pd.DataFrame:
     "whatsapp:"; the v2 export stores a bare number, so filtering on that prefix
     dropped every row. The v2 platform is WhatsApp-only, and `Language` /
     `Registration Status` identify the channel if that ever changes.
+
+    Rows are rejected if the id column is null or contains no digits at all
+    (e.g., a UI placeholder like "Agregar address"). A valid phone-number id
+    must contain at least one digit.
     """
     path = Path(path)
     if not path.exists():
@@ -103,14 +107,15 @@ def _read_export(path, source: str = "responses") -> pd.DataFrame:
     df = pd.read_excel(path, header=schema.detect_header_row(path, source=source))
     df = schema.normalize_columns(df, source)
     schema.require_columns(df, schema.BASE_REQUIRED, path, source)
-    df = df[df["Name"].notna()].copy()
+    df = df[df["Name"].map(lambda x: bool(digits(x)), na_action="ignore").fillna(False)].copy()
     if df.empty:
         raise schema.SchemaError(
             f"{source.capitalize()} export has no rows with an identifier.\n"
             f"  file: {path}\n"
-            "  fix:  Every row needs a value in the id column (v2: 'Address' "
-            "for responses, 'Respondent' for the survey). Check you downloaded "
-            "a complete export.")
+            "  fix:  Every row needs a non-empty id column containing at least "
+            "one digit (v2: 'Address' for responses, 'Respondent' for the survey). "
+            "Rows with null or digit-less ids (e.g., UI placeholders) are rejected. "
+            "Check you downloaded a complete export.")
     df.reset_index(drop=True, inplace=True)
     return df
 
