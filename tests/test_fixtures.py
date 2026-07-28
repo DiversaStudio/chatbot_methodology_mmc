@@ -14,10 +14,10 @@ def test_fixtures_exist():
 
 def test_users_fixture_shape():
     df = pd.read_excel(USERS, header=2)
-    assert len(df) == 6
+    assert len(df) == 7  # 6 data rows + 1 empty-id row
     assert "Address" in df.columns and "Created At" in df.columns
     assert df["Migrated From v1"].notna().sum() == 4   # v1 cohort
-    assert df["Migrated From v1"].isna().sum() == 2    # v2-native cohort
+    assert df["Migrated From v1"].isna().sum() == 3    # v2-native cohort (2) + empty-id row (1)
 
 
 def test_users_fixture_reproduces_float_phone_parsing():
