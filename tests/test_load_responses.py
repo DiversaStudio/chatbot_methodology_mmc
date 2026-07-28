@@ -115,3 +115,33 @@ def test_load_responses_has_city_duration_derivations():
     from sami import canon
     orders = df["city_duration_order"].dropna().unique()
     assert all(0 <= int(o) < len(canon.CITY_DURATION_ORDER) for o in orders)
+
+
+def test_digits_strips_float_suffix():
+    """v2 Address parses as a float, so str() yields '573154047912.0'.
+    Without stripping, every user_id changes and breaks joins to prior runs."""
+    assert load.digits("573154047912.0") == "573154047912"
+    assert load.digits(573154047912.0) == "573154047912"
+
+
+def test_digits_unchanged_for_legacy_prefixed_names():
+    assert load.digits("whatsapp:+573154047912") == "573154047912"
+
+
+def test_user_id_identical_across_export_formats():
+    """The migration must not re-pseudonymize: the same person in the v1 and
+    v2 exports must hash to the same user_id."""
+    salt = "test_salt"
+    assert (load.pseudonymize("whatsapp:+573154047912", salt)
+            == load.pseudonymize(573154047912.0, salt))
+
+
+def test_load_responses_reads_the_v2_fixture():
+    from pathlib import Path
+    fix = Path(__file__).resolve().parent / "fixtures" / "users_v2.xlsx"
+    df = load.load_responses(fix, salt="test_salt")
+    assert len(df) == 6
+    assert "user_id" in df.columns
+    assert "Name" not in df.columns          # dropped after pseudonymization
+    assert "Address" not in df.columns       # renamed by normalize_columns
+    assert df["ts"].notna().all()

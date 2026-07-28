@@ -12,9 +12,19 @@ from . import config, canon, taxonomy, schema
 
 _NOISE = {"undefined", "?", ""}
 
+_FLOAT_TAIL = re.compile(r"\.0+$")
+
 
 def digits(s) -> str:
-    return re.sub(r"\D", "", str(s))
+    """Digits of an identifier, stable across export formats.
+
+    The v1 export stored the id as text ("whatsapp:+573154047912"); the v2
+    export stores it as a NUMBER, so pandas hands us 573154047912.0 and a naive
+    digit strip yields a 13-char key. Dropping the float tail first keeps
+    user_id byte-identical across the migration — every downstream join, and
+    every comparison against a previous run, depends on that.
+    """
+    return re.sub(r"\D", "", _FLOAT_TAIL.sub("", str(s).strip()))
 
 
 def pseudonymize(name, salt: str) -> str:
@@ -69,12 +79,17 @@ def is_courtesy(text: str) -> bool:
 
 
 # ---- responses loader ----
-def _read_whatsapp(path, source: str = "responses") -> pd.DataFrame:
-    """Read a platform export, keeping only the WhatsApp channel rows.
+def _read_export(path, source: str = "responses") -> pd.DataFrame:
+    """Read a platform export and normalize its columns to canonical names.
 
     The header row is detected, not assumed (schema.detect_header_row), and a
-    missing file or an export with no WhatsApp rows raises with the fix rather
-    than a bare FileNotFoundError / empty frame."""
+    missing file raises with the fix rather than a bare FileNotFoundError.
+
+    There is no channel filter. The v1 export prefixed every id with
+    "whatsapp:"; the v2 export stores a bare number, so filtering on that prefix
+    dropped every row. The v2 platform is WhatsApp-only, and `Language` /
+    `Registration Status` identify the channel if that ever changes.
+    """
     path = Path(path)
     if not path.exists():
         raise schema.SchemaError(
@@ -85,16 +100,17 @@ def _read_whatsapp(path, source: str = "responses") -> pd.DataFrame:
             "put them in data_&_docs/, or pass an explicit path:\n"
             "        python run_pipeline.py --responses PATH --meal PATH\n"
             "        Run `python run_pipeline.py --check` to verify your setup.")
-    df = pd.read_excel(path, header=schema.detect_header_row(path))
+    df = pd.read_excel(path, header=schema.detect_header_row(path, source=source))
+    df = schema.normalize_columns(df, source)
     schema.require_columns(df, schema.BASE_REQUIRED, path, source)
-    df = df[df["Name"].astype(str).str.startswith("whatsapp")].copy()
+    df = df[df["Name"].notna()].copy()
     if df.empty:
         raise schema.SchemaError(
-            f"{source.capitalize()} export has no WhatsApp rows.\n"
+            f"{source.capitalize()} export has no rows with an identifier.\n"
             f"  file: {path}\n"
-            "  fix:  Rows are kept only when 'Name' starts with 'whatsapp'. "
-            "This export's Name column holds something else — check you "
-            "downloaded the WhatsApp channel export.")
+            "  fix:  Every row needs a value in the id column (v2: 'Address' "
+            "for responses, 'Respondent' for the survey). Check you downloaded "
+            "a complete export.")
     df.reset_index(drop=True, inplace=True)
     return df
 
@@ -120,7 +136,7 @@ def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
 def load_responses(path=None, salt=None) -> pd.DataFrame:
     path = path or config.RESPONSES_PATH
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path, source="responses")
+    df = _read_export(path, source="responses")
     schema.require_columns(df, schema.RESPONSES_REQUIRED, path, "responses")
     unknown = schema.report_unknown_columns(df, "responses")
     if unknown:
@@ -180,7 +196,7 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
 def load_meal(path=None, salt=None) -> pd.DataFrame:
     path = path or config.MEAL_PATH
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path, source="meal")
+    df = _read_export(path, source="meal")
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
     # The 5 survey questions are matched by their question text, not by column
