@@ -4,10 +4,13 @@ These are the checks that stand between a drifted export and silently wrong
 numbers, so they are exercised on synthetic frames rather than only on the one
 export that happens to be on disk.
 """
+from pathlib import Path
 import pandas as pd
 import pytest
 
 from sami import schema
+
+FIX = Path(__file__).resolve().parent / "fixtures"
 
 # The five real MEAL question headers, verbatim from the platform export.
 REAL_MEAL_COLS = [
@@ -53,7 +56,7 @@ def test_missing_header_error_shows_rows_seen(tmp_path):
     with pytest.raises(schema.SchemaError) as exc:
         schema.detect_header_row(path)
     msg = str(exc.value)
-    assert "Name" in msg and "Timestamp" in msg
+    assert ("name" in msg or "Name" in msg) and ("timestamp" in msg or "Timestamp" in msg)
     assert "row 0" in msg  # the fix shows what was actually found
 
 
@@ -138,3 +141,56 @@ def test_meal_accent_and_case_insensitive():
     mapping, warnings = schema.meal_column_map(stripped)
     assert warnings == []
     assert mapping[stripped[2]] == "usefulness_rating"
+
+
+# ---- v2 export schema ---------------------------------------------------------
+def test_detect_header_row_finds_v2_responses_header():
+    assert schema.detect_header_row(FIX / "users_v2.xlsx", source="responses") == 2
+
+
+def test_detect_header_row_finds_v2_meal_header():
+    assert schema.detect_header_row(FIX / "survey_v2.xlsx", source="meal") == 2
+
+
+def test_normalize_columns_maps_v2_names_to_canonical():
+    df = pd.read_excel(FIX / "users_v2.xlsx", header=2)
+    out = schema.normalize_columns(df, "responses")
+    for canonical in ("Name", "Timestamp", "Messages", "Chat_summary",
+                      "City", "Age", "Gender", "Nationality", "Minors",
+                      "City_duration", "Destination"):
+        assert canonical in out.columns, f"{canonical} missing after normalize"
+    # v2 names must be gone — downstream code keys off the canonical names
+    assert "Address" not in out.columns
+    assert "QA Messages" not in out.columns
+
+
+def test_normalize_columns_preserves_unmapped_v2_columns():
+    """New v2-only fields must survive; export.py reads them by their own name."""
+    df = pd.read_excel(FIX / "users_v2.xlsx", header=2)
+    out = schema.normalize_columns(df, "responses")
+    for passthrough in ("Language", "Registration Status", "Attempts",
+                        "Migrated From v1", "Safety Alert"):
+        assert passthrough in out.columns
+
+
+def test_normalize_columns_is_idempotent():
+    df = pd.read_excel(FIX / "users_v2.xlsx", header=2)
+    once = schema.normalize_columns(df, "responses")
+    twice = schema.normalize_columns(once, "responses")
+    assert list(once.columns) == list(twice.columns)
+
+
+def test_detect_header_row_error_names_the_file_and_rows(tmp_path):
+    bad = tmp_path / "bad.xlsx"
+    pd.DataFrame({"a": [1], "b": [2]}).to_excel(bad, index=False)
+    with pytest.raises(schema.SchemaError) as e:
+        schema.detect_header_row(bad, source="responses")
+    assert str(bad) in str(e.value)
+    assert "row 0" in str(e.value)
+
+
+def test_v2_export_produces_no_unknown_column_warnings():
+    """A warning that fires on every run is a warning nobody reads."""
+    df = pd.read_excel(FIX / "users_v2.xlsx", header=2)
+    df = schema.normalize_columns(df, "responses")
+    assert schema.report_unknown_columns(df, "responses") == []

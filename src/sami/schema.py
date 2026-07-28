@@ -22,33 +22,87 @@ def _fmt(problem: str, path, fix: str) -> str:
 
 
 # ---- header row ---------------------------------------------------------------
-# The exports carry two banner rows above the real header ("MMC bot - responses",
-# "Try it free ->"), so the header is the 3rd row today. Detected rather than
-# assumed: a re-export with one more or fewer banner rows silently shifts it.
-HEADER_MARKERS = ("name", "timestamp")
+# The exports carry two banner rows above the real header, so the header is the
+# 3rd row today. Detected rather than assumed: a re-export with one more or fewer
+# banner rows silently shifts it.
+#
+# The v2 platform renamed the key columns, so each source accepts several marker
+# sets. The legacy sets are kept because they cost nothing and let a v1-shaped
+# file still be read (fixtures, archives) — the pipeline targets v2.
+HEADER_MARKERS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "responses": (("address", "created at"), ("name", "timestamp")),
+    "meal": (("respondent", "recorded at"), ("name", "timestamp")),
+}
 HEADER_SCAN_ROWS = 8
 
 
-def detect_header_row(path, max_scan: int = HEADER_SCAN_ROWS) -> int:
+def detect_header_row(path, source: str = "responses",
+                      max_scan: int = HEADER_SCAN_ROWS) -> int:
     """0-indexed row holding the real column header.
 
-    Finds the first row containing both `Name` and `Timestamp`. Raises
-    SchemaError showing the rows actually seen when no row matches.
+    Finds the first row containing every marker of any accepted marker set for
+    `source`. Raises SchemaError showing the rows actually seen when none match.
     """
+    marker_sets = HEADER_MARKERS.get(source, HEADER_MARKERS["responses"])
     probe = pd.read_excel(path, header=None, nrows=max_scan)
     for i in range(len(probe)):
         cells = {fold(v) for v in probe.iloc[i] if not pd.isna(v)}
-        if all(m in cells for m in HEADER_MARKERS):
+        if any(all(m in cells for m in markers) for markers in marker_sets):
             return i
+    expected = " or ".join("+".join(m) for m in marker_sets)
     seen = "\n".join(
         f"    row {i}: {[str(v)[:24] for v in probe.iloc[i, :5] if not pd.isna(v)]}"
         for i in range(len(probe)))
     raise SchemaError(_fmt(
         f"No header row found in the first {max_scan} rows — expected a row "
-        f"containing both 'Name' and 'Timestamp'.",
+        f"containing {expected}.",
         path,
         "Confirm this is a raw platform export (banner rows above the header, "
-        "header not yet promoted). Rows seen:\n" + seen))
+        "header not yet promoted). If the platform renamed its key columns "
+        "again, add the new marker set to HEADER_MARKERS in "
+        "src/sami/schema.py. Rows seen:\n" + seen))
+
+
+# ---- source column maps -------------------------------------------------------
+# The v2 platform renamed most fields. Rather than propagate the new names
+# through every module, they are mapped back onto the canonical names the
+# pipeline has always used. `normalize_columns` is the single place this happens.
+RESPONSES_COLUMN_MAP: dict[str, str] = {
+    "Address": "Name",
+    "Created At": "Timestamp",
+    "QA Messages": "Messages",
+    "QA Summary": "Chat_summary",
+    "consent": "Consent",
+    "nationality": "Nationality",
+    "nationality (raw)": "Nationality_other",
+    "city": "City",
+    "time_in_city": "City_duration",
+    "gender": "Gender",
+    "age": "Age",
+    "children": "Minors",
+    "destination": "Destination",
+    "Survey Sent": "Survey sent",
+}
+MEAL_COLUMN_MAP: dict[str, str] = {
+    "Respondent": "Name",
+    "Recorded At": "Timestamp",
+}
+_COLUMN_MAPS = {"responses": RESPONSES_COLUMN_MAP, "meal": MEAL_COLUMN_MAP}
+
+
+def normalize_columns(frame: pd.DataFrame, source: str) -> pd.DataFrame:
+    """Rename a raw v2 export's columns to the pipeline's canonical names.
+
+    Unmapped columns pass through untouched — new v2 fields are read by their
+    own names downstream. Idempotent: a frame already carrying canonical names
+    is returned unchanged. A rename that would collide with an existing column
+    is skipped, so a hybrid export cannot produce duplicate column labels.
+    """
+    mapping = _COLUMN_MAPS.get(source, {})
+    present = set(frame.columns)
+    rename = {src: dst for src, dst in mapping.items()
+              if src in present and dst not in present}
+    return frame.rename(columns=rename) if rename else frame
 
 
 # ---- responses ----------------------------------------------------------------
@@ -61,6 +115,9 @@ RESPONSES_OPTIONAL = (
     "Nationality", "Nationality_other", "City_other", "City_duration", "Gender",
     "Gender_other", "Minors", "Away_duration", "Destination_Country",
     "Age Ranges", "Questions per user",
+    "Language", "Registration Status", "Registration Started",
+    "Registration Completed", "Attempts", "Is Returning User",
+    "Safety Alert", "Escalation Status", "Migrated From v1",
 )
 # Present in the export and deliberately unused. Listed so `report_unknown_columns`
 # stays quiet on a known-good export and only speaks up for genuinely NEW fields —
@@ -69,6 +126,7 @@ RESPONSES_IGNORED = (
     "Subitems", "Consent", "City Location", "Prev_country", "Prev_country_other",
     "Destination", "Destination_other", "Survey sent", "Summarize", "Text",
     "Text 1", "Last Message At",
+    "Drop-off Question", "Re-engagement Sent At", "transit", "origin_country",
 )
 
 # Every export, whichever source, must carry these two — pseudonymization keys
