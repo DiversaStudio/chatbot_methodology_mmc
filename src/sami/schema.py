@@ -117,7 +117,7 @@ RESPONSES_OPTIONAL = (
     "Age Ranges", "Questions per user",
     "Language", "Registration Status", "Registration Started",
     "Registration Completed", "Attempts", "Is Returning User",
-    "Safety Alert", "Escalation Status", "Migrated From v1",
+    "Safety Alert", "Escalation Status", "Migrated From v1", "Survey Completed",
 )
 # Present in the export and deliberately unused. Listed so `report_unknown_columns`
 # stays quiet on a known-good export and only speaks up for genuinely NEW fields —

@@ -17,36 +17,44 @@ USERS_HEADER = [
     "Registration Completed", "Attempts", "Drop-off Question", "Last Message At",
     "Is Returning User", "City_other", "Gender_other", "Away_duration",
     "Destination_Country", "Age Ranges", "Questions per user", "Migrated From v1",
+    "City Location", "Destination_other", "Prev_country_other", "Re-engagement Sent At",
+    "Survey Completed", "Survey Sent", "origin_country", "transit",
 ]
 
 # (address, subitems, created, messages, lang, consent, nat, city, time_in_city, gender,
 #  age, children, dest, summary, escal, safety, regstatus, natraw, regstart,
 #  regdone, attempts, dropoff, lastmsg, returning, city_other, gender_other,
-#  away, destcountry, agerange, nquestions, migrated)
+#  away, destcountry, agerange, nquestions, migrated,
+#  city_location, dest_other, prev_country_other, reengagement_sent,
+#  survey_completed, survey_sent, origin_country, transit)
 USERS_ROWS = [
     (571110000001, None, "2026-04-01T10:00:00.000Z", "¿Cómo saco el PPT?\nGracias",
      "es", "Sí", "Venezuela", "Medellín", "Más de 1 año", "Mujer", 30, "Si",
      "Colombia", "#legal documentation", None, None, "Completed", None,
      "2026-04-01T09:58:00.000Z", "2026-04-01T10:00:00.000Z", 1, None,
      "2026-04-01T10:05:00.000Z", None, None, None, "Entre 1 a 5 años",
-     "Colombia", "18-35", 2, "v1:1000001"),
+     "Colombia", "18-35", 2, "v1:1000001",
+     None, None, None, None, None, None, None, None),
     (571110000002, None, "2026-04-02T11:00:00.000Z", "Necesito ayuda humanitaria",
      "es", "Sí", "Venezuela", "Cúcuta", "Menos de 1 mes", "Hombre", 45, "No",
      "Colombia", "humanitarian assistance", None, None, "Completed", None,
      "2026-04-02T10:58:00.000Z", "2026-04-02T11:00:00.000Z", 1, None,
      "2026-04-02T11:05:00.000Z", None, None, None, "Menos de 1 mes",
-     "Colombia", "36-50", 1, "v1:1000002"),
+     "Colombia", "36-50", 1, "v1:1000002",
+     None, None, None, None, None, None, None, None),
     (571110000003, None, "2026-04-03T12:00:00.000Z", "Busco empleo en Bogotá",
      "es", "Sí", "Venezuela", "Otra", "Más de 1 año", "Mujer", 17, "Si",
      "Colombia", "#employment", None, None, "Completed", None,
      "2026-04-03T11:58:00.000Z", "2026-04-03T12:00:00.000Z", 2, None,
      "2026-04-03T12:05:00.000Z", None, "Bogotá", None, "Entre 1 a 5 años",
-     "Colombia", "0-17", 1, "v1:1000003"),
+     "Colombia", "0-17", 1, "v1:1000003",
+     None, None, None, None, None, None, None, None),
     (571110000004, None, "2026-04-04T13:00:00.000Z", None,
      "es", "Sí", "Ecuador", "Medellín", "Más de 1 año", "Prefiero no responder",
      52, "No", "Otro", None, None, None, "Abandoned", None,
      "2026-04-04T12:58:00.000Z", None, 3, "city", None, None, None, None,
-     "Hace más de 5 años", "Estados Unidos", "50 and above", None, "v1:1000004"),
+     "Hace más de 5 años", "Estados Unidos", "50 and above", None, "v1:1000004",
+     None, None, None, None, None, None, None, None),
     # --- v2-native cohort: no 'Migrated From v1' ---
     (571110000005, None, "2026-07-25T14:00:00.000Z", "¿Dónde hay albergue en Ipiales?",
      "es", "Sí", "Colombia", "Ipiales", "Menos de 1 mes", "Mujer", 28, "Sí",
@@ -54,20 +62,23 @@ USERS_ROWS = [
      "Ipiales, rutas hacia Medellín y asistencia humanitaria.",
      None, None, "Completed", None, "2026-07-25T13:58:00.000Z",
      "2026-07-25T14:00:00.000Z", 1, None, "2026-07-25T14:10:00.000Z", None,
-     None, None, None, "Colombia", None, None, None),
+     None, None, None, "Colombia", None, None, None,
+     None, None, None, None, None, None, None, None),
     (571110000006, None, "2026-07-26T15:00:00.000Z", "I need medical help",
      "en", "Sí", "Venezuela", "Bogotá", "Entre 1 y 3 meses", "Trans", 34, "No",
      "Chile", "[2026-07-26 15:05] User asked about medical services in Bogotá.",
      "escalated", "flagged", "Completed", None, "2026-07-26T14:58:00.000Z",
      "2026-07-26T15:00:00.000Z", 1, None, "2026-07-26T15:10:00.000Z", "yes",
-     None, None, None, "Chile", None, None, None),
+     None, None, None, "Chile", None, None, None,
+     None, None, None, None, None, None, None, None),
     # Empty-id row: reproduces the null address in the real export, forcing pandas to
     # infer Address column as float64 dtype (nullable numeric type requires at least one NA).
     # Task 4's _read_export() is specified to drop rows with null id, so this tests that path.
     # Include Attempts=0 to keep row non-empty (pandas drops all-null rows).
     (None, None, None, None, None, None, None, None, None, None, None, None,
      None, None, None, None, None, None, None, None, 0, None, None, None, None,
-     None, None, None, None, None, None),
+     None, None, None, None, None, None,
+     None, None, None, None, None, None, None, None),
 ]
 
 # Column 2 and 3 are the EMPTY v1 duplicates; 6 and 8 carry the real v2 data.
