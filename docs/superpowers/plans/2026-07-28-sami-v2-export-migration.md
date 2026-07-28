@@ -2251,7 +2251,7 @@ Then extract and view the figures to confirm they render:
 .venv/Scripts/python.exe - <<'EOF'
 import json, base64, pathlib
 nb = json.load(open("notebooks/01_input_and_audience.ipynb", encoding="utf-8"))
-out = pathlib.Path("/tmp/nb1"); out.mkdir(parents=True, exist_ok=True)
+out = pathlib.Path(".superpowers/sdd/2026-07-28-sami-v2-export-migration/nb1-figs"); out.mkdir(parents=True, exist_ok=True)
 n = 0
 for c in nb["cells"]:
     for o in c.get("outputs", []):
