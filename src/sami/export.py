@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import metrics, taxonomy, qa, canon, theme
+from . import metrics, taxonomy, qa, canon, theme, cohort
 
 # EN display for the official categories (chart text only) — mirrors the notebooks.
 CAT_EN = {
@@ -120,13 +120,19 @@ def to_english_meal(f: pd.DataFrame) -> pd.DataFrame:
 
 # Profile columns collapsed one-row-per-user (first non-null in ts order).
 _PROFILE_COLS = [
-    "gender_clean", "age_num", "age_flag", "city_canon", "department",
+    "instrument_version", "gender_clean", "age_num", "age_flag", "city_canon", "department",
     "nationality_canon", "away_duration_canon", "away_duration_order",
     "city_duration_canon", "city_duration_order", "dominant_category", "n_questions",
 ]
 # Raw survey columns that carry into dim_user under friendlier names.
 _RAW_RENAME = {"Minors": "minors", "Age Ranges": "age_range",
-               "Destination_Country": "destination_country"}
+               "Destination_Country": "destination_country",
+               "Language": "language",
+               "Registration Status": "registration_status",
+               "Attempts": "attempts",
+               "Is Returning User": "is_returning",
+               "Safety Alert": "safety_alert",
+               "Escalation Status": "escalation_status"}
 
 
 def build_dim_category() -> pd.DataFrame:
@@ -152,6 +158,10 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     """One row per user. `lab` (Series indexed by user_id -> archetype) fills
     `cluster_id`; None leaves it null (the --skip-nlp contract)."""
     r = responses.sort_values("ts", kind="stable")
+    # Derived before the groupby so 'first' picks the version of the user's
+    # earliest record — a user who appears in both cohorts is counted as v1,
+    # which is when they actually answered the registration survey.
+    r = r.assign(instrument_version=cohort.instrument_version(r).values)
     cols = [c for c in _PROFILE_COLS if c in r.columns]
     agg = r.groupby("user_id")[cols].first()
     for raw, new in _RAW_RENAME.items():
