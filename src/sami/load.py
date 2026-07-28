@@ -126,11 +126,11 @@ _PII_RUN = re.compile(r"\d{7,}")
 def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
     """Belt-and-suspenders for the PII gate: users sometimes paste a phone number or
     cedula into an open-text field (Messages, Chat_summary, ...). Redact any run of
-    7+ consecutive digits from string columns. Excludes user_id, the intentional
-    pseudonymized hash, whose hex digits may incidentally contain such a run.
+    7+ consecutive digits from string columns. Excludes user_id and message_id, both
+    pipeline-generated hashes whose hex digits may incidentally contain such a run.
 
     Best-effort scrub; qa.pii_scan is the authoritative PII gate (it scans a
-    wider surface — every non-user_id column coerced to str)."""
+    wider surface — every non-{user_id, message_id} column coerced to str)."""
     for col in df.columns:
         if col == "user_id" or not pd.api.types.is_string_dtype(df[col]):
             continue

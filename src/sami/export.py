@@ -253,6 +253,10 @@ def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
     v1-only archive still writes a well-formed table. The "other" bucket holds
     rows with unrecognized status values (new states, typos, nulls), ensuring
     stages always sum to started by construction.
+
+    NOTE: This builder stays RECORD-level (not per-user like agg_language).
+    Registration is a per-record event, not a per-user attribute, so each record
+    represents a distinct registration attempt and must be counted separately.
     """
     cols = ["stage_order", "stage", "n", "pct_of_started"]
     if "Registration Status" not in responses.columns:
@@ -286,13 +290,22 @@ def build_agg_language(responses: pd.DataFrame) -> pd.DataFrame:
 
     Split because the language selector is v2-only: a pooled count would read
     as 99% Spanish when the question simply did not exist for v1 users.
+
+    Each user is assigned to ONE cohort (their earliest record's cohort), matching
+    dim_user's logic, so agg_language's per-cohort user counts reconcile with dim_user.
     """
     cols = ["language", "instrument_version", "n_users"]
     if "Language" not in responses.columns:
         return pd.DataFrame(columns=cols)
-    r = responses.assign(
-        instrument_version=cohort.instrument_version(responses).values)
-    g = (r.dropna(subset=["Language"])
+    # Sort by ts and assign instrument_version per record, then take each user's
+    # first record to get their cohort membership (matching dim_user logic).
+    r = responses.sort_values("ts", kind="stable")
+    r = r.assign(instrument_version=cohort.instrument_version(r).values)
+    # Per-user first record keeps the earliest Language value and cohort membership
+    user_cohort = r.groupby("user_id")[["Language", "instrument_version"]].first()
+    # Group by (Language, instrument_version) counting distinct users
+    g = (user_cohort.dropna(subset=["Language"])
+         .reset_index()
          .groupby(["Language", "instrument_version"])["user_id"]
          .nunique().reset_index())
     g.columns = cols
