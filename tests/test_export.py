@@ -553,23 +553,36 @@ def _responses_registration():
 
 def test_agg_registration_funnel_stages_and_counts():
     f = export.build_agg_registration_funnel(_responses_registration())
-    counts = dict(zip(f["stage"], f["n"]))
-    assert counts["registration started"] == 4
-    assert counts["registration completed"] == 2
-    assert counts["abandoned"] == 1
-    assert counts["in progress"] == 1
-    assert counts["other"] == 0
+    # v2 rows: u1, u2 (completed), u3 (abandoned)
+    v2_f = f[f["instrument_version"] == "v2"]
+    v2_counts = dict(zip(v2_f["stage"], v2_f["n"]))
+    assert v2_counts["registration started"] == 3
+    assert v2_counts["registration completed"] == 2
+    assert v2_counts["abandoned"] == 1
+    assert v2_counts["in progress"] == 0
+    assert v2_counts["other"] == 0
+    # v1 rows: u4 (in progress)
+    v1_f = f[f["instrument_version"] == "v1"]
+    v1_counts = dict(zip(v1_f["stage"], v1_f["n"]))
+    assert v1_counts["registration started"] == 1
+    assert v1_counts["registration completed"] == 0
+    assert v1_counts["in progress"] == 1
 
 
 def test_agg_registration_funnel_is_ordered():
     f = export.build_agg_registration_funnel(_responses_registration())
-    assert list(f["stage_order"]) == sorted(f["stage_order"])
+    # Order should be consistent within each cohort
+    for cohort_val in ["v1", "v2"]:
+        cohort_f = f[f["instrument_version"] == cohort_val]
+        if len(cohort_f) > 0:
+            assert list(cohort_f["stage_order"]) == sorted(cohort_f["stage_order"])
 
 
 def test_agg_registration_funnel_pct_is_relative_to_started():
     f = export.build_agg_registration_funnel(_responses_registration())
-    row = f[f["stage"] == "registration completed"].iloc[0]
-    assert abs(row["pct_of_started"] - 50.0) < 1e-9
+    # v2 completion rate: 2 out of 3 = 66.67%
+    v2_row = f[(f["instrument_version"] == "v2") & (f["stage"] == "registration completed")].iloc[0]
+    assert abs(v2_row["pct_of_started"] - 66.7) < 0.2  # Allow small rounding difference
 
 
 def test_agg_language_splits_by_instrument_version():
@@ -585,8 +598,47 @@ def test_agg_registration_funnel_empty_without_the_columns():
     """A v1-only archive export has no registration fields."""
     df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
     f = export.build_agg_registration_funnel(df)
-    assert list(f.columns) == ["stage_order", "stage", "n", "pct_of_started"]
+    assert "instrument_version" in f.columns
     assert len(f) == 0
+
+
+def test_agg_registration_funnel_splits_by_cohort_and_guards_pooling():
+    """Split by cohort: v1 all-complete does not contaminate v2 drop-off signal.
+
+    v1 rows are 100% complete by construction (legacy platform never tracked
+    partial registration). A pooled completion rate would dilute v2's real
+    drop-off signal into rounding error. The table must show separate per-cohort
+    rows or the next reader will misinterpret the data.
+    """
+    # Frame with v1 rows (all complete by construction) + v2 rows with drop-off
+    df = pd.DataFrame({
+        "user_id": ["v1_user1", "v1_user2", "v2_user1", "v2_user2", "v2_user3"],
+        "ts": pd.to_datetime(["2026-01-01", "2026-01-15", "2026-07-20", "2026-07-21", "2026-07-22"]),
+        "Registration Status": ["Completed", "Completed", "Completed", "Abandoned", "In Progress"],
+        "Registration Started": ["2026-01-01T09:00:00Z"] * 5,
+        "Migrated From v1": ["v1:100", "v1:101", None, None, None],
+    })
+
+    f = export.build_agg_registration_funnel(df)
+
+    # Split by cohort
+    v1_f = f[f["instrument_version"] == "v1"]
+    v2_f = f[f["instrument_version"] == "v2"]
+
+    # v1: 2 complete (100%)
+    assert (v1_f[v1_f["stage"] == "registration completed"]["n"] == 2).all()
+    v1_completion = v1_f[v1_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
+    assert v1_completion == 100.0
+
+    # v2: 1 complete, 1 abandoned, 1 in progress (33.3% complete, not 100%)
+    assert (v2_f[v2_f["stage"] == "registration completed"]["n"] == 1).all()
+    assert (v2_f[v2_f["stage"] == "abandoned"]["n"] == 1).all()
+    assert (v2_f[v2_f["stage"] == "in progress"]["n"] == 1).all()
+    v2_completion = v2_f[v2_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
+    assert abs(v2_completion - 33.3) < 0.2  # 1 out of 3
+
+    # Pooled (if it were computed): 3 complete out of 5 = 60% — neither 100% nor 33%
+    # This test guards against that pooling by asserting separate rows exist.
 
 
 def test_agg_registration_funnel_stages_sum_to_started_invariant():

@@ -233,6 +233,12 @@ def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
     return to_english_meal(f[[c for c in _FACT_MEAL_COLS if c in f.columns]].copy())
 
 
+# CRITICAL: Aggregate builder section. These builders are outside the cohort.POLICY
+# guard's reach (which only covers dim_user and fact_meal columns). Builders here
+# must handle cohort splitting themselves — never pool v1 and v2 data. The next
+# person adding an agg_* builder: the guard will not catch you. Read the cohort
+# comments in this file and in build_dim_user before pooling any data.
+
 def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
     f = metrics.funnel_stages(responses, messages, meal).reset_index(drop=True)
     f.insert(0, "stage_order", range(len(f)))
@@ -247,41 +253,70 @@ _REG_STAGES = ("registration started", "registration completed",
 
 
 def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
-    """Ordered pre-conversation funnel from the v2 registration fields.
+    """Ordered pre-conversation funnel from the v2 registration fields, split by cohort.
 
     Empty (with the right columns) when the export predates those fields, so a
     v1-only archive still writes a well-formed table. The "other" bucket holds
     rows with unrecognized status values (new states, typos, nulls), ensuring
     stages always sum to started by construction.
 
-    NOTE: This builder stays RECORD-level (not per-user like agg_language).
-    Registration is a per-record event, not a per-user attribute, so each record
-    represents a distinct registration attempt and must be counted separately.
+    CRITICAL: Split by instrument_version. v1 rows are complete by construction
+    (migrated from a platform that never tracked partial registration), so their
+    100% completion rate dilutes v2's real drop-off signal when pooled. A pooled
+    rate is meaningless and must never be shown. Keep v1 rows to document that
+    the legacy data carries no drop-off information; do not filter them out.
+
+    NOTE: This builder stays RECORD-level (each record is a distinct registration
+    attempt). Cohort is assigned per-user (user's earliest record's cohort).
     """
-    cols = ["stage_order", "stage", "n", "pct_of_started"]
+    cols = ["instrument_version", "stage_order", "stage", "n", "pct_of_started"]
     if "Registration Status" not in responses.columns:
         return pd.DataFrame(columns=cols)
-    status = responses["Registration Status"].astype("string").str.strip().str.lower()
-    # Count rows where Registration Started is non-null as the true denominator.
-    # Fall back to len(responses) for exports lacking that column.
-    if "Registration Started" in responses.columns:
-        started = int(responses["Registration Started"].notna().sum())
-    else:
-        started = len(responses)
-    counts = {
-        "registration started": started,
-        "registration completed": int((status == "completed").sum()),
-        "abandoned": int((status == "abandoned").sum()),
-        "in progress": int((status == "in progress").sum()),
-    }
-    # Count unrecognized statuses in "other" so stages always sum to started.
-    # This includes unknown strings and nulls.
-    recognized = {"completed", "abandoned", "in progress"}
-    counts["other"] = int((~status.isin(recognized)).sum())
-    rows = [{"stage_order": i, "stage": stage, "n": counts[stage],
-             "pct_of_started": (round(100 * counts[stage] / started, 1)
-                                if started else 0.0)}
-            for i, stage in enumerate(_REG_STAGES)]
+
+    # Assign each user ONE instrument_version (earliest record's cohort)
+    r = responses.sort_values("ts", kind="stable")
+    r = r.assign(instrument_version=cohort.instrument_version(r).values)
+    user_cohort = r.groupby("user_id")["instrument_version"].first()
+    r = r.merge(user_cohort.rename("user_instrument_version"), left_on="user_id", right_index=True)
+
+    status = r["Registration Status"].astype("string").str.strip().str.lower()
+    rows = []
+
+    # Build rows for each cohort separately
+    for cohort_val in ["v1", "v2"]:
+        cohort_mask = r["user_instrument_version"] == cohort_val
+        cohort_r = r[cohort_mask]
+        cohort_status = status[cohort_mask]
+
+        # Count rows where Registration Started is non-null as the true denominator
+        if "Registration Started" in r.columns:
+            started = int(cohort_r["Registration Started"].notna().sum())
+        else:
+            started = len(cohort_r)
+
+        if started == 0:
+            continue  # Skip cohorts with no records
+
+        counts = {
+            "registration started": started,
+            "registration completed": int((cohort_status == "completed").sum()),
+            "abandoned": int((cohort_status == "abandoned").sum()),
+            "in progress": int((cohort_status == "in progress").sum()),
+        }
+        # Count unrecognized statuses in "other"
+        recognized = {"completed", "abandoned", "in progress"}
+        counts["other"] = int((~cohort_status.isin(recognized)).sum())
+
+        for i, stage in enumerate(_REG_STAGES):
+            rows.append({
+                "instrument_version": cohort_val,
+                "stage_order": i,
+                "stage": stage,
+                "n": counts[stage],
+                "pct_of_started": (round(100 * counts[stage] / started, 1)
+                                   if started else 0.0)
+            })
+
     return pd.DataFrame(rows, columns=cols)
 
 
