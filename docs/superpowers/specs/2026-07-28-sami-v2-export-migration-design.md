@@ -5,6 +5,19 @@
 **Scope:** `src/sami/` (`schema`, `load`, `canon`, `cohort` (new), `export`, `qa`,
 `config`, `metrics`), `run_pipeline.py`, `tests/`, `notebooks/01`, `notebooks/02`
 
+> **Corrections (2026-07-28, during implementation).** Four factual claims below were
+> measured against the real v2 export while building this spec and turned out to be wrong
+> or imprecise; each is corrected in place rather than silently rewritten:
+> 1. §"Measurement changes", item 7 — v1's Colombian count was measured on the coded dropdown
+>    only, not on `nationality_canon` (what the analysis actually uses). It is not zero.
+> 2. §"Measurement changes", item 9 — the "43 usable responses" figure is at the raw
+>    response grain (142 rows); `fact_meal` is user grain (115 rows), where the number is 31.
+> 3. §4 (Gold layer) — `build_agg_registration_funnel` originally ran on the pooled
+>    responses frame with no cohort split, which produced a Critical defect (99.3% pooled
+>    completion vs. the real v2 figure of 89.2%). The funnel must be split by
+>    `instrument_version`.
+> 4. §3 (Value canon) — the discovery-channel rewording gap was two options; it was three.
+
 ## Problem
 
 The chatbot platform was replaced. The exports it produces are a different shape
@@ -63,9 +76,16 @@ whose `EncuestaV1`/`EncuestaV2` sheets are the authoritative questionnaire diff.
 
 7. **v1 screened Colombians out.** V1 **Q3** — *"Lastimosamente no cuento con
    información para población colombiana, por lo que no podemos continuar"* —
-   terminated the survey when Q2 was Colombia. Absent from V2. Colombians are
-   not rare in v1 rows, they are **impossible**: 0 across all 1,355 migrated
-   rows, 22 of the 105 v2 rows. Nationality therefore cannot be pooled across
+   terminated the survey when Q2 was Colombia. Absent from V2. **Correction
+   (measured against `nationality_canon`, what the analysis actually uses, not
+   the coded dropdown field alone):** Colombians in v1 are effectively none —
+   4 of 1,314 users (0.3%) — via a free-text bypass, not zero by construction.
+   All four left the Q2 dropdown blank and typed "Colombia"/"Colombiana" into
+   the free-text `Nationality_other` field, which Q3's screen-out never
+   inspects. v2 has 14 of 78 users (18%). The conclusion is unchanged —
+   nationality is still SPLIT, 0.3% vs. 18% is still a structural difference —
+   but it is a screen-out that a determined free-text answer could evade, not
+   an absolute impossibility. Nationality therefore cannot be pooled across
    cohorts, and every future export keeps carrying the v1 rows, so this does not
    age out.
 8. **Questions retired.** V2 drops Q9 `Away_duration`, Q10 `Prev_country`,
@@ -75,8 +95,12 @@ whose `EncuestaV1`/`EncuestaV2` sheets are the authoritative questionnaire diff.
    información entregada no fue útil?"* — is specified to fire only for
    Nada/Poco/Medianamente útil (44 users). It was asked of **118**, including 75
    who rated the service Útil or Muy útil, who answered with negations
-   (`No`, `Todo bien gracias`). Only the 43 responses from dissatisfied users
-   are analytically usable.
+   (`No`, `Todo bien gracias`). **Correction — grain matters here:** at the raw
+   *response* grain (142 survey rows), 43 responses from dissatisfied users are
+   analytically usable. `fact_meal` is *user* grain (one row per user, most
+   recent response only — 115 rows), where the usable count is **31**. Quote 43
+   only when explicitly talking about raw survey responses; quote 31 for
+   anything built on or joined to `fact_meal`.
 10. **Summary field changed format.** v1 rows carry a short taxonomy label
     (`#legal documentation`); v2 rows carry LLM prose
     (`[2026-07-24 14:15] El usuario preguntó sobre X, Y y Z`), which lists
@@ -179,7 +203,10 @@ export with no migrated rows yields all-v2.
 ### 3 · Value canon
 
 Checked against the running code rather than inferred from the export, which
-cut this section down to two changes:
+cut this section down to two gaps. **Correction:** the second gap is three
+reworded discovery options, not two — the original count missed that
+`Punto de atención` is the v2 wording of v1's `Cartelera en un punto de
+atención`, alongside the two below.
 
 - **`CITY_CANON` + `CITY_COORDS` gain `Pasto`.** The other 11 relevant cities
   already canonicalize and already have coordinates — the table was built from
@@ -187,10 +214,12 @@ cut this section down to two changes:
   Barranquilla and the rest. Pasto is the one v2 dropdown option nobody had
   ever typed, so it fell into `Otra` and had no coordinates (which would
   silently drop it from `dim_city` and the NB1 maps).
-- **`DISCOVERY_DISPLAY_EN` gains the two v2 wordings** (`Otro migrante`,
-  `Recomendación de ONG`), mapped to the same English labels as their v1
-  equivalents. Unmapped values pass through untranslated, so without this one
-  answer renders as two slices.
+- **`DISCOVERY_DISPLAY_EN` gains three v2 wordings** (`Otro migrante`,
+  `Recomendación de ONG`, and `Punto de atención`), mapped to the same English
+  labels as their v1 equivalents (`Recomendación de otro migrante`,
+  `Recomendación de una ONG`, `Cartelera en un punto de atención`). Unmapped
+  values pass through untranslated, so without this each of the three answers
+  renders as two slices instead of one.
 
 Three changes that looked necessary are **not**, because the existing code
 already contains the problem: `gender_display` is a closed-set lookup, so junk
@@ -212,9 +241,22 @@ already contains the problem: `gender_display` is a closed-set lookup, so junk
   `attempts`, `is_returning`, `safety_alert`, `escalation_status`.
 - `fact_meal` gains `no_usefulness_reason` **and `reason_is_valid`**. The flag
   encodes defect 9 in the data rather than in a memo, so a Power BI user cannot
-  count 118 "reasons for failure" when only 43 are real.
+  count 118 "reasons for failure" when only 31 are real at `fact_meal`'s user
+  grain (43 at the raw 142-row response grain — see the correction on item 9
+  above for which number applies where).
 - New `agg_registration_funnel` (Started → Completed / Abandoned, with attempts
   and drop-off question) and `agg_language`.
+  **Correction (found during implementation, via the NB1 review — Critical):**
+  the record-level responses frame this table is built from mixes cohorts, and
+  the two cannot be pooled here for the same reason nationality can't. v1's
+  migrated rows are 100% complete *by construction* — the legacy platform
+  never tracked partial registration attempts, so every v1 row looks like a
+  finished one — while v2 has real drop-off. Building the table straight from
+  the pooled responses frame reported 99.3% completion, diluting v2's actual
+  drop-off (10 incomplete registrations) to nothing under 1,355 legacy rows
+  that carry no drop-off information at all. `build_agg_registration_funnel`
+  must split by `instrument_version` and emit one funnel per cohort, not one
+  pooled funnel: v1 reads 99.9% complete, v2 reads 89.2%.
 - Agg tables built on a `SPLIT` variable gain an `instrument_version` dimension.
 - `qa.py` prose tripwire: fail the run above 5% prose-format summaries.
 - `schema_version` bumped `"2"` → `"3"` in `export.build_meta_run`;
@@ -230,7 +272,9 @@ cohort** with the Q3 screen-out stated in the narrative; §3 `away_duration`
 marked v1-only/frozen; **new sections** for the registration funnel and language.
 
 **NB2** — §5 MEAL n 69→115; `would_recommend` becomes a v1-only frozen panel;
-**new** "why wasn't it useful" themes over the 43 valid responses; §6 priority
+**new** "why wasn't it useful" themes over the 31 valid responses (`fact_meal`'s
+user grain — see the correction on item 9 above; 43 is the raw response-grain
+figure); §6 priority
 matrix `min_meal_n=20` fallback re-checked against the larger MEAL sample, and
 v2 users' `unclassified` category means they are excluded at
 `export.build_agg_priority_matrix` — this must be stated, not silent.
