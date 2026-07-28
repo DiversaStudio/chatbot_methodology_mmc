@@ -2,9 +2,15 @@ import pytest
 from sami import config
 
 
-def test_paths_point_to_july_export():
-    assert config.RESPONSES_PATH.name == "MMC_bot_responses_1783087815.xlsx"
-    assert config.MEAL_PATH.name == "MMC_MEAL_1783087939.xlsx"
+def test_paths_point_to_v2_export():
+    # Task 12 repointed config.py at the v2 platform's export filenames. The
+    # exact filename is one download's detail, not a contract the pipeline
+    # depends on -- but config.py declaring *some* concrete default, inside
+    # DATA_DIR, with the historical header-row offset, is worth locking in.
+    assert config.RESPONSES_PATH.parent == config.DATA_DIR
+    assert config.MEAL_PATH.parent == config.DATA_DIR
+    assert config.RESPONSES_PATH.suffix == ".xlsx"
+    assert config.MEAL_PATH.suffix == ".xlsx"
     assert config.DATA_HEADER_ROW == 2
 
 

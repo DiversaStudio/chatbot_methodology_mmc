@@ -1,11 +1,20 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export, cohort
+from sami import load_sami, export, cohort, config
 
 
 @pytest.fixture(scope="module")
 def SD():
+    # Every test using this fixture needs the real, gitignored export -- there
+    # is no fixture-based substitute (export.py's builders assume the full
+    # facade output, not a 6-row synthetic sample, and would trip the P9
+    # critical QA gate on the fixture's deliberately mixed summary formats).
+    # Skip cleanly rather than error when the export is absent, same as the
+    # requires_real_data marker used elsewhere for the same reason.
+    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
+        pytest.skip("real export not present (data_&_docs/ is gitignored)")
     return load_sami()
 
 
