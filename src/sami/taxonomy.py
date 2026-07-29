@@ -141,23 +141,48 @@ CANDIDATE_INTENT_PROBES: dict[str, str] = {
     "connectivity": r"\b(?:recarga|datos m[oó]viles|saldo|internet|wifi)\b",
 }
 
-# Named archetypes for the k=4 solution at random_state=0 (NB3 §2). Cluster ids are
+# Named archetypes for the k=6 solution at random_state=0 (NB3 §2). Cluster ids are
 # deterministic under that seed; `marker` is a term that MUST appear in the cluster's
 # top c-TF-IDF terms, so `assert_archetype_mapping` fails loudly if a data refresh
 # reshuffles the ids rather than letting mislabelled archetypes ship.
+#
+# REWRITTEN 2026-07-28 for the v2 export. The previous k=4 mapping was read off a
+# 800-user corpus; the v2 corpus is 1,198 user documents and `choose_k` now selects
+# **6** (stability ARI 0.836, well clear of the 0.6 bar; k=5 scores marginally higher
+# at 0.883 but 6 is the largest k clearing the bar, which is the rule). The guard
+# caught this correctly — the old cluster 0 "Urgent humanitarian need" had become an
+# entrepreneurship cluster, and shipping the old names would have mislabelled every
+# archetype.
+#
+# What changed substantively: the old single "Regularising from scratch" bucket has
+# split into two genuinely different populations — people establishing **nationality**
+# for a Colombian-born child (2) versus people chasing **permits and visas** for
+# themselves (3) — and the humanitarian bucket has split into acute need at transit
+# points (4) versus longer-term settlement services (5). Both splits are real and
+# useful; do not collapse them back without re-reading the terms.
+#
+# Markers are chosen to be UNIQUE to their cluster and inside the top 12 terms,
+# because NB3 calls ctfidf_terms(top_n=12) while the pipeline uses top_n=40 — a
+# marker ranked below 12 would pass the pipeline and fail the notebook.
 ARCHETYPE_NAMES: dict[int, dict[str, str]] = {
-    3: {"name": "Regularising from scratch",
-        "marker": "pasaporte",
-        "blurb": "No Colombian papers yet — passports, cédulas, birth records, witnesses."},
-    0: {"name": "Urgent humanitarian need",
-        "marker": "humanitaria",
-        "blurb": "Food, shelter, disability and transport support, often stated as urgent."},
-    2: {"name": "Building a livelihood",
-        "marker": "emprendimiento",
-        "blurb": "Work, training and enterprise support — planning ahead, not in crisis."},
+    4: {"name": "Urgent humanitarian need",
+        "marker": "terminal",
+        "blurb": "Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent."},
+    2: {"name": "Nationality and family papers",
+        "marker": "nacionalidad",
+        "blurb": "Colombian nationality for a child born here: birth registration, apostilles, parents' documents."},
     1: {"name": "Stuck mid-procedure",
         "marker": "rumv",
-        "blurb": "Already inside the RUMV/PPT pipeline and blocked: biometrics, verification, collection."},
+        "blurb": "Already inside the RUMV/PPT pipeline and blocked: biometrics, appointments, guardianship for minors, collection."},
+    3: {"name": "Permits, visas and travel",
+        "marker": "visitante",
+        "blurb": "Regularising as an adult — PPT, visitor permits, salvoconductos, cédula de extranjería, extensions and onward travel."},
+    5: {"name": "Settling in",
+        "marker": "regulación",
+        "blurb": "Housing, education, transport and regularisation — building a life here rather than meeting an emergency."},
+    0: {"name": "Building a livelihood",
+        "marker": "emprendimiento",
+        "blurb": "Work, training and enterprise support — planning ahead, not in crisis."},
 }
 
 

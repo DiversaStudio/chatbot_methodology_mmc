@@ -94,3 +94,57 @@ def test_validation_report_gate():
     rep_ok = validation.validation_report(human, human)
     assert rep_ok["gate_passed"] is True
     assert rep_ok["accuracy"] == pytest.approx(1.0)
+
+
+# ---- gold-label alignment (the positional-join bug) ---------------------------
+def _spine():
+    """Three messages whose message_ids are content hashes, not row numbers."""
+    return pd.DataFrame({
+        "user_id": ["u1", "u1", "u2"],
+        "seq": [0, 1, 0],
+        "message": ["necesito ayuda urgente", "gracias", "como saco el ppt"],
+    })
+
+
+def _ids(spine):
+    from sami import export
+    return [export.message_key(u, s, m)
+            for u, s, m in zip(spine["user_id"], spine["seq"], spine["message"])]
+
+
+def test_align_gold_matches_on_message_id_not_position():
+    spine = _spine()
+    ids = _ids(spine)
+    sent = pd.DataFrame({"label": ["negative", "neutral", "positive"]})
+    # ask for the LAST message first -- a positional join would return 'negative'
+    out = validation.align_gold([ids[2], ids[0]], spine, sent)
+    assert list(out) == ["positive", "negative"]
+
+
+def test_align_gold_raises_on_pre_migration_row_numbers():
+    """The exact bug: gold files keyed on row numbers must fail, not resolve."""
+    spine = _spine()
+    sent = pd.DataFrame({"label": ["negative", "neutral", "positive"]})
+    with pytest.raises(validation.GoldLabelError, match="do not match any message"):
+        validation.align_gold([0, 1, 2], spine, sent)
+
+
+def test_align_gold_raises_when_only_some_ids_are_unknown():
+    spine = _spine()
+    ids = _ids(spine)
+    sent = pd.DataFrame({"label": ["negative", "neutral", "positive"]})
+    with pytest.raises(validation.GoldLabelError, match="1 of 2"):
+        validation.align_gold([ids[0], "deadbeefdeadbeef"], spine, sent)
+
+
+def test_shipped_gold_labels_align_to_the_real_spine():
+    """The committed gold file must be joinable to the current corpus."""
+    from pathlib import Path
+    from sami import config, facade
+    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
+        pytest.skip("real export not present (data_&_docs/ is gitignored)")
+    gold = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
+    SD = facade.load_sami()
+    sent = pd.DataFrame({"label": ["neutral"] * len(SD.messages)})
+    out = validation.align_gold(gold["message_id"], SD.messages, sent)  # must not raise
+    assert len(out) == len(gold)

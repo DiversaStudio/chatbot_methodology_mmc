@@ -62,8 +62,12 @@ def _nlp_tables(SD, pr):
         prof = clusters.archetype_profiles(lab, SD.responses, SD.messages)
         msgs_lab = SD.messages.merge(lab, left_on="user_id", right_index=True, how="inner")
         analyst = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
+        # align_gold matches on message_id and raises if any label is unresolvable.
+        # The previous `sent.loc[analyst["message_id"]]` was a POSITIONAL lookup
+        # that silently compared unrelated messages -- see validation.align_gold.
         report = validation.validation_report(
-            analyst["label_analyst"], sent.loc[analyst["message_id"], "label"])
+            analyst["label_analyst"],
+            validation.align_gold(analyst["message_id"], SD.messages, sent))
         stab = clusters.stability_ari(X, K, n_boot=50, random_state=RANDOM_STATE)
         dev = nlp.device_report()
 
