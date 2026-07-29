@@ -1,5 +1,7 @@
 cluster_id,name,n_users,n_messages,median_age,top_categories
-3,Regularising from scratch,260,1055,33.0,"legal_documentation (92%), employment (3%)"
-0,Urgent humanitarian need,251,1278,34.0,"humanitarian_assistance (50%), legal_documentation (16%)"
-2,Building a livelihood,160,249,32.0,"employment (32%), humanitarian_assistance (29%)"
-1,Stuck mid-procedure,129,409,32.0,"legal_documentation (78%), services (15%)"
+4,Urgent humanitarian need,310,1854,33.0,"humanitarian_assistance (39%), unclassified (20%)"
+2,Nationality and family papers,303,1292,32.0,"legal_documentation (86%), unclassified (9%)"
+1,Stuck mid-procedure,217,743,31.0,"legal_documentation (67%), unclassified (16%)"
+3,"Permits, visas and travel",164,394,33.0,"legal_documentation (72%), unclassified (10%)"
+5,Settling in,106,172,32.0,"humanitarian_assistance (37%), legal_documentation (22%)"
+0,Building a livelihood,98,208,35.0,"employment (71%), unclassified (11%)"

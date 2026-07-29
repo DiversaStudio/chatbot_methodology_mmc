@@ -21,7 +21,10 @@ per-table warnings below. New in this schema version: the `agg_registration_funn
 row index to a content hash (see that table's entry below).
 
 `--skip-nlp` omits `dim_cluster` and every `nlp_*` table, and leaves
-`cluster_id` / `sentiment_label` null in `dim_user` / `fact_message`.
+`cluster_id` / `sentiment_label` null in `dim_user` / `fact_message`. **It does not
+DELETE the tables it skips** — a previous run's files stay on disk and load into
+Power BI looking current. The run now warns and names them; `_manifest.csv` lists
+only what that run actually wrote, so it is the authoritative inventory.
 
 **The gold layer is English.** Every survey value that reaches a slicer, axis or
 legend is translated on the way out (`export.to_english_user` /
@@ -63,9 +66,22 @@ carry `dominant_category`, `city_canon`, `sentiment_label`) — no separate
 
 **Tone is directional-only.** `meta_run` carries `tone_gate_passed=false` and
 `sentiment_quotable=false` — the tone classifier's agreement with the human
-gold labels is κ=0.604, below the 0.7 quotability gate. `sentiment_label` /
-`nlp_tone_confusion` may be shown as *directional* signal (e.g. "more
-negative than positive here") but **never as a published percentage**.
+gold labels is **κ=0.595** (accuracy 88.2%, n=178), below the 0.7 quotability
+gate. `sentiment_label` / `nlp_tone_confusion` may be shown as *directional*
+signal (e.g. "more negative than positive here") but **never as a published
+percentage**.
+
+> **The gold labels were re-keyed on 2026-07-28 and the κ changed slightly.** They
+> were written when `message_id` was a row number; once it became a content hash,
+> the validation join resolved those row numbers positionally against the *new*
+> spine and compared an analyst's judgement of one message against the model's
+> judgement of an unrelated one. Nothing errored — integer row labels always
+> resolve — and it produced **κ = -0.075 from pure noise**. The 200 labels were
+> re-matched onto the new ids by message text; 178 survived and 22 were dropped
+> because their text (`Gracias`, `En Bogotá`, …) is not unique in the corpus. All
+> 31 negatives survived, so the minority class is intact. `validation.align_gold`
+> now raises rather than ever aligning by position again. The conclusion is
+> unchanged — the gate failed before and fails now — but the number is real.
 
 This file documents what `exports/_manifest.csv` (the authoritative, generated
 list) actually contains. Where the design spec
@@ -200,15 +216,38 @@ against summaries held rather than all records (2.1%). The key stays
 `unclassified` so joins and every existing chart keep working; only the display
 label changed.
 
-### `dim_cluster` — 1 row per archetype (NLP-only; absent in the current v2 export)
-Source: `clusters.archetype_profiles`, absent when `--skip-nlp`. **NB3 and all NLP
-re-validation are out of scope for the v2 export migration** — running the full
-pipeline against the v2 data will currently fail loudly at
-`taxonomy.assert_archetype_mapping` as new users grow the corpus past the
-archetype mapping's assumptions. Re-mapping archetypes and re-validating tone is
-the follow-up NLP spec's job. The row counts below (4 archetypes, 800 users) are
-from the last successful NLP run, pre-migration, and should not be assumed to
-still hold.
+### `dim_cluster` — 1 row per archetype (NLP-only; **6 rows** in the current v2 export)
+Source: `clusters.archetype_profiles`, absent when `--skip-nlp`.
+
+**Re-mapped 2026-07-28 for the v2 corpus. There are now SIX archetypes, not four.**
+`choose_k` selects k = 6 on the 1,198-document v2 corpus (stability ARI 0.836 over
+50 resamples, comfortably clear of the 0.6 bar). The old k = 4 mapping was read off
+an 800-document corpus and `taxonomy.assert_archetype_mapping` correctly refused to
+ship it — the old cluster 0 "Urgent humanitarian need" had become an
+entrepreneurship cluster.
+
+Two of the old buckets split, and the splits are the finding:
+
+| id | Archetype | n | Dominant need |
+|---|---|---|---|
+| 4 | Urgent humanitarian need | 310 | humanitarian assistance (39%) |
+| 2 | Nationality and family papers | 303 | legal & documentation (86%) |
+| 1 | Stuck mid-procedure | 217 | legal & documentation (67%) |
+| 3 | Permits, visas and travel | 164 | legal & documentation (72%) |
+| 5 | Settling in | 106 | humanitarian assistance (37%) |
+| 0 | Building a livelihood | 98 | employment (71%) |
+
+The old single documentation bucket separated into **nationality for a
+Colombian-born child** (2) versus **permits and visas for an adult** (3); the old
+humanitarian bucket separated into **acute need at transit points** (4) versus
+**longer-term settlement** (5). Each pair looks alike in a category count and calls
+for a different response — referral versus programme — so do not collapse them back
+without re-reading `nlp_cluster_terms`.
+
+Cluster ids are deterministic at `random_state=0`. Any refresh that reshuffles them
+fails the assertion again by design; `ARCHETYPE_NAMES` markers are chosen to be
+unique to their cluster and inside the top 12 terms, because NB3 requests
+`top_n=12` while the pipeline requests 40.
 
 | column | notes |
 |---|---|
@@ -319,18 +358,17 @@ kind. Feeds NB2 §1 entity chart.
 
 ## NLP (GPU; absent when `--skip-nlp`)
 
-**Absent from the current v2 export.** These five tables and `dim_cluster` are
-only written on a full (non-`--skip-nlp`) run, and NB3/NLP re-validation against
-the v2 data is explicitly out of scope for the export migration — see the
-`dim_cluster` note above. The row counts below are from the last successful
-pre-migration run and are kept here as a description of the *shape* of these
-tables, not a current measurement.
+**Present and current as of 2026-07-28.** These five tables and `dim_cluster` are
+only written on a full (non-`--skip-nlp`) run. The full pipeline now completes on
+the v2 data: archetypes were re-mapped to k = 6 (see the `dim_cluster` note above)
+and the tone gold labels were re-keyed onto content-hash `message_id`s. Row counts
+below are from the current export.
 
-### `nlp_umap` — 1 row per user (800 rows)
+### `nlp_umap` — 1 row per user (1,198 rows)
 Cols: `user_id, x, y, cluster_id`. 2D UMAP projection of user embeddings.
 Feeds NB3 §2 embedding scatter.
 
-### `nlp_cluster_terms` — 1 row per (cluster, term) (160 rows)
+### `nlp_cluster_terms` — 1 row per (cluster, term) (240 rows)
 Cols: `cluster_id, rank, term, weight`. Top c-TF-IDF terms per archetype.
 Feeds NB3 word clouds.
 
