@@ -16,3 +16,4 @@ __pycache__/
 
 # Notebook execution cache
 notebooks/cache/
+*.bak
