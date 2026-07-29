@@ -758,3 +758,21 @@ def test_agg_language_counts_multilingual_users_per_language():
     assert set(lg["language"]) == {"es", "en"}
     # Per-cohort distinct users still matches dim_user (max n_users per cohort)
     assert lg[lg["instrument_version"] == "v2"]["n_users"].max() == 1
+
+
+def test_every_dim_user_column_has_a_cohort_policy(SD):
+    """Regression guard: a column added to dim_user without a POLICY entry
+    raises CohortError only when something happens to aggregate it — which can
+    be long after the column shipped. `session_minutes` was added and missed
+    exactly this way. Fail here instead, where the fix is one line.
+    """
+    d = export.build_dim_user(SD.responses, SD.messages)
+    missing = []
+    for col in d.columns:
+        try:
+            cohort.policy_for(col)
+        except cohort.CohortError:
+            missing.append(col)
+    assert not missing, (
+        f"dim_user columns with no cohort policy: {missing}. "
+        "Classify each in POLICY in src/sami/cohort.py.")
