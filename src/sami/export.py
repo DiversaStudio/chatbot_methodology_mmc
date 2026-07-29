@@ -6,6 +6,7 @@ docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md.
 """
 from __future__ import annotations
 import hashlib
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -513,4 +514,26 @@ def write_all(out_dir, tables: dict) -> pd.DataFrame:
                          "columns": ",".join(map(str, frame.columns)), "sha1": sha1})
     man = pd.DataFrame(manifest).sort_values("table").reset_index(drop=True)
     man.to_csv(out / "_manifest.csv", index=False, encoding="utf-8")
+    _warn_stale_tables(out, set(tables))
     return man
+
+
+def _warn_stale_tables(out: Path, written: set) -> None:
+    """Name CSVs in `out` that this run did not write.
+
+    A `--skip-nlp` run does not delete the NLP tables it skips, so the previous
+    run's `dim_cluster` / `nlp_*` files stay on disk. Power BI and the notebooks
+    load them without complaint, silently joining an older — and possibly
+    smaller — cohort to today's users. They are not deleted here because a
+    deliberate skip-NLP workflow still wants them; the run says so instead.
+    """
+    orphans = sorted(
+        p.name for p in out.glob("*.csv")
+        if not p.name.startswith("_") and p.stem not in written)
+    if orphans:
+        warnings.warn(
+            f"{len(orphans)} table(s) in {out} were NOT written by this run and "
+            f"may be from an older export: {', '.join(orphans)}. They are absent "
+            "from _manifest.csv. Re-run without --skip-nlp for a coherent "
+            "folder, or delete them.",
+            stacklevel=2)

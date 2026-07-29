@@ -6,7 +6,7 @@ meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
 ts_max,2026-07-28 13:46:49.197000
 salt_present,True
-generated_at,2026-07-28T23:41:09.603401+00:00
+generated_at,2026-07-29T00:15:57.925638+00:00
 schema_version,3
 nlp_included,False
 tone_gate_passed,False
