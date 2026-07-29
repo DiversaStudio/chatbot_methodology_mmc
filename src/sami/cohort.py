@@ -83,6 +83,15 @@ POLICY: dict[str, Policy] = {
     "first_seen": Policy.POOLABLE,
     "is_repeat_asker": Policy.POOLABLE,
     "cluster_id": Policy.POOLABLE,
+    # Session time is timed by the PLATFORM, not asked by either questionnaire,
+    # so the registration cohort does not change how it is measured — and the
+    # only timestamps the loader trusts are the v2-platform ISO ones, which means
+    # both cohorts' values come from the same mechanism. Poolable.
+    # Coverage is lopsided though (57 of 78 v2 users vs 13 of 1,314 v1 users, the
+    # v1 ones being returning users who came back after the platform switch), so
+    # a cohort-SPLIT reading of this column compares 13 people to 57. Pool it.
+    "session_minutes": Policy.POOLABLE,
+    "last_message_ts": Policy.POOLABLE,
     "usefulness_rating": Policy.POOLABLE,
     "rating_num": Policy.POOLABLE,
     "discovery_channel": Policy.POOLABLE,

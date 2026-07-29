@@ -197,7 +197,10 @@ def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     # users who registered but never chatted) are not a taxonomy failure, and
     # counting them put the gate at 22.6% against a 10% limit. They are reported
     # alongside so a jump in silent registrations is still visible.
-    has_summary = responses["Chat_summary"].notna()
+    # Column-absence tolerant, like every other helper here: a caller passing a
+    # hand-built frame gets a vacuous pass, not a KeyError.
+    has_summary = (responses["Chat_summary"].notna() if "Chat_summary" in responses
+                   else pd.Series(True, index=responses.index))
     n_summary = int(has_summary.sum())
     unclass = float(
         (responses.loc[has_summary, "dominant_category"] == "unclassified").mean()
