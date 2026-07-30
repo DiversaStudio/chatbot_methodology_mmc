@@ -64,6 +64,21 @@ def test_missing_data_file_fails_with_path_and_fix(ctx):
     assert "--responses" in result.fix
 
 
+def test_empty_datasets_folder_fails_naming_the_folder_and_a_fix(ctx):
+    """The first thing a fresh clone with an empty datasets/ produces:
+    responses_path is None (nothing dropped into the folder), not a path
+    to a missing file. This is a different branch of _check_export from
+    the not-found-on-disk case above."""
+    ctx.responses_path = None
+    result = preflight.check_responses(ctx)
+    assert result.status == preflight.FAIL
+    assert "datasets" in result.detail and "responses" in result.detail
+    assert "--responses" in result.fix
+    assert result.fix.count("fix:") == 0  # render() adds its own "fix:" label
+    rendered = preflight.render([result])
+    assert rendered.count("fix:") == 1
+
+
 def test_present_data_file_passes_and_names_header_row(ctx, tmp_path):
     ctx.responses_path = _write_export(tmp_path / "ok.xlsx")
     result = preflight.check_responses(ctx)

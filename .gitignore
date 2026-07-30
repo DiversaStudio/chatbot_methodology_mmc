@@ -27,6 +27,8 @@ graphify-out/
 datasets/**/*.xls
 datasets/**/*.xlsx
 datasets/**/*.xlsm
+datasets/**/*.xlsb
+datasets/**/*.ods
 datasets/**/*.csv
 !datasets/README.md
 !datasets/**/.gitkeep

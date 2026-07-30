@@ -42,11 +42,28 @@ def folder(role: str) -> Path:
     return DATASETS_DIR / role
 
 
+def _mtime_or(path: Path, default: float = 0.0) -> float:
+    """path.stat().st_mtime, or `default` if the file vanished mid-scan.
+
+    A file can be deleted or become unreadable between iterdir() listing it
+    and the sort key reading it (a real race, not hypothetical: an Excel
+    save-in-place briefly removes and recreates the file). Without this, a
+    bare OSError propagates out of candidates() past every SchemaError
+    handler in run_pipeline.py and prints a traceback instead of a fix.
+    """
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return default
+
+
 def candidates(role: str) -> list[Path]:
     """Usable .xlsx files in the role folder, newest modification first.
 
     Excel lock files (~$*) and every non-.xlsx entry are skipped. Name is the
     tie-break so the result is deterministic when two files share an mtime.
+    A file that disappears between listing and stat()-ing is skipped rather
+    than raising.
     """
     directory = folder(role)
     if not directory.is_dir():
@@ -57,7 +74,7 @@ def candidates(role: str) -> list[Path]:
         and p.suffix.lower() == _SUFFIX
         and not p.name.startswith(_LOCK_PREFIX)
     ]
-    return sorted(found, key=lambda p: (p.stat().st_mtime, p.name), reverse=True)
+    return sorted(found, key=lambda p: (_mtime_or(p), p.name), reverse=True)
 
 
 def resolve(role: str) -> Path | None:
