@@ -1,0 +1,11 @@
+instrument_version,stage_order,stage,n,pct_of_started
+v1,0,registration started,1376,100.0
+v1,1,registration completed,1375,99.9
+v1,2,abandoned,0,0.0
+v1,3,in progress,1,0.1
+v1,4,other,0,0.0
+v2,0,registration started,83,100.0
+v2,1,registration completed,74,89.2
+v2,2,abandoned,2,2.4
+v2,3,in progress,7,8.4
+v2,4,other,0,0.0

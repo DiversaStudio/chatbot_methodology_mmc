@@ -26,10 +26,35 @@ SENTIMENT_LABELS = ("negative", "neutral", "positive")
 _WS = re.compile(r"\s+")
 
 
-def _device() -> str:
+def cuda_usable() -> bool:
+    """True only when CUDA is available *and* a device is actually visible.
+
+    `torch.cuda.is_available()` alone is not enough: with CUDA_VISIBLE_DEVICES=""
+    (or a driver/permissions problem) it can return True while `device_count()`
+    is 0, and every subsequent call — `.to("cuda")`, `get_device_name(0)` —
+    raises 'Invalid device id'. Checking the count keeps the CPU fallback honest.
+    """
     import torch
 
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    try:
+        return torch.cuda.is_available() and torch.cuda.device_count() > 0
+    except Exception:
+        return False
+
+
+def gpu_name() -> str | None:
+    import torch
+
+    if not cuda_usable():
+        return None
+    try:
+        return torch.cuda.get_device_name(0)
+    except Exception:
+        return None
+
+
+def _device() -> str:
+    return "cuda" if cuda_usable() else "cpu"
 
 
 def normalize_text(text) -> str:
@@ -126,8 +151,8 @@ def device_report() -> dict:
     return {
         "device": _device(),
         "torch": torch.__version__,
-        "cuda_available": torch.cuda.is_available(),
-        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "cuda_available": cuda_usable(),
+        "gpu": gpu_name(),
         "embed_model": EMBED_MODEL,
         "embed_revision": EMBED_REVISION,
         "sentiment_model": SENTIMENT_MODEL,

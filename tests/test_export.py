@@ -1,11 +1,19 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export
+from sami import load_sami, export, cohort, config
 
 
 @pytest.fixture(scope="module")
 def SD():
+    # Every test using this fixture needs the real, gitignored export -- there
+    # is no fixture-based substitute (export.py's builders assume the full
+    # facade output, not a 6-row synthetic sample, and would trip the P9
+    # critical QA gate on the fixture's deliberately mixed summary formats).
+    # Skip cleanly rather than error when the export is absent, same as the
+    # requires_real_data marker used elsewhere for the same reason.
+    if not (config.responses_path() and config.meal_path()):
+        pytest.skip("real export not present (datasets/ holds no .xlsx)")
     return load_sami()
 
 
@@ -64,7 +72,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "2"
+    assert kv["schema_version"] == "3"
 
 
 def test_parity_check_includes_repeat_askers(SD):
@@ -89,6 +97,54 @@ def test_dim_user_one_row_per_user(SD):
     assert d["cluster_id"].isna().all()
 
 
+_SPANISH_TOKENS = ("Mujer", "Hombre", "Otra", "Desconocida", "meses", "años",
+                   "útil", "Recomendación", "Redes sociales", "Sí")
+
+
+def _no_spanish(frame, cols):
+    for col in cols:
+        vals = {str(v) for v in frame[col].dropna().unique()}
+        bad = [v for v in vals if any(t in v for t in _SPANISH_TOKENS)]
+        assert not bad, f"{col}: {bad}"
+
+
+def test_dim_user_display_values_are_english(SD):
+    d = export.build_dim_user(SD.responses, SD.messages)
+    _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
+                    "city_duration_canon", "city_canon", "nationality_canon"])
+    assert set(d["gender_clean"].dropna()) <= {
+        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
+    # the ordering columns still carry the sort after the labels are translated
+    if d["away_duration_order"].notna().any():
+        pairs = d.dropna(subset=["away_duration_order"])
+        assert pairs.groupby("away_duration_canon")["away_duration_order"].nunique().eq(1).all()
+
+
+def test_duration_scales_name_their_non_response_bucket(SD):
+    d = export.build_dim_user(SD.responses, SD.messages)
+    for label_col, order_col in (("away_duration_canon", "away_duration_order"),
+                                 ("city_duration_canon", "city_duration_order")):
+        # no unlabelled bar on the axis, and no null in the sort-by column
+        assert d[label_col].notna().all()
+        assert (d[label_col].astype(str).str.strip() != "").all()
+        assert d[order_col].notna().all()
+        # the bucket sorts below the real scale, so it never reads as "longest"
+        nr = d[d[label_col] == export.NO_RESPONSE_EN][order_col]
+        if len(nr):
+            assert (nr == export.NO_RESPONSE_ORDER).all()
+            assert nr.iat[0] < d.loc[d[label_col] != export.NO_RESPONSE_EN,
+                                     order_col].min()
+
+
+def test_fact_meal_english_labels_keep_rating_num(SD):
+    f = export.build_fact_meal(SD.meal)
+    _no_spanish(f, ["usefulness_rating", "would_recommend", "discovery_channel"])
+    # rating_num keys off the Spanish vocabulary — translation must not break it
+    scored = f.dropna(subset=["usefulness_rating"])
+    if len(scored):
+        assert scored["rating_num"].notna().all()
+
+
 def test_dim_user_no_pii(SD):
     from sami import qa
     assert qa.pii_scan(export.build_dim_user(SD.responses, SD.messages)) == []
@@ -98,7 +154,7 @@ def test_fact_message_grain_and_join(SD):
     f = export.build_fact_message(SD.messages)
     assert len(f) == len(SD.messages)
     assert f["message_id"].is_unique
-    assert list(f["message_id"]) == list(SD.messages.index)
+    assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()  # 16-char hex hash
     assert f["sentiment_label"].isna().all()   # no sentiment passed
     assert f["cluster_id"].isna().all()
 
@@ -271,3 +327,469 @@ def test_agg_weekly_rating(SD):
     # counts sum to the rated-and-dated MEAL responses
     rated = fm.dropna(subset=["ts", "rating_num"])
     assert int(w["n"].sum()) == len(rated)
+
+
+def _spine():
+    return pd.DataFrame({
+        "user_id": ["u1", "u1", "u2"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-04-02", "2026-04-03"]),
+        "message": ["hola que tal", "necesito ayuda", "busco empleo"],
+        "seq": [0, 1, 0],
+        "n_msgs_user": [2, 2, 1],
+        "city_canon": ["Medellín", "Medellín", "Cúcuta"],
+        "dominant_category": ["employment", "employment", "employment"],
+    })
+
+
+def test_message_id_is_stable_when_other_users_are_added():
+    """Regression: message_id was messages.reset_index(), a POSITIONAL id.
+    The spine is sorted by (user_id, ts), so one new user re-numbered every
+    row — silently re-pointing anything keyed on it."""
+    base = _spine()
+    before = export.build_fact_message(base)
+    grown = pd.concat([
+        pd.DataFrame({
+            "user_id": ["u0"], "ts": pd.to_datetime(["2026-03-01"]),
+            "message": ["mensaje nuevo"], "seq": [0], "n_msgs_user": [1],
+            "city_canon": ["Bogotá"], "dominant_category": ["services"],
+        }), base]).reset_index(drop=True)
+    after = export.build_fact_message(grown)
+
+    got = after.set_index("user_id").loc["u2", "message_id"]
+    want = before.set_index("user_id").loc["u2", "message_id"]
+    assert got == want
+
+
+def test_message_id_is_unique_per_row():
+    f = export.build_fact_message(_spine())
+    assert f["message_id"].is_unique
+
+
+def test_message_id_differs_for_identical_text_from_different_users():
+    df = pd.DataFrame({
+        "user_id": ["u1", "u2"], "ts": pd.to_datetime(["2026-04-01"] * 2),
+        "message": ["gracias", "gracias"], "seq": [0, 0], "n_msgs_user": [1, 1],
+        "city_canon": ["Medellín"] * 2, "dominant_category": ["services"] * 2,
+    })
+    f = export.build_fact_message(df)
+    assert f["message_id"].nunique() == 2
+
+
+def test_message_id_contains_no_pii():
+    f = export.build_fact_message(_spine())
+    assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()
+
+
+def test_message_id_changes_on_backfilled_earlier_message():
+    """Limitation: seq is based on timestamp order, so a backfilled message
+    with an earlier timestamp renumbers the entire user's sequence."""
+    base_messages = pd.DataFrame({
+        "user_id": ["u1", "u1"],
+        "ts": pd.to_datetime(["2026-04-02", "2026-04-03"]),
+        "message": ["segunda", "tercera"],
+        "seq": [0, 1],
+        "n_msgs_user": [2, 2],
+        "city_canon": ["Medellín", "Medellín"],
+        "dominant_category": ["employment", "employment"],
+    })
+    before = export.build_fact_message(base_messages)
+    # Save message_id for the second row (seq=1, "tercera") before backfill
+    tercera_before_seq = 1
+    tercera_id_before = before[before["seq"] == tercera_before_seq].iloc[0]["message_id"]
+
+    # Backfill an earlier message. After concat + sort by (user_id, ts),
+    # seq will be recomputed: 0=primera, 1=segunda, 2=tercera.
+    backfilled = pd.concat([
+        pd.DataFrame({
+            "user_id": ["u1"],
+            "ts": pd.to_datetime(["2026-04-01"]),
+            "message": ["primera"],
+            "seq": [0],  # This will be wrong after sorting
+            "n_msgs_user": [3],
+            "city_canon": ["Medellín"],
+            "dominant_category": ["employment"],
+        }), base_messages
+    ]).sort_values(["user_id", "ts"]).reset_index(drop=True)
+
+    # Recompute seq (mimicking load.load_messages behavior)
+    backfilled["seq"] = backfilled.groupby("user_id").cumcount()
+
+    after = export.build_fact_message(backfilled)
+
+    # The "tercera" message was seq=1 before, now it's seq=2 after backfill.
+    # Since message_key uses seq, the id must change.
+    tercera_after_seq = 2
+    tercera_id_after = after[after["seq"] == tercera_after_seq].iloc[0]["message_id"]
+
+    assert tercera_id_before != tercera_id_after, (
+        "Backfilled earlier message renumbers seq, so message_ids change"
+    )
+
+
+def _responses_two_cohorts():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-25"]),
+        "gender_clean": ["Mujer", "Hombre"],
+        "age_num": [30.0, 28.0],
+        "city_canon": ["Medellín", "Ipiales"],
+        "dominant_category": ["employment", "unclassified"],
+        "n_questions": [2, 1],
+        "Migrated From v1": ["v1:100", None],
+        "Language": ["es", "en"],
+        "Registration Status": ["Completed", "Completed"],
+        "Attempts": [1, 2],
+        "Is Returning User": [None, "yes"],
+        "Safety Alert": [None, "flagged"],
+        "Escalation Status": [None, "escalated"],
+        "Destination_Country": ["Colombia", "Chile"],
+    })
+
+
+def _messages_two_users():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2"], "ts": pd.to_datetime(["2026-04-01", "2026-07-25"]),
+        "message": ["hola", "help"], "seq": [0, 0], "n_msgs_user": [1, 1],
+    })
+
+
+def test_dim_user_carries_instrument_version():
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    assert dict(zip(d["user_id"], d["instrument_version"])) == {"u1": "v1", "u2": "v2"}
+
+
+def test_dim_user_carries_the_new_v2_fields():
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    for col in ("language", "registration_status", "attempts", "is_returning",
+                "safety_alert", "escalation_status"):
+        assert col in d.columns, f"{col} missing from dim_user"
+    assert d.set_index("user_id").loc["u2", "language"] == "en"
+
+
+def test_every_dim_user_column_has_a_cohort_policy():
+    """The guard is only a guard if it cannot fall behind the schema."""
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users())
+    for col in d.columns:
+        cohort.policy_for(col)   # raises CohortError if unclassified
+
+
+def _meal_frame():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-01"] * 4),
+        "usefulness_rating": ["Muy útil", "Nada útil", "Medianamente útil", "Útil"],
+        "no_usefulness_reason": ["no", "te confundiste de ciudad",
+                                 "faltó info", "Todo bien gracias"],
+    })
+
+
+def test_reason_is_valid_only_for_dissatisfied_ratings():
+    """The v2 skip logic misfired: 'why wasn't it useful' was asked of 118
+    people, 75 of whom rated it Útil/Muy útil and answered with negations.
+    Only the dissatisfied answers are analytically usable."""
+    f = export.build_fact_meal(_meal_frame())
+    valid = dict(zip(f["user_id"], f["reason_is_valid"]))
+    assert valid == {"u1": False, "u2": True, "u3": True, "u4": False}
+
+
+def test_reason_is_valid_is_false_when_no_reason_given():
+    df = _meal_frame().assign(no_usefulness_reason=[None] * 4)
+    f = export.build_fact_meal(df)
+    assert not f["reason_is_valid"].any()
+
+
+def test_fact_meal_survives_a_missing_reason_column():
+    """A v1-only archive export has no Q12a at all."""
+    df = _meal_frame().drop(columns=["no_usefulness_reason"])
+    f = export.build_fact_meal(df)
+    assert "reason_is_valid" in f.columns
+    assert not f["reason_is_valid"].any()
+
+
+def test_every_fact_meal_column_has_a_cohort_policy():
+    f = export.build_fact_meal(_meal_frame())
+    for col in f.columns:
+        cohort.policy_for(col)
+
+
+def test_reason_is_valid_ordering_pins_computation_before_translation():
+    """CRITICAL: reason_is_valid is computed on Spanish rating values
+    BEFORE to_english_meal translates them. If this test fails because
+    English labels are being matched, the flag is being computed after
+    translation and will silently become all-False. This test pins the
+    ordering dependency: the flag MUST be computed on Spanish input."""
+    # Input with ENGLISH labels (as if to_english_meal had already run)
+    english_frame = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-01"] * 4),
+        "usefulness_rating": ["Very useful", "Not useful", "Moderately useful", "Useful"],
+        "no_usefulness_reason": ["no", "te confundiste de ciudad",
+                                 "faltó info", "Todo bien gracias"],
+    })
+    # The flag won't match on English strings, so all should be False.
+    # This proves the code is matching on Spanish input as intended.
+    f = export.build_fact_meal(english_frame)
+    assert not f["reason_is_valid"].any(), (
+        "reason_is_valid matched English labels, meaning it was computed after "
+        "translation. It must be computed BEFORE to_english_meal runs, on Spanish input."
+    )
+
+
+def _responses_registration():
+    return pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4"],
+        "ts": pd.to_datetime(["2026-07-25"] * 4),
+        "Registration Status": ["Completed", "Completed", "Abandoned",
+                                "In Progress"],
+        "Registration Started": ["2026-07-25T09:00:00Z"] * 4,
+        "Registration Completed": ["2026-07-25T09:05:00Z",
+                                   "2026-07-25T09:06:00Z", None, None],
+        "Attempts": [1, 2, 3, 1],
+        "Language": ["es", "es", "en", "es"],
+        "Migrated From v1": [None, None, None, "v1:1"],
+    })
+
+
+def test_agg_registration_funnel_stages_and_counts():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    # v2 rows: u1, u2 (completed), u3 (abandoned)
+    v2_f = f[f["instrument_version"] == "v2"]
+    v2_counts = dict(zip(v2_f["stage"], v2_f["n"]))
+    assert v2_counts["registration started"] == 3
+    assert v2_counts["registration completed"] == 2
+    assert v2_counts["abandoned"] == 1
+    assert v2_counts["in progress"] == 0
+    assert v2_counts["other"] == 0
+    # v1 rows: u4 (in progress)
+    v1_f = f[f["instrument_version"] == "v1"]
+    v1_counts = dict(zip(v1_f["stage"], v1_f["n"]))
+    assert v1_counts["registration started"] == 1
+    assert v1_counts["registration completed"] == 0
+    assert v1_counts["in progress"] == 1
+
+
+def test_agg_registration_funnel_is_ordered():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    # Order should be consistent within each cohort
+    for cohort_val in ["v1", "v2"]:
+        cohort_f = f[f["instrument_version"] == cohort_val]
+        if len(cohort_f) > 0:
+            assert list(cohort_f["stage_order"]) == sorted(cohort_f["stage_order"])
+
+
+def test_agg_registration_funnel_pct_is_relative_to_started():
+    f = export.build_agg_registration_funnel(_responses_registration())
+    # v2 completion rate: 2 out of 3 = 66.67%
+    v2_row = f[(f["instrument_version"] == "v2") & (f["stage"] == "registration completed")].iloc[0]
+    assert abs(v2_row["pct_of_started"] - 66.7) < 0.2  # Allow small rounding difference
+
+
+def test_agg_language_splits_by_instrument_version():
+    f = export.build_agg_language(_responses_registration())
+    got = {(r.language, r.instrument_version): r.n_users
+           for r in f.itertuples()}
+    assert got[("es", "v2")] == 2
+    assert got[("en", "v2")] == 1
+    assert got[("es", "v1")] == 1
+
+
+def test_agg_registration_funnel_empty_without_the_columns():
+    """A v1-only archive export has no registration fields."""
+    df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
+    f = export.build_agg_registration_funnel(df)
+    assert "instrument_version" in f.columns
+    assert len(f) == 0
+
+
+def test_agg_registration_funnel_splits_by_cohort_and_guards_pooling():
+    """Split by cohort: v1 all-complete does not contaminate v2 drop-off signal.
+
+    v1 rows are 100% complete by construction (legacy platform never tracked
+    partial registration). A pooled completion rate would dilute v2's real
+    drop-off signal into rounding error. The table must show separate per-cohort
+    rows or the next reader will misinterpret the data.
+    """
+    # Frame with v1 rows (all complete by construction) + v2 rows with drop-off
+    df = pd.DataFrame({
+        "user_id": ["v1_user1", "v1_user2", "v2_user1", "v2_user2", "v2_user3"],
+        "ts": pd.to_datetime(["2026-01-01", "2026-01-15", "2026-07-20", "2026-07-21", "2026-07-22"]),
+        "Registration Status": ["Completed", "Completed", "Completed", "Abandoned", "In Progress"],
+        "Registration Started": ["2026-01-01T09:00:00Z"] * 5,
+        "Migrated From v1": ["v1:100", "v1:101", None, None, None],
+    })
+
+    f = export.build_agg_registration_funnel(df)
+
+    # Split by cohort
+    v1_f = f[f["instrument_version"] == "v1"]
+    v2_f = f[f["instrument_version"] == "v2"]
+
+    # v1: 2 complete (100%)
+    assert (v1_f[v1_f["stage"] == "registration completed"]["n"] == 2).all()
+    v1_completion = v1_f[v1_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
+    assert v1_completion == 100.0
+
+    # v2: 1 complete, 1 abandoned, 1 in progress (33.3% complete, not 100%)
+    assert (v2_f[v2_f["stage"] == "registration completed"]["n"] == 1).all()
+    assert (v2_f[v2_f["stage"] == "abandoned"]["n"] == 1).all()
+    assert (v2_f[v2_f["stage"] == "in progress"]["n"] == 1).all()
+    v2_completion = v2_f[v2_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
+    assert abs(v2_completion - 33.3) < 0.2  # 1 out of 3
+
+    # Pooled (if it were computed): 3 complete out of 5 = 60% — neither 100% nor 33%
+    # This test guards against that pooling by asserting separate rows exist.
+
+
+def test_agg_registration_funnel_stages_sum_to_started_invariant():
+    """Stages must always sum to 'registration started', even with unknown statuses.
+
+    A status the pipeline does not recognise must be visible as 'other', never
+    silently dropped.
+    """
+    df = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3", "u4", "u5"],
+        "ts": pd.to_datetime(["2026-07-25"] * 5),
+        "Registration Status": ["Completed", "Abandoned", "In Progress",
+                                "unknown_state", None],  # includes unknown and null
+        "Registration Started": ["2026-07-25T09:00:00Z"] * 5,
+    })
+    f = export.build_agg_registration_funnel(df)
+    counts = dict(zip(f["stage"], f["n"]))
+    # Stages should sum to "registration started"
+    stage_sum = (counts["registration completed"] + counts["abandoned"] +
+                 counts["in progress"] + counts["other"])
+    assert stage_sum == counts["registration started"]
+    assert counts["other"] == 2  # the unknown_state and the null
+
+
+def test_agg_language_empty_without_the_column():
+    """A v1-only archive export has no language selector."""
+    df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
+    f = export.build_agg_language(df)
+    assert list(f.columns) == ["language", "instrument_version", "n_users"]
+    assert len(f) == 0
+
+
+def test_agg_language_reconciles_with_dim_user_per_cohort():
+    """agg_language's per-cohort user counts reconcile with dim_user.
+
+    A user is assigned to ONE cohort (earliest record's instrument_version) in
+    both tables. Language is per-record (multilingual users appear in multiple
+    rows). This test uses single-language users to check per-cohort totals match.
+    """
+    # Frame with users in both cohorts; each user speaks one language
+    df = pd.DataFrame({
+        "user_id": ["u1", "u1", "u2", "u3"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-25", "2026-07-20", "2026-06-15"]),
+        "gender_clean": ["Mujer", "Mujer", "Hombre", "Mujer"],
+        "age_num": [30.0, 30.0, 28.0, 25.0],
+        "city_canon": ["Medellín", "Medellín", "Ipiales", "Bogotá"],
+        "dominant_category": ["employment", "employment", "unclassified", "employment"],
+        "n_questions": [2, 2, 1, 1],
+        "Migrated From v1": ["v1:100", None, None, None],  # u1 is v1, u2/u3 are v2
+        "Language": ["es", "es", "en", "es"],  # each user speaks one language consistently
+        "Registration Status": ["Completed", "Completed", "Completed", "Completed"],
+        "Registration Started": ["2026-04-01T09:00:00Z"] * 4,
+    })
+    messages = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-07-20", "2026-06-15"]),
+        "message": ["msg1", "msg2", "msg3"],
+        "seq": [0, 0, 0],
+        "n_msgs_user": [1, 1, 1],
+    })
+
+    du = export.build_dim_user(df, messages)
+    lg = export.build_agg_language(df)
+
+    # dim_user: u1 -> v1, u2/u3 -> v2
+    dim_v1 = (du["instrument_version"] == "v1").sum()
+    dim_v2 = (du["instrument_version"] == "v2").sum()
+
+    # agg_language per-cohort distinct users must match dim_user per-cohort
+    # With single-language users, the sum of n_users per cohort = distinct users per cohort
+    lg_v1_total = lg[lg["instrument_version"] == "v1"]["n_users"].sum()
+    lg_v2_total = lg[lg["instrument_version"] == "v2"]["n_users"].sum()
+
+    assert lg_v1_total == dim_v1, "v1 per-cohort distinct users must match dim_user"
+    assert lg_v2_total == dim_v2, "v2 per-cohort distinct users must match dim_user"
+
+
+def test_agg_language_counts_multilingual_users_per_language():
+    """A multilingual user appears in multiple language rows.
+
+    Language is a per-record attribute. A user using multiple languages appears
+    in multiple (language, instrument_version) rows. The sum of n_users > user
+    count because multilingual users are counted once per language used.
+    """
+    # User u1 uses both Spanish and English in the v2 cohort (different records)
+    df = pd.DataFrame({
+        "user_id": ["u1", "u1"],
+        "ts": pd.to_datetime(["2026-07-20", "2026-07-25"]),
+        "gender_clean": ["Mujer", "Mujer"],
+        "age_num": [30.0, 30.0],
+        "city_canon": ["Medellín", "Medellín"],
+        "dominant_category": ["employment", "employment"],
+        "n_questions": [1, 1],
+        "Migrated From v1": [None, None],  # v2 user
+        "Language": ["es", "en"],
+        "Registration Status": ["Completed", "Completed"],
+        "Registration Started": ["2026-07-20T09:00:00Z"] * 2,
+    })
+    messages = pd.DataFrame({
+        "user_id": ["u1"],
+        "ts": pd.to_datetime(["2026-07-20"]),
+        "message": ["msg1"],
+        "seq": [0],
+        "n_msgs_user": [1],
+    })
+
+    du = export.build_dim_user(df, messages)
+    lg = export.build_agg_language(df)
+
+    # dim_user: 1 user (u1) in v2 cohort
+    assert (du["instrument_version"] == "v2").sum() == 1
+
+    # agg_language: same user appears in both es/v2 and en/v2 rows
+    assert len(lg) == 2  # two language rows
+    assert lg["n_users"].sum() == 2  # sum is 2 (user counted twice), but only 1 distinct user
+    assert (lg["instrument_version"] == "v2").all()  # both rows are v2
+    assert set(lg["language"]) == {"es", "en"}
+    # Per-cohort distinct users still matches dim_user (max n_users per cohort)
+    assert lg[lg["instrument_version"] == "v2"]["n_users"].max() == 1
+
+
+def test_every_dim_user_column_has_a_cohort_policy(SD):
+    """Regression guard: a column added to dim_user without a POLICY entry
+    raises CohortError only when something happens to aggregate it — which can
+    be long after the column shipped. `session_minutes` was added and missed
+    exactly this way. Fail here instead, where the fix is one line.
+    """
+    d = export.build_dim_user(SD.responses, SD.messages)
+    missing = []
+    for col in d.columns:
+        try:
+            cohort.policy_for(col)
+        except cohort.CohortError:
+            missing.append(col)
+    assert not missing, (
+        f"dim_user columns with no cohort policy: {missing}. "
+        "Classify each in POLICY in src/sami/cohort.py.")
+
+
+def test_write_all_warns_about_tables_it_did_not_write(tmp_path):
+    """--skip-nlp leaves the previous run's NLP tables on disk; Power BI loads
+    them silently. The run must say so."""
+    stale = tmp_path / "nlp_umap.csv"
+    stale.write_text("user_id,x,y\na,1,2\n", encoding="utf-8")
+    with pytest.warns(UserWarning, match="nlp_umap.csv"):
+        export.write_all(tmp_path, {"dim_city": pd.DataFrame({"city_canon": ["Bogotá"]})})
+    assert stale.exists(), "the warning must not delete a deliberate skip-NLP artifact"
+
+
+def test_write_all_is_quiet_when_the_folder_matches_the_run(tmp_path):
+    import warnings as _w
+    export.write_all(tmp_path, {"dim_city": pd.DataFrame({"city_canon": ["Bogotá"]})})
+    with _w.catch_warnings():
+        _w.simplefilter("error")  # any warning now becomes a failure
+        export.write_all(tmp_path, {"dim_city": pd.DataFrame({"city_canon": ["Cali"]})})

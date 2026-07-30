@@ -3,7 +3,8 @@
 .venv/
 .superpowers/
 
-# Raw data and project documents (not version controlled)
+# Author's local working folder: superseded by datasets/, never referenced by
+# code or documentation, never version controlled.
 data_&_docs/
 
 # Python
@@ -16,3 +17,16 @@ __pycache__/
 
 # Notebook execution cache
 notebooks/cache/
+*.bak
+
+# graphify knowledge-graph output (regenerable)
+graphify-out/
+
+# Dataset intake: the folder structure and its docs are tracked, the data never
+# is (the raw platform exports carry users' WhatsApp phone numbers).
+datasets/**/*.xls
+datasets/**/*.xlsx
+datasets/**/*.xlsm
+datasets/**/*.csv
+!datasets/README.md
+!datasets/**/.gitkeep
