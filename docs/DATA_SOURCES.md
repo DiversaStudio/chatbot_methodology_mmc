@@ -1,13 +1,14 @@
 # Data sources
 
-This pipeline reads exactly two Excel files: the chatbot **responses** export
-and the **MEAL** survey export. This document states what each one must
+This pipeline reads three files: the chatbot **responses** export, the
+**MEAL** survey export, and a committed comparison-set CSV,
+`validation/tone_labels_analyst.csv`. This document states what each one must
 contain, how the pipeline reads it, and what happens when it doesn't match.
 Every column named below is enforced in code — see `src/sami/schema.py`
 (`RESPONSES_REQUIRED`, `RESPONSES_OPTIONAL`, `MEAL_REQUIRED`,
 `RESPONSES_COLUMN_MAP`, `MEAL_COLUMN_MAP`, `MEAL_QUESTION_MARKERS`).
 
-## The two sources
+## The three inputs
 
 **Responses** — one row per chatbot user record (a user who has multiple
 conversations produces multiple rows). It carries the user's identifier,
@@ -19,6 +20,31 @@ text analysis.
 survey (usefulness rating, recommendation, discovery channel, free-text
 feedback). It is a separate download from a separate form; a MEAL row and a
 responses row are joined only through the shared user identifier.
+
+**`validation/tone_labels_analyst.csv`** — a fixed comparison file the
+pipeline reads on every full run (not `--skip-nlp`), unlike the two Excel
+exports above. Unlike them it is **committed to the repository** rather than
+dropped into `datasets/`, because it does not come from the chatbot
+platform: it is a set of message-level tone labels assigned by a human
+analyst, and it does not change from run to run the way a fresh platform
+export does. Two columns:
+
+| Column | Contents |
+|---|---|
+| `message_id` | The content-hash id (`export.message_key`) of one message in `fact_message`. |
+| `label_analyst` | The analyst's tone label for that message: `negative`, `neutral`, or `positive`. |
+
+On a full run, `run_pipeline.py` loads this file and passes it to
+`validation.align_gold`, which matches each `message_id` to the sentiment
+model's own label for that same message; the resulting comparison is written
+into `exports/nlp_tone_confusion.csv` — see
+[`METHODOLOGY.md`](METHODOLOGY.md) §6 and
+[`exports/_schema.md`](../exports/_schema.md) for that table's columns. Under
+`--skip-nlp` this file is not read at all, and the `tone labels` preflight
+check reports `OK` without it (see [`OPERATIONS.md`](OPERATIONS.md)'s
+preflight table). If this file is lost, a full run cannot proceed until it is
+restored — there is no way to regenerate it from the platform exports, since
+it records prior human judgements rather than anything derived from them.
 
 ## Locating the files
 
@@ -142,17 +168,20 @@ The five MEAL survey questions are matched by their question text, not by
 position (`MEAL_QUESTION_MARKERS`). Each canonical field is bound to the
 export column whose (fold-normalized) text contains its marker fragment:
 
-| Canonical field | Matched by (fold-normalized fragment) |
+| Canonical field | Matched by (fold-normalized fragment(s)) |
 |---|---|
 | `usefulness_rating` | "que tan util" |
-| `would_recommend` | "recomendarias este servicio" |
+| `would_recommend` | "recomendarias este servicio", or (v1 export) "v1 recomendarias" |
 | `recommendation_text` | "alguna recomendacion para mejorar" |
 | `discovery_channel` | "como conociste" |
+| `discovery_other` | "escribe el medio", or (v1 export) "v1 medio otro" |
 | `no_usefulness_reason` | "por que la informacion entregada no fue util" |
 
-(A sixth field, `discovery_other`, is the free-text follow-up captured when a
-respondent picks "other" for `discovery_channel`; it is matched the same way
-but is not itself a survey question.)
+`discovery_other` is the free-text follow-up captured when a respondent
+picks "other" for `discovery_channel`; it is matched the same way but is not
+itself a survey question. Several fields carry two marker fragments because
+the v1 and v2 exports word the same question differently — either fragment
+matching is sufficient.
 
 When a marker matches more than one column — the export carries both an
 empty legacy copy of a question and the live one — the column that actually

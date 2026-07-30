@@ -27,7 +27,7 @@ Recommendations, quotes, methodology → report. Deep dives → notebooks. The d
 3. **Schema tolerance:** queries select columns **by name**, never by position; added columns don't break refresh; missing/renamed columns fail loudly (that's correct — schema is a contract).
 4. **DAX only aggregates.** Flags and classifications (`is_repeat_asker`, `intent_ext`, `sentiment`, `archetype`, `age_flag`) are Python-computed columns. If a new metric needs logic, it is added to the gold layer and the pipeline, not invented in DAX. This is what keeps notebook numbers and dashboard numbers identical by construction.
 5. **Dynamic everything:** titles/subtitles that carry n, window, or export date are measures fed by `meta_run` — never typed text. The only manually curated text is the "This period in 3 bullets" tile (explicitly marked as editorial).
-6. **Refresh runbook (3 steps, on the About page):** ① copy new exports into `data_&_docs/` → ② `python run_pipeline.py` → ③ open .pbix, Refresh. Then eyeball the About page parity table (Python-computed KPIs vs live measures side by side).
+6. **Refresh runbook (3 steps, on the About page):** ① copy the new exports into `datasets/responses/` and `datasets/meal/` → ② `python run_pipeline.py` → ③ open .pbix, Refresh. Then eyeball the About page parity table (Python-computed KPIs vs live measures side by side).
 7. **Acceptance test before handover:** simulate a refresh with a different export (the May snapshot) end-to-end without touching the .pbix. Any manual intervention = not done.
 
 ---

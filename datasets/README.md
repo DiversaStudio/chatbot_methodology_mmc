@@ -36,12 +36,13 @@ platform can rename its exports freely.
 **The newest file is used.** Within each folder the most recently modified
 `.xlsx` is read. Older exports may be left in place as an archive; they are
 ignored. Every run prints which file it used, so any output can be traced back
-to its input:
+to its input. `datasets.describe()` names the absolute path it resolved, not
+a path relative to the repo:
 
 ```text
 [1/9] loading responses + MEAL
-  responses: datasets/responses/Users_Group_Title_1509.xlsx (modified 2026-09-15, 1 older file ignored)
-  meal:      datasets/meal/Survey_1509.xlsx (modified 2026-09-15)
+  responses: C:\Users\you\chatbot_methodology_mmc\datasets\responses\Users_Group_Title_1509.xlsx (modified 2026-09-15, 1 older file ignored)
+  meal:      C:\Users\you\chatbot_methodology_mmc\datasets\meal\Survey_1509.xlsx (modified 2026-09-15)
 ```
 
 **Only `.xlsx` is read.** Other file types are ignored, as are the `~$...xlsx`
