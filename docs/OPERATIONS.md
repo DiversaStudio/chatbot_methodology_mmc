@@ -214,6 +214,37 @@ against each other — each saved version adds its full file size to the
 repository history. Commit it on meaningful revisions of the report (a new
 visual, a restructured page), not after every save while iterating.
 
+## Running the notebooks
+
+Run the notebooks with the project's environment, e.g. from VS Code (select
+the `.venv` kernel) or from the command line:
+
+```powershell
+uv run jupyter lab
+```
+
+If the environment was set up with plain pip + venv instead of `uv` (see
+[Alternative: plain pip + venv](#alternative-plain-pip--venv-no-uv) above),
+activate it first and launch Jupyter directly:
+
+```powershell
+.\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
+jupyter lab
+```
+
+Run the notebooks in order (01 → 02 → 03). They import shared loaders and
+analysis logic from [`src/sami/`](../src/sami/), so use the project's `.venv`
+(via `uv sync`, above) rather than a bare Python environment. Each notebook's
+setup cell locates `src/` by walking up from the working directory, so it
+works whether the kernel starts in `notebooks/` (JupyterLab) or at the repo
+root (VS Code).
+
+The notebooks read the same `datasets/responses/` and `datasets/meal/`
+exports as the pipeline, populated per [`datasets/README.md`](../datasets/README.md),
+and need `SAMI_SALT` set — see [`SAMI_SALT`](#sami_salt) above.
+`run_pipeline.py --check` is the quickest way to confirm both before opening
+Jupyter.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
