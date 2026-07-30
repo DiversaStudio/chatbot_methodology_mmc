@@ -3,15 +3,28 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+import warnings
+from pathlib import Path
+
 import pandas as pd
 
-from . import config, canon, taxonomy
+from . import config, canon, taxonomy, schema, datasets
 
 _NOISE = {"undefined", "?", ""}
 
+_FLOAT_TAIL = re.compile(r"\.0+$")
+
 
 def digits(s) -> str:
-    return re.sub(r"\D", "", str(s))
+    """Digits of an identifier, stable across export formats.
+
+    The v1 export stored the id as text ("whatsapp:+573154047912"); the v2
+    export stores it as a NUMBER, so pandas hands us 573154047912.0 and a naive
+    digit strip yields a 13-char key. Dropping the float tail first keeps
+    user_id byte-identical across the migration — every downstream join, and
+    every comparison against a previous run, depends on that.
+    """
+    return re.sub(r"\D", "", _FLOAT_TAIL.sub("", str(s).strip()))
 
 
 def pseudonymize(name, salt: str) -> str:
@@ -66,9 +79,42 @@ def is_courtesy(text: str) -> bool:
 
 
 # ---- responses loader ----
-def _read_whatsapp(path) -> pd.DataFrame:
-    df = pd.read_excel(path, header=config.DATA_HEADER_ROW)
-    df = df[df["Name"].astype(str).str.startswith("whatsapp")].copy()
+def _read_export(path, source: str = "responses") -> pd.DataFrame:
+    """Read a platform export and normalize its columns to canonical names.
+
+    The header row is detected, not assumed (schema.detect_header_row), and a
+    missing file raises with the fix rather than a bare FileNotFoundError.
+
+    There is no channel filter. The v1 export prefixed every id with
+    "whatsapp:"; the v2 export stores a bare number, so filtering on that prefix
+    dropped every row. The v2 platform is WhatsApp-only, and `Language` /
+    `Registration Status` identify the channel if that ever changes.
+
+    Rows are rejected if the id column is null or contains no digits at all
+    (e.g., a UI placeholder like "Agregar address"). A valid phone-number id
+    must contain at least one digit.
+    """
+    path = Path(path)
+    if not path.exists():
+        raise schema.SchemaError(
+            f"{source.capitalize()} export not found.\n"
+            f"  file: {path}\n"
+            "  fix:  Save the export into datasets/%s/ (the filename does not "
+            "matter; the newest .xlsx is used), or pass an explicit path:\n"
+            "        python run_pipeline.py --responses PATH --meal PATH\n"
+            "        Run `python run_pipeline.py --check` to verify your setup." % source)
+    df = pd.read_excel(path, header=schema.detect_header_row(path, source=source))
+    df = schema.normalize_columns(df, source)
+    schema.require_columns(df, schema.BASE_REQUIRED, path, source)
+    df = df[df["Name"].map(lambda x: bool(digits(x)), na_action="ignore").fillna(False)].copy()
+    if df.empty:
+        raise schema.SchemaError(
+            f"{source.capitalize()} export has no rows with an identifier.\n"
+            f"  file: {path}\n"
+            "  fix:  Every row needs a non-empty id column containing at least "
+            "one digit (v2: 'Address' for responses, 'Respondent' for the survey). "
+            "Rows with null or digit-less ids (e.g., UI placeholders) are rejected. "
+            "Check you downloaded a complete export.")
     df.reset_index(drop=True, inplace=True)
     return df
 
@@ -79,11 +125,11 @@ _PII_RUN = re.compile(r"\d{7,}")
 def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
     """Belt-and-suspenders for the PII gate: users sometimes paste a phone number or
     cedula into an open-text field (Messages, Chat_summary, ...). Redact any run of
-    7+ consecutive digits from string columns. Excludes user_id, the intentional
-    pseudonymized hash, whose hex digits may incidentally contain such a run.
+    7+ consecutive digits from string columns. Excludes user_id and message_id, both
+    pipeline-generated hashes whose hex digits may incidentally contain such a run.
 
     Best-effort scrub; qa.pii_scan is the authoritative PII gate (it scans a
-    wider surface — every non-user_id column coerced to str)."""
+    wider surface — every non-{user_id, message_id} column coerced to str)."""
     for col in df.columns:
         if col == "user_id" or not pd.api.types.is_string_dtype(df[col]):
             continue
@@ -91,10 +137,48 @@ def _redact_pii_runs(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# ---- session time (KPI2) ----
+# `Last Message At` carries TWO vintages in one column:
+#   - ISO-8601 UTC ('2026-07-24T13:55:47.169Z'), written by the v2 platform for
+#     records from 2026-07-24 onward. Differenced against Timestamp these are
+#     plausible chatbot sessions (median 4.4 min, n=81 in the 28-Jul export).
+#   - naive local 'YYYY-MM-DD HH:MM', carried over from the legacy platform for
+#     earlier records. Against a UTC Timestamp these sit on a hard ~2h floor
+#     (p25 121 min, median 123 min, n=503) — a timezone/semantics artifact, not
+#     a session length. Pooling the two puts KPI2 at ~44h.
+# Only the ISO-Z vintage is trusted. The legacy rows are DROPPED rather than
+# shifted by 2h, because that correction would be a guess about a platform we
+# cannot query, and a wrong-but-plausible KPI is worse than a smaller n.
+_LAST_MSG_ISO_UTC = re.compile(r"^\s*\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s*$")
+
+
+def last_message_ts(values) -> pd.Series:
+    """Parse `Last Message At`, keeping only the trusted ISO-UTC vintage.
+
+    Anything else — legacy naive local timestamps, blanks, junk — becomes NaT,
+    so `session_minutes` is null for that record and the KPI simply covers
+    fewer users.
+    """
+    s = pd.Series(list(values), dtype="object")
+    trusted = s.map(lambda v: isinstance(v, str) and bool(_LAST_MSG_ISO_UTC.match(v)))
+    # format="ISO8601" (not inference): the column mixes fractional and
+    # whole-second stamps, and a single inferred format coerces one of them away.
+    parsed = pd.to_datetime(s.where(trusted), errors="coerce", utc=True,
+                            format="ISO8601")
+    return parsed.dt.tz_localize(None)
+
+
 def load_responses(path=None, salt=None) -> pd.DataFrame:
-    path = path or config.RESPONSES_PATH
+    path = Path(path) if path else datasets.require("responses")
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path)
+    df = _read_export(path, source="responses")
+    schema.require_columns(df, schema.RESPONSES_REQUIRED, path, "responses")
+    unknown = schema.report_unknown_columns(df, "responses")
+    if unknown:
+        warnings.warn(
+            f"responses export has {len(unknown)} column(s) the schema contract "
+            f"does not know about (ignored): {', '.join(unknown)}",
+            stacklevel=2)
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df = df.drop(columns=[c for c in ["Name"] if c in df.columns])
     def _col(name):  # missing-column-safe accessor (schema drifts between exports)
@@ -105,6 +189,11 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     df["age_num"] = pd.to_numeric(df["Age"], errors="coerce")
     df["age_flag"] = df["age_num"].map(lambda a: "unreliable_sub18" if pd.notna(a) and a < 18 else "ok")
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
+    # KPI2: record creation -> last message. Kept RAW (no capping) by decision;
+    # a negative delta would be nonsense, not a short session, so it is dropped.
+    df["last_message_ts"] = last_message_ts(_col("Last Message At")).values
+    _session = (df["last_message_ts"] - df["ts"]).dt.total_seconds() / 60
+    df["session_minutes"] = _session.where(_session >= 0)
     df["n_questions"] = pd.to_numeric(df.get("Questions per user"), errors="coerce")
     df["dominant_category"] = df["Chat_summary"].map(taxonomy.normalize_category)
     # P4: *_other consolidation (city already done above) + display-ready derivations
@@ -145,22 +234,20 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
 
 # ---- MEAL survey loader ----
 def load_meal(path=None, salt=None) -> pd.DataFrame:
-    path = path or config.MEAL_PATH
+    path = Path(path) if path else datasets.require("meal")
     salt = salt if salt is not None else config.get_salt()
-    df = _read_whatsapp(path)
+    df = _read_export(path, source="meal")
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))
     df["ts"] = pd.to_datetime(df["Timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
-    cols = list(df.columns)
-    rename = {                    # positional: the 5 survey question columns
-        cols[2]: "usefulness_rating",
-        cols[3]: "would_recommend",
-        cols[4]: "recommendation_text",
-        cols[5]: "discovery_channel",
-        cols[6]: "discovery_other",
-    }
+    # The 5 survey questions are matched by their question text, not by column
+    # position — an inserted column used to shift every rating silently.
+    rename, notes = schema.meal_column_map(df.columns, path, frame=df)
+    for note in notes:
+        warnings.warn(f"{note}\n  file: {path}", stacklevel=2)
     df = df.rename(columns=rename)
     keep = ["user_id", "ts", "usefulness_rating", "would_recommend",
-            "recommendation_text", "discovery_channel", "discovery_other"]
+            "recommendation_text", "discovery_channel", "discovery_other",
+            "no_usefulness_reason"]
     df = df[[c for c in keep if c in df.columns]].copy()
     # P8: keep most recent response per user (stable sort so ties are well-defined)
     df = df.sort_values("ts", kind="stable").drop_duplicates("user_id", keep="last").reset_index(drop=True)

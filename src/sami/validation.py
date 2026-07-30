@@ -14,6 +14,59 @@ KAPPA_GATE = 0.7  # doc 02 §6.4: below this, percentages are suppressed
 SAMPLE_COLUMNS = ["message_id", "user_id", "message"]
 
 
+class GoldLabelError(Exception):
+    """Gold tone labels cannot be aligned to the current message spine."""
+
+
+def align_gold(gold_ids, messages: pd.DataFrame, sentiment: pd.DataFrame) -> pd.Series:
+    """Model labels for `gold_ids`, matched by message_id — never by position.
+
+    The caller used to do `sentiment.loc[gold["message_id"], "label"]`. Because
+    `sentiment` is aligned POSITIONALLY to the spine, and the gold file was
+    written when `message_id` was still a row number, that expression silently
+    looked up rows 20, 25, … of whatever the spine happens to hold today and
+    compared an analyst's judgement of one message against the model's judgement
+    of an unrelated one. It produced a plausible-looking kappa from noise
+    (κ = -0.075 on the v2 corpus, versus 0.604 when the positions still lined
+    up). Nothing errored, because integer row labels always resolve.
+
+    So this refuses to guess: ids are resolved against the content-hash
+    `message_id`, and anything unresolvable raises rather than degrading the
+    measurement. A kappa is a claim about a model; it must not be computable
+    from mismatched rows.
+    """
+    from . import export  # local import: export imports validation-adjacent modules
+
+    ids = pd.Series(list(gold_ids)).astype(str)
+    spine = pd.Series(
+        [export.message_key(u, s, m) for u, s, m in
+         zip(messages["user_id"], messages["seq"], messages["message"])],
+        index=messages.index, name="message_id")
+
+    if spine.duplicated().any():
+        raise GoldLabelError(
+            "the message spine contains duplicate message_ids; the gold join "
+            "would be ambiguous. Investigate export.message_key before validating tone.")
+
+    pos = pd.Series(range(len(spine)), index=spine.values)
+    unknown = ids[~ids.isin(pos.index)]
+    if len(unknown):
+        raise GoldLabelError(
+            f"{len(unknown)} of {len(ids)} gold tone labels do not match any "
+            f"message in the current spine (first: {unknown.iloc[0]!r}).\n"
+            "  why:  the gold file is keyed on message_id. Old files are keyed on "
+            "the pre-migration ROW NUMBER, which is not a message identity — "
+            "re-keying them by position would measure noise.\n"
+            "  fix:  re-key the gold labels onto the content-hash message_id by "
+            "matching on message text (validation/tone_gold_labels.csv carries the "
+            "text), dropping rows whose text is not unique in the corpus. Then "
+            "re-run. Never fall back to positional alignment.")
+
+    return pd.Series(
+        sentiment["label"].to_numpy()[pos.loc[ids.values].to_numpy()],
+        index=ids.values, name="label")
+
+
 def binarize(labels) -> pd.Series:
     """Collapse three-class sentiment to the negative / not-negative axis doc 02 gates on."""
     s = pd.Series(labels).astype(str).str.lower()

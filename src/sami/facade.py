@@ -2,9 +2,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 import pandas as pd
 
-from . import config, load, qa
+from . import config, datasets, load, qa
 
 
 @dataclass(frozen=True)
@@ -17,8 +18,8 @@ class SamiData:
 
 
 def load_sami(responses_path=None, meal_path=None) -> SamiData:
-    responses_path = responses_path or config.RESPONSES_PATH
-    meal_path = meal_path or config.MEAL_PATH
+    responses_path = Path(responses_path) if responses_path else datasets.require("responses")
+    meal_path = Path(meal_path) if meal_path else datasets.require("meal")
     salt = config.get_salt()
 
     schema_resp = qa.validate_schema(responses_path, kind="responses")
@@ -30,7 +31,8 @@ def load_sami(responses_path=None, meal_path=None) -> SamiData:
     reconciliation = qa.reconciliation_table(responses, messages, meal)
     checks = qa.run_checks(responses, messages, meal)
 
-    failed = [c for c in checks if not c[1] and c[0].startswith(("P1", "P6"))]
+    # Underscore-anchored: bare "P1" would also match "P9"/"P11" style names.
+    failed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
     if failed:
         raise RuntimeError(f"critical QA checks failed: {failed}")
 

@@ -2,103 +2,66 @@
 
 Methodology, exploratory data analysis (EDA), and supporting code for the Mixed Migration Centre (MMC) WhatsApp chatbot for migrants in Colombia.
 
-## Overview
+## What this is
 
-This repo holds the data analysis work behind the chatbot's evaluation and methodology. The analysis is organized as a **three-part "SAMI" narrative** — three self-contained notebooks that move from *"what data do we have and who is the audience?"* through investigative cross-cuts to automatic NLP theme discovery. Each notebook opens with explicit objectives, guiding questions, and hypotheses, and documents the cleaning steps it applies.
+This repo holds the data analysis behind the chatbot's evaluation and methodology: a **three-part "SAMI" narrative** of notebooks, a generated `exports/` gold layer of CSVs, and a Power BI report built on top of that gold layer.
 
-- [`notebooks/01_eda_perfil_y_satisfaccion.ipynb`](notebooks/01_eda_perfil_y_satisfaccion.ipynb) — **Notebook 1 · Input & user profile.** Deliberately descriptive univariate EDA: characterizes the two sources (chatbot *responses* + the *MEAL* survey) — size, completeness, reliability — then profiles the audience (nationality, gender, age, care responsibilities), geography (users per city, a Colombia map), and the migration journey (time away, origin → onward routes on Americas maps).
-- [`notebooks/02_analisis_general_comportamiento_necesidades.ipynb`](notebooks/02_analisis_general_comportamiento_necesidades.ipynb) — **Notebook 2 · Behaviour, needs & satisfaction.** Everything investigative that is *not* NLP: variable cross-cuts (gender × nationality, engagement by city, age × destination), usage and MEAL satisfaction over time, the most-requested needs and where/when demand concentrates, needs by the original MMC category, and depth-of-use / abandonment.
-- [`notebooks/03_nlp_clustering_usuario_y_sentimiento.ipynb`](notebooks/03_nlp_clustering_usuario_y_sentimiento.ipynb) — **Notebook 3 · Emergent themes & emotion (NLP).** Discovers the semantic structure of the messages automatically and contrasts it with the official 7-category taxonomy: KMeans over sentence embeddings (primary) and lemmatized TF-IDF (comparison), the cluster-vs-taxonomy agreement, the **emergent themes** the taxonomy misses, PCA-tinted 2D/3D embedding maps, qualitative voices (word cloud + thematic read), per-message **sentiment** as an unsolicited distress signal, and a closing geographic synthesis of need + tone by city. The NLP runs **inline on the GPU** (CUDA; automatic CPU fallback) and is not cached; it downloads the embedding/sentiment models and lemmatizes with spaCy's Spanish `es_core_news_sm` on first run.
+## What is in the repository
 
-Source data lives in [`data_&_docs/`](data_&_docs/) (Excel exports from the chatbot platform and Kobo, plus project documentation). The three notebooks import their shared loaders, cleaning, metrics, and NLP logic from the [`src/sami/`](src/sami/) package (see the export-layer section below for the CSV outputs built on top of it). Earlier, fully self-contained exploratory notebooks are retained for reference in [`notebooks/arxiv/`](notebooks/arxiv/).
+| Path | What it is |
+| --- | --- |
+| [`datasets/`](datasets/README.md) | Input — drop the two source exports here; see the guide for the mechanism. |
+| [`notebooks/`](notebooks/) | The three-part narrative (`01_input_and_audience`, `02_demand_behaviour_experience`, `03_text_insights_nlp`). |
+| [`src/sami/`](src/sami/) | The shared pipeline: loaders, cleaning, schema, cohort policy, clustering, NLP, export. |
+| `run_pipeline.py` | Regenerates every table in `exports/` from the current data. |
+| [`exports/`](exports/_schema.md) | The gold layer — tidy CSVs the notebooks and the Power BI report both read. Generated, never hand-edited. |
+| `mmc_dashboard.pbix` | The Power BI report, bound to `exports/`. Built per [`docs/powerbi_guide.md`](docs/powerbi_guide.md). |
+| [`docs/`](#documentation-index) | The guides: data sources, operations, methodology, Power BI build. |
+| `tests/` | The test suite covering `src/sami/`. |
 
-## Getting Started
-
-This project uses [`uv`](https://docs.astral.sh/uv/) for Python environment and dependency management.
-
-```powershell
-# Create the virtual environment and install dependencies
-uv sync
-```
-
-This creates a `.venv` with all dependencies declared in `pyproject.toml` (pandas, numpy, matplotlib, seaborn, missingno, wordcloud, geopandas, osmnx, shapely, cartopy, contextily, openpyxl, python-docx, Jupyter/JupyterLab, spaCy + the Spanish `es_core_news_sm` model, and the sentence-transformers/transformers/BERTopic/UMAP/HDBSCAN stack used for the NLP in notebook 03).
-
-`torch` is pinned to a **CUDA (cu128) GPU build** via `[tool.uv.sources]` so notebook 03 runs its embedding/sentiment models on an NVIDIA GPU; the notebook falls back to CPU automatically if CUDA is unavailable (just slower).
-
-### Alternative: plain pip + venv (no uv, no Anaconda)
-
-If you'd rather not use `uv`, you can install everything with the standard-library `venv` and `pip`. You need **Python 3.11+** already installed.
+## Quick start
 
 ```powershell
-# 1. Create and activate a virtual environment
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
-
-# 2. Upgrade pip
-python -m pip install --upgrade pip
-
-# 3. Install PyTorch. GPU build (CUDA 12.8):
-pip install "torch>=2.10" --index-url https://download.pytorch.org/whl/cu128
-#    ...or, for a CPU-only machine (slower, no CUDA needed):
-#    pip install "torch>=2.10"
-
-# 4. Install everything else (mirrors pyproject.toml; includes the spaCy
-#    Spanish model used by notebook 03)
-pip install -r requirements.txt
+uv sync                                                # install dependencies
+# put SAMI_SALT=<value> in a .env file at the repo root, obtained out-of-band
+# save the responses export into datasets/responses/, the MEAL export into datasets/meal/
+.venv\Scripts\python.exe run_pipeline.py --check       # preflight: verify the machine and the files
+.venv\Scripts\python.exe run_pipeline.py               # full run -> exports/
 ```
 
-`requirements.txt` is kept in sync with the runtime dependencies in `pyproject.toml`. `torch` is installed in a separate step so you can choose the GPU or CPU build — installing it before `requirements.txt` means pip keeps the wheel you picked. The `geopandas` / `shapely` / `cartopy` / `contextily` geospatial stack installs from prebuilt wheels on Windows, macOS, and Linux, so no system GEOS/PROJ libraries are required.
+See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for what each step does, what a passing preflight looks like, and how to diagnose a failure.
 
-## Export layer (Power BI)
+## Updating the data
 
-The project deliverable includes a refreshable Power BI report. `exports/` is
-the **gold layer** it binds to: a set of tidy CSVs (dimensional `dim_*` /
-`fact_*` / `agg_*` / `nlp_*` tables, plus `meta_run` and `parity_check`) from
-which every plot in the three notebooks can be reproduced in Power BI. It is
-generated — never hand-edited — by the "father" script:
+Drop a new export into `datasets/responses/` or `datasets/meal/` — the folder declares the file's role, not its name, and the newest `.xlsx` in each folder is the one the pipeline reads. See [`datasets/README.md`](datasets/README.md) for the full mechanism, and [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for what each file must contain.
 
-```powershell
-.venv/Scripts/python.exe run_pipeline.py            # full run incl. GPU NLP -> all tables
-.venv/Scripts/python.exe run_pipeline.py --skip-nlp  # fast CPU run -> non-NLP tables only
-```
+## The three notebooks
 
-`run_pipeline.py` re-runs the same load/embed/cluster/sentiment pipeline the
-notebooks do (GPU by default, automatic CPU fallback), then writes the tables
-via `src/sami/export.py`, PII-scanning every frame first and refusing to write
-anything if a scan hits. It prints a `parity_check` reconciliation and exits
-non-zero if any metric fails to match, so a bad export never gets committed
-silently.
+- [`notebooks/01_input_and_audience.ipynb`](notebooks/01_input_and_audience.ipynb) — **Notebook 1 · Input & user profile.** Deliberately descriptive univariate EDA: characterizes the two sources (chatbot *responses* + the *MEAL* survey) — size and completeness — then profiles the audience (nationality, gender, age, care responsibilities), geography (users per city, a Colombia map), and the migration journey (time away, origin → onward routes on Americas maps).
+- [`notebooks/02_demand_behaviour_experience.ipynb`](notebooks/02_demand_behaviour_experience.ipynb) — **Notebook 2 · Behaviour, needs & satisfaction.** Everything investigative that is *not* NLP: variable cross-cuts (gender × nationality, engagement by city, age × destination), usage and MEAL satisfaction over time, the most-requested needs and where/when demand concentrates, needs by the original MMC category, and depth-of-use / abandonment.
+- [`notebooks/03_text_insights_nlp.ipynb`](notebooks/03_text_insights_nlp.ipynb) — **Notebook 3 · Emergent themes & emotion (NLP).** Discovers the semantic structure of the messages automatically and contrasts it with the official 7-category taxonomy: KMeans over sentence embeddings (primary) and lemmatized TF-IDF (comparison), the cluster-vs-taxonomy agreement, the **emergent themes** the taxonomy misses, PCA-tinted 2D/3D embedding maps, qualitative voices (word cloud + thematic read), per-message sentiment, and a closing geographic synthesis of need and tone by city. The NLP runs **inline on the GPU** (CUDA; automatic CPU fallback) and is not cached; it downloads the embedding/sentiment models and lemmatizes with spaCy's Spanish `es_core_news_sm` on first run.
 
-**Tone is directional-only.** The sentiment model's agreement with the human
-gold labels (κ=0.604) falls below the 0.7 quotability gate, so `meta_run`
-carries `tone_gate_passed=false` / `sentiment_quotable=false`. Sentiment
-signal ships in the exports but must be read as directional, never as a
-published percentage.
+The three notebooks import their shared loaders, cleaning, metrics, and NLP logic from [`src/sami/`](src/sami/). Earlier, fully self-contained exploratory notebooks are retained for reference in [`notebooks/arxiv/`](notebooks/arxiv/).
 
-`exports/` (the CSVs + `_manifest.csv`) is committed to the repo so the Power
-BI report always has a known-good source to point at. See
-[`exports/_schema.md`](exports/_schema.md) for the full table-by-table
-reference (grain, columns, which notebook plot each table feeds), and
-[`docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md`](docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md)
-for the design rationale.
+They run on the project's `.venv` in order 01 → 02 → 03 — see [Running the notebooks in `docs/OPERATIONS.md`](docs/OPERATIONS.md#running-the-notebooks) for how to launch them.
 
-## Usage
+## The export layer
 
-Run the notebooks with the project's environment, e.g. from VS Code (select the `.venv` kernel) or from the command line:
+`exports/` is the gold layer the Power BI report binds to: a set of tidy CSVs (dimensional `dim_*` / `fact_*` / `agg_*` / `nlp_*` tables, plus `meta_run` and `parity_check`) from which every plot in the three notebooks can also be reproduced. It is generated — never hand-edited — by `run_pipeline.py`, via `src/sami/export.py`. `dim_user` carries an `instrument_version` column (`v1` / `v2`) recording which questionnaire version produced each user's registration record.
 
-```powershell
-uv run jupyter lab
-```
+- [`exports/_schema.md`](exports/_schema.md) — the full table-by-table reference: grain, columns, which notebook plot each table feeds.
+- [`docs/powerbi_guide.md`](docs/powerbi_guide.md) — how `mmc_dashboard.pbix` is built on top of `exports/`, and how to refresh it.
 
-If you set up the environment with plain pip + venv (above), activate it first and launch Jupyter directly:
+## Documentation index
 
-```powershell
-.\.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
-jupyter lab
-```
+| Guide | Covers |
+| --- | --- |
+| [`datasets/README.md`](datasets/README.md) | How to drop in a new export: folder roles, filenames, newest-file-wins. |
+| [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) | What the responses and MEAL exports must contain, column by column. |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Install, the refresh runbook, the preflight checks, troubleshooting. |
+| [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | How every number in `exports/` is produced, traced back to code. |
+| [`docs/powerbi_guide.md`](docs/powerbi_guide.md) | How `mmc_dashboard.pbix` is built and refreshed. |
 
-Run the notebooks in order (01 → 02 → 03) from the `notebooks/` directory. They import shared loaders and analysis logic from [`src/sami/`](src/sami/), so run them with the project's `.venv` (via `uv sync`, above) rather than a bare Python environment.
+## Requirements
 
-## Contributing
-
-_Add contribution guidelines here._
+Python 3.11+ and [`uv`](https://docs.astral.sh/uv/) for environment and dependency management. A GPU is optional — the pipeline and notebooks run on CPU, the NLP stage is just slower. See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for install steps, including a plain pip + venv alternative.

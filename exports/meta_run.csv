@@ -1,18 +1,18 @@
 key,value
-responses_file,MMC_bot_responses_1783087815.xlsx
-meal_file,MMC_MEAL_1783087939.xlsx
-responses_rows,948
-meal_rows,78
+responses_file,Users_Group_Title_2807.xlsx
+meal_file,Survey_Responses_Group_Title_2807.xlsx
+responses_rows,1460
+meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
-ts_max,2026-07-03 06:16:46.166000
+ts_max,2026-07-28 13:46:49.197000
 salt_present,True
-generated_at,2026-07-24T23:58:18.965503+00:00
-schema_version,2
+generated_at,2026-07-30T03:26:01.177739+00:00
+schema_version,3
 embed_model,intfloat/multilingual-e5-large
 sentiment_model,cardiffnlp/twitter-xlm-roberta-base-sentiment
-chosen_k,4
-stability_ari,0.799
-tone_kappa,0.604
+chosen_k,6
+stability_ari,0.836
+tone_kappa,0.595
 tone_gate_passed,False
 sentiment_quotable,False
 nlp_included,True

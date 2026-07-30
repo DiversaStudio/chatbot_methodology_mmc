@@ -14,6 +14,7 @@ CITY_CANON: dict[str, str] = {
     "cartagena": "Cartagena",
     "bucaramanga": "Bucaramanga",
     "ipiales": "Ipiales",
+    "pasto": "Pasto",
     "riohacha": "Riohacha", "maicao": "Maicao",
     "soacha": "Soacha", "soacha cundinamarca": "Soacha",
     "necocli": "Necoclí",
@@ -110,6 +111,7 @@ DEPARTMENT_OF_CITY: dict[str, str] = {
     "Cartagena": "Bolívar",
     "Bucaramanga": "Santander",
     "Ipiales": "Nariño",
+    "Pasto": "Nariño",
     "Riohacha": "La Guajira",
     "Maicao": "La Guajira",
     "Soacha": "Cundinamarca",
@@ -129,6 +131,7 @@ CITY_COORDS: dict[str, tuple[float, float]] = {
     "Bucaramanga": (7.1193, -73.1227),
     "Santa Marta": (11.2408, -74.1990),
     "Ipiales": (0.8303, -77.6450),
+    "Pasto": (1.2136, -77.2811),
     "Riohacha": (11.5444, -72.9072),
     "Maicao": (11.3776, -72.2389),
     "Soacha": (4.5794, -74.2140),
@@ -183,6 +186,13 @@ CITY_DURATION_ORDER: list[str] = [
     "Más de 1 año",
 ]
 _CITY_BY_FOLD: dict[str, str] = {fold(v): v for v in CITY_DURATION_ORDER}
+CITY_DURATION_DISPLAY_EN: dict[str, str] = {
+    "Menos de 1 mes": "< 1 month",
+    "Entre 1 y 3 meses": "1–3 months",
+    "Entre 4 y 6 meses": "4–6 months",
+    "Entre 7 meses y 1 año": "7–12 months",
+    "Más de 1 año": "1+ year",
+}
 
 
 def city_duration_canon(raw) -> str | None:
@@ -197,12 +207,48 @@ def city_duration_order(raw) -> int | None:
 
 
 # --- gender EN display --------------------------------------------------------
+# `clean_gender` lets free text from Gender_other through verbatim, so the field
+# carries self-reported variants ("transgenero", "Soy una mujer trans", "lgtbQ+",
+# "Gay"). gender_display folds those into the closed EN legend the dashboard uses,
+# which is five labels wide: Woman / Man / LGBTQ+ / Prefer not to say / Other.
+#
+# One merge, settled at the 2026-07-29 dashboard review: trans and non-binary
+# self-descriptions join **LGBTQ+** rather than standing as their own slice.
+# Measured, they were 4 and 2 people; a named cell that small is re-identifying in
+# a migrant population, and the T is already inside the umbrella, so nothing is
+# misrepresented by the merge.
+#
+# "Otro" and "Prefiero no responder" stay **separate**: a stated identity and a
+# refusal are different answers and are not pooled. "Other" also absorbs
+# unrecognized free text, so it must never be read as "chose Other" alone.
 GENDER_DISPLAY: dict[str, str] = {
     "Mujer": "Woman",
     "Hombre": "Man",
     "Prefiero no responder": "Prefer not to say",
     "Otro": "Other",
 }
+_GENDER_VARIANTS: dict[str, str] = {
+    "mujer": "Woman", "femenino": "Woman", "f": "Woman",
+    "hombre": "Man", "masculino": "Man", "m": "Man",
+    "transgenero": "LGBTQ+", "trans": "LGBTQ+",
+    "mujer trans": "LGBTQ+", "soy una mujer trans": "LGBTQ+",
+    "hombre trans": "LGBTQ+", "no binario": "LGBTQ+",
+    "lgtbq+": "LGBTQ+", "lgbtq+": "LGBTQ+", "lgtbiq+": "LGBTQ+", "lgbtiq+": "LGBTQ+",
+    "gay": "LGBTQ+", "lesbiana": "LGBTQ+", "bisexual": "LGBTQ+",
+    "prefiero no responder": "Prefer not to say",
+    "otro": "Other", "otra": "Other",
+}
+
+
+def gender_display(raw) -> str:
+    """Closed-set EN gender label for the dashboard legend.
+
+    Empty/NA stays empty; anything unrecognized falls into 'Other' so the legend
+    never grows an unplanned slice (and so free text can never leak to a chart)."""
+    key = fold(raw)
+    if key in ("", "nan", "none"):
+        return ""
+    return _GENDER_VARIANTS.get(key, "Other")
 
 
 def clean_gender(raw, other) -> str:
@@ -212,3 +258,43 @@ def clean_gender(raw, other) -> str:
     if raw_s in ("", "Otro", "Otra") and other_s:
         return other_s
     return raw_s
+
+
+# --- remaining Spanish survey vocabularies -> EN dashboard display -------------
+# The gold layer is English end-to-end (the analysis frames keep the Spanish
+# source values; only export.to_english applies these).
+YES_NO_DISPLAY_EN: dict[str, str] = {
+    "si": "Yes", "sí": "Yes", "s": "Yes",
+    "no": "No",
+    "prefiero no responder": "Prefer not to say",
+}
+USEFULNESS_DISPLAY_EN: dict[str, str] = {
+    "Muy útil": "Very useful",
+    "Útil": "Useful",
+    "Medianamente útil": "Moderately useful",
+    "Poco útil": "Slightly useful",
+    "Nada útil": "Not useful",
+}
+DISCOVERY_DISPLAY_EN: dict[str, str] = {
+    "Recomendación de otro migrante": "Referral from another migrant",
+    "Recomendación de una ONG": "Referral from an NGO",
+    "Cartelera en un punto de atención": "Poster at a service point",
+    "Redes sociales": "Social media",
+    "Otro": "Other",
+    # v2 reworded these three options; both vintages map to one label so a
+    # pooled chart does not split the same answer in multiple slices.
+    "Otro migrante": "Referral from another migrant",
+    "Recomendación de ONG": "Referral from an NGO",
+    "Punto de atención": "Poster at a service point",
+}
+# 'Otra' (city) / 'Desconocida' (nationality) are the two catch-all buckets that
+# the canon functions themselves emit.
+OTHER_BUCKET_EN: dict[str, str] = {"Otra": "Other", "Desconocida": "Unknown"}
+
+
+def yes_no_display(raw) -> str:
+    """EN label for a Sí/No survey answer; unrecognized values pass through."""
+    key = fold(raw)
+    if key in ("", "nan", "none"):
+        return ""
+    return YES_NO_DISPLAY_EN.get(key, str(raw).strip())

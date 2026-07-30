@@ -86,6 +86,46 @@ def test_gender_display_and_consolidation():
     assert canon.clean_gender("Mujer", None) == "Mujer"
 
 
+def test_gender_display_closed_set():
+    # the measured free-text variants all fold into the dashboard legend
+    assert canon.gender_display("Mujer") == "Woman"
+    assert canon.gender_display("Hombre") == "Man"
+    assert canon.gender_display("lgtbQ+") == "LGBTQ+"
+    assert canon.gender_display("Gay") == "LGBTQ+"
+    # trans and non-binary self-descriptions join the same umbrella: the cells
+    # were 4 and 2 people, small enough to be re-identifying on their own
+    assert canon.gender_display("transgenero") == "LGBTQ+"
+    assert canon.gender_display("Soy una mujer trans") == "LGBTQ+"
+    assert canon.gender_display("no binario") == "LGBTQ+"
+    # a stated identity and a refusal stay separate buckets, never pooled
+    assert canon.gender_display("Prefiero no responder") == "Prefer not to say"
+    assert canon.gender_display("Otro") == "Other"
+    # empty stays empty; unknown free text never leaks to a chart
+    assert canon.gender_display("") == ""
+    assert canon.gender_display(None) == ""
+    assert canon.gender_display("cualquier otra cosa") == "Other"
+
+
+def test_gender_display_legend_is_five_labels():
+    """The dashboard legend is closed at five labels plus the empty non-answer."""
+    measured = ["Mujer", "Hombre", "transgenero", "no binario", "lgtbQ+", "Gay",
+                "lesbiana", "bisexual", "Prefiero no responder", "Otro", "bhdhb", ""]
+    assert {canon.gender_display(v) for v in measured} == {
+        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
+
+
+def test_survey_vocabularies_are_english():
+    assert canon.yes_no_display("Si") == "Yes"
+    assert canon.yes_no_display("Sí") == "Yes"
+    assert canon.yes_no_display("No") == "No"
+    assert canon.yes_no_display("Prefiero no responder") == "Prefer not to say"
+    assert canon.yes_no_display(None) == ""
+    # every ordered duration bucket has an EN label
+    assert set(canon.AWAY_DURATION_DISPLAY_EN) == set(canon.AWAY_DURATION_ORDER)
+    assert set(canon.CITY_DURATION_DISPLAY_EN) == set(canon.CITY_DURATION_ORDER)
+    assert canon.OTHER_BUCKET_EN[canon.city_canon("Otra")] == "Other"
+
+
 def test_city_duration_canon_and_order():
     from sami import canon
     labels = canon.CITY_DURATION_ORDER
@@ -99,3 +139,41 @@ def test_city_duration_canon_and_order():
     # unknown -> None
     assert canon.city_duration_canon("xyz no such bucket") is None
     assert canon.city_duration_order("xyz no such bucket") is None
+
+
+# --- Pasto and v2 discovery wordings ------------------------------------------
+def test_pasto_canonicalizes():
+    """The one v2 dropdown city absent from CITY_CANON — it never appeared in
+    the v1 City_other free text the table was built from."""
+    assert canon.city_canon(canon.clean_city("Pasto", None)) == "Pasto"
+
+
+def test_pasto_has_map_coordinates():
+    """Without coordinates a city silently vanishes from dim_city and the maps."""
+    assert "Pasto" in canon.CITY_COORDS
+
+
+def test_all_v2_dropdown_cities_are_mappable():
+    """Every option the v2 survey offers must reach the dashboard map."""
+    for city in ("Bogotá", "Cali", "Cúcuta", "Ipiales", "Medellín",
+                 "Necoclí", "Pasto"):
+        assert canon.city_canon(canon.clean_city(city, None)) == city
+        assert city in canon.CITY_COORDS, f"{city} has no coordinates"
+
+
+def test_v2_discovery_options_are_complete_and_consistent():
+    """The v2 survey reworded three of five discovery options; an unmapped option
+    passes through untranslated and splits one answer across two slices in a
+    pooled chart. This test ensures the complete v2 dropdown set is mapped and
+    that each v2 option resolves to the same English string as its v1 counterpart.
+    """
+    d = canon.DISCOVERY_DISPLAY_EN
+    # All v2 dropdown options are keys in DISCOVERY_DISPLAY_EN
+    v2_options = ("Otro migrante", "Recomendación de ONG", "Redes sociales",
+                  "Punto de atención", "Otro")
+    for option in v2_options:
+        assert option in d, f"v2 option {option!r} is not mapped"
+    # The three reworded pairs map to identical English strings
+    assert d["Otro migrante"] == d["Recomendación de otro migrante"]
+    assert d["Recomendación de ONG"] == d["Recomendación de una ONG"]
+    assert d["Punto de atención"] == d["Cartelera en un punto de atención"]
