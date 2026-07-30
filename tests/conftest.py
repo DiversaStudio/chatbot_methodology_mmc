@@ -16,8 +16,8 @@ USERS_FIXTURE = FIXTURES / "users_v2.xlsx"
 SURVEY_FIXTURE = FIXTURES / "survey_v2.xlsx"
 
 requires_real_data = pytest.mark.skipif(
-    not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()),
-    reason="real export not present (data_&_docs/ is gitignored)")
+    not (config.responses_path() and config.meal_path()),
+    reason="real export not present (datasets/ holds no .xlsx)")
 
 
 @pytest.fixture

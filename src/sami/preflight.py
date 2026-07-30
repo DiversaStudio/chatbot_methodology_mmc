@@ -20,7 +20,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import config, schema
+from . import config, datasets, schema
 
 OK, WARN, FAIL = "ok", "warn", "fail"
 
@@ -50,9 +50,12 @@ class Result:
 
 @dataclass
 class Context:
-    """What the run is about to do. Paths are the effective ones (CLI or config)."""
-    responses_path: Path = field(default_factory=lambda: Path(config.RESPONSES_PATH))
-    meal_path: Path = field(default_factory=lambda: Path(config.MEAL_PATH))
+    """What the run is about to do. Paths are the effective ones (CLI, or
+    resolved from datasets/). None means nothing was dropped into the folder."""
+    responses_path: Path | None = field(
+        default_factory=lambda: datasets.resolve("responses"))
+    meal_path: Path | None = field(
+        default_factory=lambda: datasets.resolve("meal"))
     out_dir: Path = field(default_factory=lambda: Path("exports"))
     skip_nlp: bool = False
 
@@ -88,13 +91,17 @@ def check_salt(ctx: Context) -> Result:
     return Result("salt", OK, "SAMI_SALT resolved")
 
 
-def _check_export(path: Path, source: str, required) -> Result:
+def _check_export(path: Path | None, source: str, required) -> Result:
+    if path is None:
+        return Result(source, FAIL, f"no .xlsx in {datasets.folder(source)}",
+                      "\n        ".join(
+                          datasets.missing_message(source).splitlines()[1:]))
     if not path.exists():
         return Result(source, FAIL, f"not found: {path}",
-                      "data_&_docs/ is gitignored (the raw exports carry phone "
-                      "numbers), so the files are not in the repo. Obtain them "
-                      "out-of-band and place them there, or pass explicit paths:\n"
-                      f"        python run_pipeline.py --{source} PATH")
+                      "Save the export into datasets/%s/ (the filename does "
+                      "not matter; the newest .xlsx is used), or pass an "
+                      "explicit path:\n"
+                      "        python run_pipeline.py --%s PATH" % (source, source))
     try:
         import pandas as pd
         # Header detection and column normalization must match what the loaders

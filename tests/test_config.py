@@ -1,17 +1,35 @@
+from pathlib import Path
+
 import pytest
-from sami import config
+
+from sami import config, datasets
 
 
-def test_paths_point_to_v2_export():
-    # Task 12 repointed config.py at the v2 platform's export filenames. The
-    # exact filename is one download's detail, not a contract the pipeline
-    # depends on -- but config.py declaring *some* concrete default, inside
-    # DATA_DIR, with the historical header-row offset, is worth locking in.
-    assert config.RESPONSES_PATH.parent == config.DATA_DIR
-    assert config.MEAL_PATH.parent == config.DATA_DIR
-    assert config.RESPONSES_PATH.suffix == ".xlsx"
-    assert config.MEAL_PATH.suffix == ".xlsx"
+def test_paths_resolve_inside_the_datasets_dir():
+    """The resolvers return a Path under datasets/<role>/, or None when the
+    recipient has not dropped a file in yet. Deliberately asserts no filename:
+    the whole point of the intake folder is that filenames may change."""
+    assert config.DATASETS_DIR == datasets.DATASETS_DIR
+    assert config.DATASETS_DIR.name == "datasets"
+    for getter, role in ((config.responses_path, "responses"),
+                         (config.meal_path, "meal")):
+        path = getter()
+        assert path is None or isinstance(path, Path)
+        if path is not None:
+            assert path.parent == datasets.folder(role)
+            assert path.suffix.lower() == ".xlsx"
+
+
+def test_header_row_default_is_unchanged():
+    # qa.py's fixture-tolerant reader still uses this; the loaders detect it.
     assert config.DATA_HEADER_ROW == 2
+
+
+def test_old_hardcoded_constants_are_gone():
+    """RESPONSES_PATH/MEAL_PATH/DATA_DIR are removed, not deprecated -- a stale
+    reference must fail loudly rather than read a file nobody expects."""
+    for name in ("RESPONSES_PATH", "MEAL_PATH", "DATA_DIR"):
+        assert not hasattr(config, name), f"config.{name} should be removed"
 
 
 def test_get_salt_reads_env(monkeypatch):

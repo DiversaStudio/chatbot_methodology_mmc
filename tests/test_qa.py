@@ -63,7 +63,7 @@ def test_pii_scan_exempts_message_id_but_flags_regular_columns():
 
 @requires_real_data
 def test_validate_schema_responses_ok():
-    info = qa.validate_schema(load.config.RESPONSES_PATH, kind="responses")
+    info = qa.validate_schema(load.config.responses_path(), kind="responses")
     assert info["rows"] > 0
     assert info["ts_parse_rate"] == 1.0
 

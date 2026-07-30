@@ -141,8 +141,8 @@ def test_shipped_gold_labels_align_to_the_real_spine():
     """The committed gold file must be joinable to the current corpus."""
     from pathlib import Path
     from sami import config, facade
-    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
-        pytest.skip("real export not present (data_&_docs/ is gitignored)")
+    if not (config.responses_path() and config.meal_path()):
+        pytest.skip("real export not present (datasets/ holds no .xlsx)")
     gold = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
     SD = facade.load_sami()
     sent = pd.DataFrame({"label": ["neutral"] * len(SD.messages)})

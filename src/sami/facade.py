@@ -2,9 +2,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 import pandas as pd
 
-from . import config, load, qa
+from . import config, datasets, load, qa
 
 
 @dataclass(frozen=True)
@@ -17,8 +18,8 @@ class SamiData:
 
 
 def load_sami(responses_path=None, meal_path=None) -> SamiData:
-    responses_path = responses_path or config.RESPONSES_PATH
-    meal_path = meal_path or config.MEAL_PATH
+    responses_path = Path(responses_path) if responses_path else datasets.require("responses")
+    meal_path = Path(meal_path) if meal_path else datasets.require("meal")
     salt = config.get_salt()
 
     schema_resp = qa.validate_schema(responses_path, kind="responses")
