@@ -2,10 +2,12 @@
 .claude/
 .venv/
 .superpowers/
+.reports/
 
 # Author's local working folder: superseded by datasets/, never referenced by
 # code or documentation, never version controlled.
 data_&_docs/
+docs/
 
 # Python
 __pycache__/
