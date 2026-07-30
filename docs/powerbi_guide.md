@@ -1547,7 +1547,7 @@ served — act here" · "Big and well served — protect" · "Small but badly se
 "Small and well served".
 
 **Caption under the visual** (text box): "The vertical axis is a composite priority ranking
-(volume, repeat rate, rating and tone, z-scored) — not a rate. Tone is one of the four inputs."
+built from volume, repeat rate, rating and tone, z-scored."
 
 ### 9.3 Visual B — The archetype scatter
 
@@ -1653,7 +1653,6 @@ the city, gender or date slicers."
 **Text box — limitations:**
 
 - "MEAL responses: 69 of 917 users (7.5%) — indicative, never representative."
-- "Tone is shown as rank order only; no tone percentage is published anywhere in this report."
 - "Age, gender, destination and duration are self-reported; 35 records with implausible
   sub-18 ages are excluded from the profile chart."
 - "Archetype word clouds are ranked over the whole corpus and do not respond to the city,
