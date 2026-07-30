@@ -218,7 +218,7 @@ Two of the old buckets split, and the splits are the finding:
 
 | id | Archetype | n | Dominant need |
 |---|---|---|---|
-| 4 | Urgent humanitarian need | 310 | humanitarian assistance (39%) |
+| 4 | Urgent humanitarian needs | 310 | humanitarian assistance (39%) |
 | 2 | Nationality and family papers | 303 | legal & documentation (86%) |
 | 1 | Stuck mid-procedure | 217 | legal & documentation (67%) |
 | 3 | Permits, visas and travel | 164 | legal & documentation (72%) |

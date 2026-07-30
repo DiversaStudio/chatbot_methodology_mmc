@@ -165,7 +165,7 @@ CANDIDATE_INTENT_PROBES: dict[str, str] = {
 # because NB3 calls ctfidf_terms(top_n=12) while the pipeline uses top_n=40 — a
 # marker ranked below 12 would pass the pipeline and fail the notebook.
 ARCHETYPE_NAMES: dict[int, dict[str, str]] = {
-    4: {"name": "Urgent humanitarian need",
+    4: {"name": "Urgent humanitarian needs",
         "marker": "terminal",
         "blurb": "Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent."},
     2: {"name": "Nationality and family papers",

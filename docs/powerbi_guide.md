@@ -2173,7 +2173,7 @@ not to set it:
 
 | Archetype | Rank | Hex |
 |---|---|---|
-| Urgent humanitarian need | 0 | `#009ba4` |
+| Urgent humanitarian needs | 0 | `#009ba4` |
 | Nationality and family papers | 1 | `#671e42` |
 | Stuck mid-procedure | 2 | `#62c8ce` |
 | Permits, visas and travel | 3 | `#a3557a` |

@@ -1,5 +1,5 @@
 cluster_id,name,n_users,n_messages,median_age,top_categories,display_order,color_hex
-4,Urgent humanitarian need,310,1854,33.0,"humanitarian_assistance (39%), unclassified (20%)",0,#009ba4
+4,Urgent humanitarian needs,310,1854,33.0,"humanitarian_assistance (39%), unclassified (20%)",0,#009ba4
 2,Nationality and family papers,303,1292,32.0,"legal_documentation (86%), unclassified (9%)",1,#671e42
 1,Stuck mid-procedure,217,743,31.0,"legal_documentation (67%), unclassified (16%)",2,#62c8ce
 3,"Permits, visas and travel",164,394,33.0,"legal_documentation (72%), unclassified (10%)",3,#a3557a
