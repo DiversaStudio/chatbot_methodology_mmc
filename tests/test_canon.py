@@ -97,21 +97,37 @@ def test_gender_display_closed_set():
     assert canon.gender_display("transgenero") == "LGBTQ+"
     assert canon.gender_display("Soy una mujer trans") == "LGBTQ+"
     assert canon.gender_display("no binario") == "LGBTQ+"
-    # a stated identity and a refusal stay separate buckets, never pooled
-    assert canon.gender_display("Prefiero no responder") == "Prefer not to say"
-    assert canon.gender_display("Otro") == "Other"
+    # merged 2026-07-30: "Other" was 3 people, below the cell size the review had
+    # already judged too small to name on its own
+    joint = canon.GENDER_OTHER_OR_UNSTATED
+    assert canon.gender_display("Prefiero no responder") == joint
+    assert canon.gender_display("Otro") == joint
     # empty stays empty; unknown free text never leaks to a chart
     assert canon.gender_display("") == ""
     assert canon.gender_display(None) == ""
-    assert canon.gender_display("cualquier otra cosa") == "Other"
+    assert canon.gender_display("cualquier otra cosa") == joint
 
 
-def test_gender_display_legend_is_five_labels():
-    """The dashboard legend is closed at five labels plus the empty non-answer."""
+def test_gender_joint_bucket_does_not_claim_a_refusal():
+    """The merged label must not report a stated answer as a declined one."""
+    label = canon.GENDER_OTHER_OR_UNSTATED
+    assert label == "Other or prefer not to say"
+    assert label != "Prefer not to say"          # would misreport 3 stated answers
+    assert label != "Other"                      # would misreport 19 refusals
+
+
+def test_gender_display_legend_is_four_labels():
+    """The dashboard legend is closed at four labels plus the empty non-answer."""
     measured = ["Mujer", "Hombre", "transgenero", "no binario", "lgtbQ+", "Gay",
                 "lesbiana", "bisexual", "Prefiero no responder", "Otro", "bhdhb", ""]
     assert {canon.gender_display(v) for v in measured} == {
-        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
+        "Woman", "Man", "LGBTQ+", canon.GENDER_OTHER_OR_UNSTATED, ""}
+
+
+def test_minors_prefer_not_to_say_is_untouched_by_the_gender_merge():
+    """`minors` is a different question with its own vocabulary -- merging the
+    gender buckets must not reach into it."""
+    assert canon.yes_no_display("Prefiero no responder") == "Prefer not to say"
 
 
 def test_survey_vocabularies_are_english():

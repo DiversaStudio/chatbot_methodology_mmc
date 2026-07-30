@@ -8,7 +8,9 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py --skip-nlp  # fast CPU run -> non-NLP tables only
 ```
 
-**`schema_version = "3"`** (bumped from `"2"` by the July 2026 v2 export migration — see
+**`schema_version = "4"`** (bumped from `"3"` by the v1.1.0 dashboard change, which added
+`dim_quadrant`, `dim_cluster[display_order, color_hex]` and `meta_run[report_version]`; `"3"`
+came from the July 2026 v2 export migration — see
 `docs/superpowers/specs/2026-07-28-sami-v2-export-migration-design.md`). The chatbot platform
 was replaced and the registration survey rewritten; every export now carries two
 questionnaire cohorts, `v1` and `v2`, distinguished by `dim_user[instrument_version]`. Which
@@ -32,14 +34,16 @@ legend is translated on the way out (`export.to_english_user` /
 duration scales, the `Otra`/`Desconocida` catch-alls, and the three MEAL fields.
 Translation is **in place** — the column keeps its name, the `*_order` columns
 still carry the sort, and `rating_num` is computed before the labels change.
-Gender is additionally canonicalized into a closed set of five: `transgenero`,
+Gender is additionally canonicalized into a closed set of four: `transgenero`,
 `Soy una mujer trans` and `no binario` → **LGBTQ+** alongside `lgtbQ+` and `Gay`;
-`Prefiero no responder` → **Prefer not to say**; `Otro` and any unrecognized free
-text → **Other**, so the legend can never grow an unplanned slice. Folding the
-trans self-descriptions into LGBTQ+ is a small-cell disclosure control (the
-separate slice was 4 people), dated 2026-07-29. `Other` and `Prefer not to say`
-are deliberately **not** pooled — a stated identity and a refusal are different
-answers. The analysis frames (`SD.responses`, `SD.meal`) keep the Spanish source
+`Prefiero no responder`, `Otro` and any unrecognized free text → **Other or
+prefer not to say**, so the legend can never grow an unplanned slice. Both merges
+are small-cell disclosure controls: the trans self-descriptions (a 4-person slice)
+into LGBTQ+ on 2026-07-29, and `Otro` (3 people) with `Prefiero no responder`
+(19) on 2026-07-30. The joint label is **not** "Prefer not to say" — folding a
+stated answer into a refusal label would misreport those 3 people. Note this
+reverses the earlier decision recorded here to keep the two apart; the reasoning
+did not change, the cell sizes did. The analysis frames (`SD.responses`, `SD.meal`) keep the Spanish source
 values; only the exports are translated. Proper nouns (city, department,
 nationality, `age_range`) are unchanged.
 
@@ -92,7 +96,8 @@ of their earliest record — the survey they actually answered.
 |---|---|
 | `user_id` | key |
 | `instrument_version` | `v1` / `v2` — which registration survey the user answered. **New in schema v3.** See "Questionnaire cohorts" below; not all columns in this table may be pooled across the two values — check `src/sami/cohort.py` |
-| `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Prefer not to say / Other (empty for unfinished registrations), `minors` is Yes / No |
+| `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Other or prefer not to say (empty for unfinished registrations), `minors` is Yes / No — its own `Prefer not to say` is a different question and is untouched by the gender merge |
+| `registered_at` | earliest response record for the user (new in schema v4). **Never null.** Distinct from `first_seen`, which is the first *message* and is null for the 194 users who registered without writing — a "new users" count must filter on `registered_at`, or it drops those people and disagrees with a plain user count for an invisible reason |
 | `city_canon`, `department` | current-city geo |
 | `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2** |
 | `away_duration_canon`, `away_duration_order` | time away from origin; never null — see non-response below. **v1-only**: the question (Q9) was retired in v2, so this series is frozen at whatever v1 already carries |
@@ -238,8 +243,15 @@ unique to their cluster and inside the top 12 terms, because NB3 requests
 | `n_users`, `n_messages` | archetype size |
 | `median_age` | |
 | `top_categories` | archetype's most-common message categories |
+| `display_order` | 0 = largest archetype. Power BI sort-by column for `name` |
+| `color_hex` | identity colour. Consumed by the notebooks; **not** bindable in the dashboard |
 
-Feeds: NB3 archetype summary cards / legend.
+`display_order` / `color_hex` are keyed to **size rank, not `cluster_id`** — the
+largest archetype always takes the primary brand teal. Cluster ids are an artefact
+of one clustering run; binding a colour to an id re-colours the whole dashboard on
+the next re-cluster. Ties break on `cluster_id`, so the assignment is deterministic.
+
+Feeds: NB3 archetype summary cards / legend; dashboard Tab 3 archetype scatter.
 
 *Discrepancy: the design spec listed `share` instead of `n_messages` /
 `median_age` / `top_categories`; the shipped table matches
@@ -275,6 +287,33 @@ the one v2 dropdown option nobody had typed before, so it previously fell into
 
 *Onward-migration: build from `dim_user.destination_country` in Power BI (no
 dedicated table).*
+
+### `dim_quadrant` — 1 row per priority-matrix quadrant (4 rows, new in schema v4)
+Cols: `quadrant_key`, `label`, `action`, `axis_x`, `axis_y`, `color_hex`,
+`display_order`. Static by construction — the quadrants are a fixed reading of the
+two `agg_priority_matrix` axes (volume on x, unmet need on y), not something the
+data decides, so `build_dim_quadrant()` takes no arguments and the table never
+changes between runs.
+
+It exists so the dashboard can draw a **real legend bound to data** for the
+priority matrix instead of four hand-placed shapes with hand-typed hexes, and so
+the shading colours have one source (`theme.QUADRANT`). `axis_x` / `axis_y` record
+which side of each median line the cell sits on (`high`/`low`), so the legend can
+be rebuilt correctly if the axes are ever swapped.
+
+**No relationship to `agg_priority_matrix`.** There is no key to join on — a
+category's quadrant depends on where it falls relative to the two median lines,
+which Power BI computes at render time. The table is a legend, not a dimension;
+do not wire cross-filtering from it.
+
+| column | notes |
+|---|---|
+| `quadrant_key` | e.g. `high_volume_high_need` |
+| `label` | "Big and badly served" |
+| `action` | "Act here" — the one-word instruction shown in the legend |
+| `axis_x`, `axis_y` | `high`/`low`, the side of each median line |
+| `color_hex` | shading colour; lay down at ≥90% transparency, under the bubbles |
+| `display_order` | legend sort order, most-urgent first |
 
 ---
 
@@ -320,11 +359,22 @@ above — this is the *usage* funnel (asked a question → got a response → �
 not the *sign-up* funnel.
 
 ### `agg_priority_matrix` — 1 row per category (7 rows)
-Cols: `category`, `messages`, `users`, `pct_repeat`, `mean_rating`, `meal_n`,
-`rating_is_fallback`, `pct_negative`, `n_axes`, `unmet_need`. Feeds NB2 §6
-priority matrix (volume × unmet-need × tone).
+Cols: `category`, `category_en`, `color_hex`, `messages`, `users`, `pct_repeat`,
+`mean_rating`, `meal_n`, `rating_is_fallback`, `pct_negative`, `n_axes`,
+`unmet_need`. Feeds NB2 §6 priority matrix (volume × unmet-need × tone).
 
 > `pct_negative` here is one of the z-scored axes combined into `unmet_need`.
+
+`category_en` / `color_hex` (new in schema v4) are resolved at export time from the
+same `CAT_EN` map `dim_category` is built from, so the bubble labels are the same
+canonical strings as every other category label in the dashboard. They are carried
+on the row rather than looked up because this table has **no relationship** to
+`dim_category` — the dashboard previously recovered the label with a DAX
+`LOOKUPVALUE`, which returns BLANK for an unknown key and so drew an unlabelled
+bubble instead of failing. `build_agg_priority_matrix` now raises `KeyError` on any
+category absent from `CAT_EN`.
+
+`unclassified` / "Suggestion" is excluded from this table, so all 7 rows resolve.
 
 *Discrepancy: the design spec's placeholder column list
 (`category, volume, unmet_score, tone_score`) doesn't match the shipped
@@ -377,14 +427,20 @@ from `fact_message.sentiment_label` × `dominant_category` instead.*
 
 ## Meta / parity
 
-### `meta_run` — key/value (12 rows on `--skip-nlp`, 17 on a full run)
+### `meta_run` — key/value (13 rows on `--skip-nlp`, 18 on a full run)
 The run's identity card. Two columns, `key` and `value`. Keys always
 present: `responses_file`, `meal_file`,
 `responses_rows`, `meal_rows`, `ts_min`, `ts_max`, `salt_present`,
-`generated_at`, `schema_version`, `nlp_included`, `tone_gate_passed`,
-`sentiment_quotable`. A full run additionally writes `embed_model`,
-`sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`.
-`schema_version = "3"` (bumped from `"2"` by the v2 export migration — assert it
+`generated_at`, `schema_version`, `report_version`, `nlp_included`,
+`tone_gate_passed`, `sentiment_quotable`. A full run additionally writes
+`embed_model`, `sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`.
+
+`report_version` (`export.REPORT_VERSION`, currently `"1.1.0"`) is the **dashboard's**
+version, bumped by hand when the report's visuals or fields change. It is deliberately
+not the package version in `pyproject.toml` — code and report move on different
+cadences. The Tab footer renders it next to `generated_at`.
+
+`schema_version = "4"` (bumped from `"3"` by the v1.1.0 dashboard change — assert it
 on the About page, and update any "Schema Check" measure that still compares
 against `"2"`).
 

@@ -1,7 +1,9 @@
+import re
+
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export, cohort, config
+from sami import load_sami, export, cohort, config, theme
 
 
 @pytest.fixture(scope="module")
@@ -72,7 +74,15 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "3"
+    assert kv["schema_version"] == "4"
+
+
+def test_meta_run_carries_report_version():
+    """The dashboard footer renders this; without it the stamp reads blank."""
+    m = export.build_meta_run({"responses_file": "x.xlsx"})
+    kv = dict(zip(m["key"], m["value"]))
+    assert kv["report_version"] == export.REPORT_VERSION
+    assert re.fullmatch(r"\d+\.\d+\.\d+", kv["report_version"])
 
 
 def test_parity_check_includes_repeat_askers(SD):
@@ -108,12 +118,24 @@ def _no_spanish(frame, cols):
         assert not bad, f"{col}: {bad}"
 
 
+def test_dim_user_registered_at_is_never_null(SD):
+    """The whole point of this column: a new-user count built on `first_seen`
+    silently drops everyone who registered and never sent a message."""
+    d = export.build_dim_user(SD.responses, SD.messages)
+    assert d["registered_at"].notna().all()
+    assert d["first_seen"].isna().any()             # the gap this column closes
+    # registration cannot postdate the user's first message
+    both = d.dropna(subset=["first_seen"])
+    assert (both["registered_at"] <= both["first_seen"]).all()
+
+
 def test_dim_user_display_values_are_english(SD):
     d = export.build_dim_user(SD.responses, SD.messages)
     _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
                     "city_duration_canon", "city_canon", "nationality_canon"])
+    from sami import canon
     assert set(d["gender_clean"].dropna()) <= {
-        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
+        "Woman", "Man", "LGBTQ+", canon.GENDER_OTHER_OR_UNSTATED, ""}
     # the ordering columns still carry the sort after the labels are translated
     if d["away_duration_order"].notna().any():
         pairs = d.dropna(subset=["away_duration_order"])
@@ -207,6 +229,33 @@ def test_agg_priority_matrix_no_sentiment(SD):
     assert (pm["n_axes"] <= 2).all()                    # no sentiment axis
 
 
+def test_agg_priority_matrix_labels_match_dim_category(SD):
+    """Bubble labels must be the same canonical EN strings dim_category uses --
+    the matrix has no relationship to it, so nothing else enforces this."""
+    du = export.build_dim_user(SD.responses, SD.messages)
+    fm = export.build_fact_meal(SD.meal)
+    pm = export.build_agg_priority_matrix(SD.messages, fm, du)
+    cat = export.build_dim_category().set_index("category_key")
+
+    assert pm["category_en"].notna().all()             # no unlabelled bubbles
+    assert pm["color_hex"].notna().all()
+    for key, label, hexv in zip(pm["category"], pm["category_en"], pm["color_hex"]):
+        assert label == cat.loc[key, "category_en"]
+        assert hexv == cat.loc[key, "color_hex"]
+    # snake_case keys must never reach a chart
+    assert not pm["category_en"].str.contains("_").any()
+
+
+def test_agg_priority_matrix_rejects_uncanonical_category(SD):
+    """An unknown key must fail loudly here, not plot as a blank bubble."""
+    du = export.build_dim_user(SD.responses, SD.messages)
+    fm = export.build_fact_meal(SD.meal)
+    msgs = SD.messages.copy()
+    msgs.loc[msgs.index[:50], "dominant_category"] = "brand_new_category"
+    with pytest.raises(KeyError, match="brand_new_category"):
+        export.build_agg_priority_matrix(msgs, fm, du)
+
+
 def test_nlp_umap_synthetic():
     XY = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
     labels = np.array([0, 1, 0])
@@ -251,8 +300,47 @@ def test_dim_cluster_synthetic():
     names = {0: "Doc-seeker", 1: "Job-seeker"}
     d = export.build_dim_cluster(prof, names)
     assert list(d.columns) == ["cluster_id", "name", "n_users",
-                               "n_messages", "median_age", "top_categories"]
+                               "n_messages", "median_age", "top_categories",
+                               "display_order", "color_hex"]
     assert d.loc[d["cluster_id"] == 0, "name"].iloc[0] == "Doc-seeker"
+
+
+def test_dim_cluster_colours_follow_size_rank_not_cluster_id():
+    """Colour must track "biggest archetype", not the id the clusterer handed
+    out — otherwise every re-cluster silently re-colours the dashboard."""
+    prof = pd.DataFrame(
+        {"n_users": [5, 40, 12], "n_messages": [10, 90, 30],
+         "median_age": [30.0, 28.0, 33.0],
+         "top_categories": ["a (10%)", "b (20%)", "c (30%)"]},
+        index=pd.Index([0, 1, 2], name="archetype"))
+    d = export.build_dim_cluster(prof, {0: "S", 1: "L", 2: "M"}).set_index("cluster_id")
+
+    assert list(d["display_order"]) == [2, 0, 1]          # smallest is ranked last
+    assert d.loc[1, "color_hex"] == theme.ARCHETYPE[0]    # largest gets brand teal
+    assert d.loc[2, "color_hex"] == theme.ARCHETYPE[1]
+    assert d.loc[0, "color_hex"] == theme.ARCHETYPE[2]
+    assert d["color_hex"].nunique() == 3                  # no two archetypes share a hue
+
+
+def test_dim_cluster_size_ties_break_deterministically():
+    prof = pd.DataFrame(
+        {"n_users": [7, 7], "n_messages": [1, 2], "median_age": [30.0, 31.0],
+         "top_categories": ["a", "b"]},
+        index=pd.Index([3, 1], name="archetype"))
+    d = export.build_dim_cluster(prof, {1: "A", 3: "B"}).set_index("cluster_id")
+    assert d.loc[1, "display_order"] == 0                 # lower cluster_id wins the tie
+    assert d.loc[3, "display_order"] == 1
+
+
+def test_dim_quadrant_schema():
+    q = export.build_dim_quadrant()
+    assert list(q.columns) == ["quadrant_key", "label", "action", "axis_x",
+                               "axis_y", "color_hex", "display_order"]
+    assert len(q) == 4
+    assert set(zip(q["axis_x"], q["axis_y"])) == {
+        ("high", "high"), ("high", "low"), ("low", "high"), ("low", "low")}
+    assert q["color_hex"].nunique() == 4
+    assert q["color_hex"].str.fullmatch(r"#[0-9a-f]{6}").all()
 
 
 def test_nlp_voices_picks_marker_quote():

@@ -210,22 +210,36 @@ def city_duration_order(raw) -> int | None:
 # `clean_gender` lets free text from Gender_other through verbatim, so the field
 # carries self-reported variants ("transgenero", "Soy una mujer trans", "lgtbQ+",
 # "Gay"). gender_display folds those into the closed EN legend the dashboard uses,
-# which is five labels wide: Woman / Man / LGBTQ+ / Prefer not to say / Other.
+# which is four labels wide: Woman / Man / LGBTQ+ / Other or prefer not to say.
 #
-# One merge, settled at the 2026-07-29 dashboard review: trans and non-binary
-# self-descriptions join **LGBTQ+** rather than standing as their own slice.
-# Measured, they were 4 and 2 people; a named cell that small is re-identifying in
-# a migrant population, and the T is already inside the umbrella, so nothing is
-# misrepresented by the merge.
+# Two merges, both driven by cell size rather than by taxonomy.
 #
-# "Otro" and "Prefiero no responder" stay **separate**: a stated identity and a
-# refusal are different answers and are not pooled. "Other" also absorbs
-# unrecognized free text, so it must never be read as "chose Other" alone.
+# 1. 2026-07-29 dashboard review: trans and non-binary self-descriptions join
+#    **LGBTQ+** rather than standing as their own slice. Measured, they were 4 and
+#    2 people; a named cell that small is re-identifying in a migrant population,
+#    and the T is already inside the umbrella, so nothing is misrepresented.
+#
+# 2. 2026-07-30, owner request: "Otro" and "Prefiero no responder" merge into a
+#    single bucket. This REVERSES the previous note here, which kept them apart on
+#    the grounds that a stated identity and a refusal are different answers. That
+#    reasoning was sound and is not what changed -- the counts are. "Other" is
+#    3 people, below even the LGBTQ+ cell the review had already judged too small
+#    to name.
+#
+#    The merged label is "Other or prefer not to say", NOT "Prefer not to say".
+#    Folding a stated answer into a refusal label would report 3 people as having
+#    declined when they did not. The joint label keeps both readings honest and
+#    still removes the n = 3 cell.
+#
+# "Other" also absorbs unrecognized free text, so the bucket must never be read as
+# "chose Other" alone -- another reason the label does not claim a specific answer.
+GENDER_OTHER_OR_UNSTATED = "Other or prefer not to say"
+
 GENDER_DISPLAY: dict[str, str] = {
     "Mujer": "Woman",
     "Hombre": "Man",
-    "Prefiero no responder": "Prefer not to say",
-    "Otro": "Other",
+    "Prefiero no responder": GENDER_OTHER_OR_UNSTATED,
+    "Otro": GENDER_OTHER_OR_UNSTATED,
 }
 _GENDER_VARIANTS: dict[str, str] = {
     "mujer": "Woman", "femenino": "Woman", "f": "Woman",
@@ -235,20 +249,21 @@ _GENDER_VARIANTS: dict[str, str] = {
     "hombre trans": "LGBTQ+", "no binario": "LGBTQ+",
     "lgtbq+": "LGBTQ+", "lgbtq+": "LGBTQ+", "lgtbiq+": "LGBTQ+", "lgbtiq+": "LGBTQ+",
     "gay": "LGBTQ+", "lesbiana": "LGBTQ+", "bisexual": "LGBTQ+",
-    "prefiero no responder": "Prefer not to say",
-    "otro": "Other", "otra": "Other",
+    "prefiero no responder": GENDER_OTHER_OR_UNSTATED,
+    "otro": GENDER_OTHER_OR_UNSTATED, "otra": GENDER_OTHER_OR_UNSTATED,
 }
 
 
 def gender_display(raw) -> str:
     """Closed-set EN gender label for the dashboard legend.
 
-    Empty/NA stays empty; anything unrecognized falls into 'Other' so the legend
-    never grows an unplanned slice (and so free text can never leak to a chart)."""
+    Empty/NA stays empty; anything unrecognized falls into the joint
+    other/unstated bucket so the legend never grows an unplanned slice (and so
+    free text can never leak to a chart)."""
     key = fold(raw)
     if key in ("", "nan", "none"):
         return ""
-    return _GENDER_VARIANTS.get(key, "Other")
+    return _GENDER_VARIANTS.get(key, GENDER_OTHER_OR_UNSTATED)
 
 
 def clean_gender(raw, other) -> str:

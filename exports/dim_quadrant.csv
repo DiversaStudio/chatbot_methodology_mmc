@@ -1,0 +1,5 @@
+quadrant_key,label,action,axis_x,axis_y,color_hex,display_order
+high_volume_high_need,Big and badly served,Act here,high,high,#671e42,0
+low_volume_high_need,Small but badly served,Watch,low,high,#a3557a,1
+high_volume_low_need,Big and well served,Protect,high,low,#009ba4,2
+low_volume_low_need,Small and well served,Steady state,low,low,#b7b7b7,3

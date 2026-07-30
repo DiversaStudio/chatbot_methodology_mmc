@@ -56,6 +56,25 @@ PRIMARY = TEAL                                      # single-series brand teal
 ACCENT  = WINE                                      # annotations / the one pop
 DEEP    = NAVY                                      # flags, secondary series
 
+# Archetype identity colours, indexed by SIZE RANK (0 = largest archetype), not
+# by cluster_id. Cluster ids are an artefact of one clustering run and are not
+# stable across re-runs; "the biggest archetype is brand teal" is. Consumed by
+# `export.build_dim_cluster`, which writes the hex into `dim_cluster.color_hex`
+# so Power BI binds colour from the data instead of a hand-typed list.
+# Six slots because k = 6; all six sit inside CAT's validated range.
+ARCHETYPE = CAT[:6]
+
+# Priority-matrix quadrant shading. Keyed by the two axes of
+# `agg_priority_matrix`: volume (x, messages) and unmet need (y). These are
+# BACKGROUND fills, not series colours -- they are meant to be laid down at 90%
+# transparency or higher, under bubbles that carry the category colours.
+QUADRANT = {
+    "high_volume_high_need": WINE,    # act here
+    "low_volume_high_need":  '#a3557a',  # watch
+    "high_volume_low_need":  TEAL,    # protect
+    "low_volume_low_need":   GREY,    # steady state
+}
+
 # Neutrals: text inks, grid, surface.
 INK, INK2, MUTED = NAVY, '#3a3a5c', GREY
 GRID, SURFACE    = FOG, WHITE
