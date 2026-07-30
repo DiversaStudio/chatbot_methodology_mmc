@@ -1664,7 +1664,7 @@ the city, gender or date slicers."
 
 **Text box — metric glossary:** one line per measure, copied from the Descriptions in Part 5.
 
-**Text box — the refresh runbook:** the three steps from Part 12.2.
+**Text box — the refresh runbook:** the two steps from Part 12.2.
 
 **Text box — how to move the data:** "The report reads only the CSVs in the folder named by the
 Power Query parameter `DataFolder`. To move the data: Home → Transform data → Manage Parameters

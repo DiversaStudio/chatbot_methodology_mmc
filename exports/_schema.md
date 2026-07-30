@@ -68,16 +68,11 @@ carry `dominant_category`, `city_canon`, `sentiment_label`) — no separate
 `nlp_sentiment_dist` / `nlp_negative_by_category` table ships (see
 "Discrepancies vs. the design spec" below).
 
-`meta_run` carries `tone_gate_passed` and `sentiment_quotable` as boolean flags,
-and `tone_kappa` as the underlying agreement statistic; see that table's entry
-below for the full column list. `sentiment_label` (`dim_user` / `fact_message`)
-and `nlp_tone_confusion` are shown as rank-order signal only, never as a
-published percentage.
-
-The gold labels used to compute `tone_kappa` are matched onto `fact_message`
-by message text via `validation.align_gold`, not by row position — `message_id`
-is a content hash, and positional alignment against it does not reliably pair
-an analyst's label with the message it was written for.
+`meta_run` carries `tone_gate_passed` and `sentiment_quotable` as boolean
+columns, and `tone_kappa` as a numeric column, all three written only on a
+full run; see that table's entry below for the full column list.
+`sentiment_label` (`dim_user` / `fact_message`) and `nlp_tone_confusion` are
+shown as rank-order signal only, never as a published percentage.
 
 This file documents what `exports/_manifest.csv` (the authoritative, generated
 list) actually contains. Where the design spec
@@ -351,8 +346,8 @@ by kind. Feeds NB2 §1 entity chart.
 **Present and current as of 2026-07-28.** These five tables and `dim_cluster` are
 only written on a full (non-`--skip-nlp`) run. The full pipeline now completes on
 the v2 data: archetypes were re-mapped to k = 6 (see the `dim_cluster` note above)
-and the tone gold labels were re-keyed onto content-hash `message_id`s. Row counts
-below are from the current export.
+and `nlp_tone_confusion` was re-matched onto content-hash `message_id`s. Row
+counts below are from the current export.
 
 ### `nlp_umap` — 1 row per user (1,198 rows)
 Cols: `user_id`, `x`, `y`, `cluster_id`. 2D UMAP projection of user embeddings.
@@ -369,9 +364,8 @@ stuck-in-a-procedure, human handoff, fraud, connectivity). Feeds NB3 §3
 coverage gaps.
 
 ### `nlp_tone_confusion` — 1 row per (human label, model label) (4 rows)
-Cols: `human_label`, `model_label`, `n`. Confusion matrix between the
-200-message blind analyst gold labels and the sentiment model, long-form.
-Feeds NB3 §4 confusion matrix.
+Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
+combination of the two label columns. Feeds NB3 §4 confusion matrix.
 
 ### `nlp_voices` — 1 row per archetype exemplar (4 rows)
 Cols: `cluster_id`, `name`, `message`. One representative quote per
