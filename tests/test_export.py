@@ -13,8 +13,8 @@ def SD():
     # critical QA gate on the fixture's deliberately mixed summary formats).
     # Skip cleanly rather than error when the export is absent, same as the
     # requires_real_data marker used elsewhere for the same reason.
-    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
-        pytest.skip("real export not present (data_&_docs/ is gitignored)")
+    if not (config.responses_path() and config.meal_path()):
+        pytest.skip("real export not present (datasets/ holds no .xlsx)")
     return load_sami()
 
 

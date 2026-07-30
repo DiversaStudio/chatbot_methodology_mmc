@@ -39,8 +39,8 @@ def test_meal_keeps_most_recent():
     # "Respondent", not "Name", and only normalize_columns knows that mapping.
     # No committed fixture has a duplicate respondent id, so this stays on real
     # data.
-    header_row = schema.detect_header_row(config.MEAL_PATH, source="meal")
-    raw = pd.read_excel(config.MEAL_PATH, header=header_row)
+    header_row = schema.detect_header_row(config.meal_path(), source="meal")
+    raw = pd.read_excel(config.meal_path(), header=header_row)
     raw = schema.normalize_columns(raw, "meal")
     raw = raw[raw["Name"].map(lambda x: bool(load.digits(x)), na_action="ignore").fillna(False)].copy()
     raw["uid"] = raw["Name"].map(lambda n: load.pseudonymize(n, SALT))

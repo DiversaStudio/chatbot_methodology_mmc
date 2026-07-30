@@ -24,7 +24,7 @@ from sklearn.cluster import KMeans
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
-                  export, preflight, progress, config, schema)
+                  export, preflight, progress, config, schema, datasets)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
@@ -100,13 +100,17 @@ def main(argv=None) -> int:
                     help="skip the NLP stages (no model download, much faster)")
     ap.add_argument("--check", action="store_true",
                     help="run preflight checks and exit")
-    ap.add_argument("--responses", default=None, help="path to the responses .xlsx")
-    ap.add_argument("--meal", default=None, help="path to the MEAL .xlsx")
+    ap.add_argument("--responses", default=None,
+                    help="path to the responses .xlsx "
+                         "(default: newest in datasets/responses/)")
+    ap.add_argument("--meal", default=None,
+                    help="path to the MEAL .xlsx "
+                         "(default: newest in datasets/meal/)")
     args = ap.parse_args(argv)
 
     ctx = preflight.Context(
-        responses_path=Path(args.responses or config.RESPONSES_PATH),
-        meal_path=Path(args.meal or config.MEAL_PATH),
+        responses_path=Path(args.responses) if args.responses else datasets.resolve("responses"),
+        meal_path=Path(args.meal) if args.meal else datasets.resolve("meal"),
         out_dir=Path(args.out),
         skip_nlp=args.skip_nlp,
     )
@@ -125,6 +129,9 @@ def main(argv=None) -> int:
     pr = progress.Progress(_STAGES_BASE + (0 if args.skip_nlp else _STAGES_NLP))
 
     with pr.stage("loading responses + MEAL"):
+        for role, override in (("responses", args.responses), ("meal", args.meal)):
+            chosen = override if override else datasets.describe(role)
+            print(f"  {role + ':':<11}{chosen}", file=sys.stderr)
         SD = load_sami(responses_path=args.responses, meal_path=args.meal)
 
     sent = lab = None

@@ -11,8 +11,8 @@ def data():
     # metrics.py's functions are exercised here against the full facade output;
     # there is no fixture-based substitute small enough to be worth building.
     # Skip cleanly rather than error when the real, gitignored export is absent.
-    if not (Path(config.RESPONSES_PATH).exists() and Path(config.MEAL_PATH).exists()):
-        pytest.skip("real export not present (data_&_docs/ is gitignored)")
+    if not (config.responses_path() and config.meal_path()):
+        pytest.skip("real export not present (datasets/ holds no .xlsx)")
     return load_sami()
 
 

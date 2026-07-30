@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import config, canon, taxonomy, schema
+from . import config, canon, taxonomy, schema, datasets
 
 _NOISE = {"undefined", "?", ""}
 
@@ -99,11 +99,10 @@ def _read_export(path, source: str = "responses") -> pd.DataFrame:
         raise schema.SchemaError(
             f"{source.capitalize()} export not found.\n"
             f"  file: {path}\n"
-            "  fix:  The raw exports are not in the repo (data_&_docs/ is "
-            "gitignored — they carry phone numbers). Obtain them out-of-band, "
-            "put them in data_&_docs/, or pass an explicit path:\n"
+            "  fix:  Save the export into datasets/%s/ (the filename does not "
+            "matter; the newest .xlsx is used), or pass an explicit path:\n"
             "        python run_pipeline.py --responses PATH --meal PATH\n"
-            "        Run `python run_pipeline.py --check` to verify your setup.")
+            "        Run `python run_pipeline.py --check` to verify your setup." % source)
     df = pd.read_excel(path, header=schema.detect_header_row(path, source=source))
     df = schema.normalize_columns(df, source)
     schema.require_columns(df, schema.BASE_REQUIRED, path, source)
@@ -170,7 +169,7 @@ def last_message_ts(values) -> pd.Series:
 
 
 def load_responses(path=None, salt=None) -> pd.DataFrame:
-    path = path or config.RESPONSES_PATH
+    path = Path(path) if path else datasets.require("responses")
     salt = salt if salt is not None else config.get_salt()
     df = _read_export(path, source="responses")
     schema.require_columns(df, schema.RESPONSES_REQUIRED, path, "responses")
@@ -235,7 +234,7 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
 
 # ---- MEAL survey loader ----
 def load_meal(path=None, salt=None) -> pd.DataFrame:
-    path = path or config.MEAL_PATH
+    path = Path(path) if path else datasets.require("meal")
     salt = salt if salt is not None else config.get_salt()
     df = _read_export(path, source="meal")
     df["user_id"] = df["Name"].map(lambda n: pseudonymize(n, salt))

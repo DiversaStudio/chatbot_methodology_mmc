@@ -140,3 +140,23 @@ def test_missing_message_contains_resolved_directory(fake_datasets):
     resolved_dir = str(datasets.folder("responses")).replace("\\", "/")
     assert resolved_dir in msg.replace("\\", "/"), \
         f"Message must contain resolved directory {resolved_dir}, but got: {msg}"
+
+
+def test_facade_raises_dataset_error_when_folder_is_empty(fake_datasets,
+                                                          monkeypatch):
+    """load_sami with nothing dropped in fails with the fix, not a KeyError."""
+    from sami import facade
+    monkeypatch.setenv("SAMI_SALT", "test-salt")
+    with pytest.raises(datasets.DatasetError) as exc:
+        facade.load_sami()
+    assert "fix:" in str(exc.value)
+
+
+def test_explicit_path_wins_over_folder_contents(fake_datasets, monkeypatch,
+                                                 users_fixture):
+    """An explicit --responses path is used even when the folder has a file."""
+    from sami import load
+    _touch(fake_datasets / "responses" / "should_not_be_read.xlsx")
+    monkeypatch.setenv("SAMI_SALT", "test-salt")
+    frame = load.load_responses(users_fixture, salt="test-salt")
+    assert len(frame) > 0

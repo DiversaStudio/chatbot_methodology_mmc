@@ -6,7 +6,7 @@ from conftest import requires_real_data
 SALT = "test_salt"  # facade reads config.get_salt(); ensure .env or env has SAMI_SALT
 
 # load_sami() runs the full facade (schema validation, the P1/P6/P9 critical QA
-# gate) against config.RESPONSES_PATH / config.MEAL_PATH -- there is no override
+# gate) against config.responses_path() / config.meal_path() -- there is no override
 # here to point it at the small committed fixture, and the fixture's deliberately
 # mixed summary formats would trip the P9 critical check anyway. So every test in
 # this module needs the real, gitignored export and is marked accordingly; counts
