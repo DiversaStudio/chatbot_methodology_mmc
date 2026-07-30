@@ -1100,16 +1100,6 @@ Data Window =
 ```
 
 ```DAX
-Tone Gate Banner =
-IF (
-    LOOKUPVALUE ( meta_run[value], meta_run[key], "tone_gate_passed" ) = "False",
-    "⚠ Tone is directional only — rank order, levels suppressed (κ = "
-        & LOOKUPVALUE ( meta_run[value], meta_run[key], "tone_kappa" ) & " < 0.70)",
-    "Tone validated for publication"
-)
-```
-
-```DAX
 Schema Check =
 VAR V = LOOKUPVALUE ( meta_run[value], meta_run[key], "schema_version" )
 RETURN IF ( V = "3", "Schema v3 ✓", "⚠ Unexpected schema version: " & V )
@@ -1477,12 +1467,6 @@ Go to page `3 · Is it working?`.
 
 **Page title:** Insert → Text box, **Is it working?**, 20 pt, position 208, 16, 520, 56.
 
-**Tone gate banner — build this first.**
-
-1. Empty canvas → **Card** → drag `Tone Gate Banner` into **Fields**.
-2. **Format → Callout value → Font size: 11**, colour wine `#671e42`.
-3. **Position: 744, 16, 520, 56.**
-
 ### 9.1 KPI band
 
 Four **Card** visuals, method as in 7.2. Cards 1–3 are percentages at 0 dp; card 4 is text.
@@ -1563,8 +1547,7 @@ served — act here" · "Big and well served — protect" · "Small but badly se
 "Small and well served".
 
 **Caption under the visual** (text box): "The vertical axis is a composite priority ranking
-(volume, repeat rate, rating and tone, z-scored) — not a rate. Tone is one directional input;
-κ = 0.604."
+(volume, repeat rate, rating and tone, z-scored) — not a rate. Tone is one of the four inputs."
 
 ### 9.3 Visual B — The archetype scatter
 
@@ -1670,8 +1653,7 @@ the city, gender or date slicers."
 **Text box — limitations:**
 
 - "MEAL responses: 69 of 917 users (7.5%) — indicative, never representative."
-- "Tone/sentiment: model-vs-human agreement κ = 0.604, below the 0.7 bar. Tone is shown as
-  rank order only; no tone percentage is published anywhere in this report."
+- "Tone is shown as rank order only; no tone percentage is published anywhere in this report."
 - "Age, gender, destination and duration are self-reported; 35 records with implausible
   sub-18 ages are excluded from the profile chart."
 - "Archetype word clouds are ranked over the whole corpus and do not respond to the city,
@@ -1760,13 +1742,15 @@ a relationship to `dim_category` exists, bind via **`fx` → Field value → `co
 
 ### 12.2 The refresh runbook
 
-1. Copy the new export workbooks into `data_&_docs/`.
-2. Run the pipeline:
+1. Save the responses export into `datasets/responses/` and the MEAL export into
+   `datasets/meal/` (see [`datasets/README.md`](../datasets/README.md) for the intake
+   contract), then run the pipeline:
    ```powershell
    .venv\Scripts\python.exe run_pipeline.py
    ```
    It exits with an error if the parity checks fail. If that happens, stop — do not refresh.
-3. Open `mmc_dashboard.pbix` → ribbon **Home → Refresh** → go to the About page and check that
+   For preflight checks and troubleshooting, see [`docs/OPERATIONS.md`](OPERATIONS.md).
+2. Open `mmc_dashboard.pbix` → ribbon **Home → Refresh** → go to the About page and check that
    the parity table is all `True` and `Schema Check` reads "Schema v3 ✓".
 
 To re-point the report at a different folder: **Home → Transform data → Manage Parameters →**
