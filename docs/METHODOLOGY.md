@@ -9,9 +9,13 @@ repeated. The table-by-table column reference lives in
 [`exports/_schema.md`](../exports/_schema.md).
 
 All figures below are read out of the tables in `exports/` as committed on
-this branch, generated at `2026-07-29T17:14:53.982069+00:00` from
-`Users_Group_Title_2807.xlsx` (1,460 rows) and
-`Survey_Responses_Group_Title_2807.xlsx` (142 rows) — see `exports/meta_run.csv`.
+this branch, from `Users_Group_Title_2807.xlsx` (1,460 rows) and
+`Survey_Responses_Group_Title_2807.xlsx` (142 rows). The exact run this
+document describes is recorded in `exports/meta_run.csv`'s `generated_at`
+value — that field is a timestamp written fresh on every run, so it changes
+whenever the exports are regenerated; read it from the committed file rather
+than from this document, which would go stale the moment it quoted a
+specific value.
 
 ## 1. Pseudonymization
 
@@ -189,7 +193,9 @@ the model named in `meta_run.csv`'s `sentiment_model` field:
 with `--skip-nlp` leaves this column null for every row.
 
 A full run also writes `nlp_tone_confusion.csv`, produced by
-`src/sami/validation.py`. Its columns are documented in
+`src/sami/validation.py` from the model's own labels compared against
+`validation/tone_labels_analyst.csv`, the committed comparison set described
+in [`DATA_SOURCES.md`](DATA_SOURCES.md). Its columns are documented in
 [`exports/_schema.md`](../exports/_schema.md).
 
 ## 7. Quality checks

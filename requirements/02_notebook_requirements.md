@@ -8,7 +8,7 @@ Requirements for the three `.ipynb` notebooks, the shared processing module, val
 
 ```
 chatbot_methodology_mmc/
-├── data_&_docs/                  # raw exports, never modified (gitignored if PII)
+├── datasets/                     # raw exports, role-by-folder (responses/, meal/); gitignored, never modified
 ├── src/
 │   └── sami/
 │       ├── load.py               # loaders + cleaning (single source of truth)
@@ -32,7 +32,7 @@ chatbot_methodology_mmc/
 
 **Rule 3 — notebooks consume, modules compute.** Notebooks contain narrative, function calls and figures. Any logic >15 lines lives in `src/sami/`.
 
-**Rule 4 — the pipeline is headless.** `run_pipeline.py` calls the same `src/sami/` functions the notebooks use and writes every gold CSV in `exports/` without opening a notebook. This is the reproducibility guarantee for the .pbix deliverable: MMC's refresh path is `drop new exports in data_&_docs/ → python run_pipeline.py → Refresh in Power BI`. Notebooks are for the analyst; the pipeline is for operations. If a number can only be produced inside a notebook, it cannot exist in the dashboard — treat that as a build error. Heavy model steps (embeddings, sentiment, LLM classification) run inside the pipeline with the same caches; the pinned environment ships with the repo so the pipeline runs identically on MMC's side.
+**Rule 4 — the pipeline is headless.** `run_pipeline.py` calls the same `src/sami/` functions the notebooks use and writes every gold CSV in `exports/` without opening a notebook. This is the reproducibility guarantee for the .pbix deliverable: MMC's refresh path is `drop new exports in datasets/responses/ and datasets/meal/ → python run_pipeline.py → Refresh in Power BI`. Notebooks are for the analyst; the pipeline is for operations. If a number can only be produced inside a notebook, it cannot exist in the dashboard — treat that as a build error. Heavy model steps (embeddings, sentiment, LLM classification) run inside the pipeline with the same caches; the pinned environment ships with the repo so the pipeline runs identically on MMC's side.
 
 ---
 

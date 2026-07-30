@@ -143,7 +143,7 @@ Source: `SD.messages`, joined to sentiment + archetype.
 
 | column | notes |
 |---|---|
-| `message_id` | **content hash, not a row index — changed in schema v3.** Previously the stable row position of `SD.messages`; a bigger export re-sorts the message spine, which used to shift every id. Now derived from message content (`export.message_key`), so a re-sort cannot silently reassign an id to a different message. This orphaned the pre-migration `validation/tone_gold_labels.csv` (keyed on the old positional ids) — re-keying it is in the follow-up NLP spec, not this one |
+| `message_id` | **content hash, not a row index — changed in schema v3.** Previously the stable row position of `SD.messages`; a bigger export re-sorts the message spine, which used to shift every id. Now derived from message content (`export.message_key`), so a re-sort cannot silently reassign an id to a different message. This orphaned the pre-migration `validation/tone_gold_labels.csv` (keyed on the old positional ids); it has since been re-keyed onto the content-hash `message_id` by matching on message text (`validation.align_gold`), dropping rows whose text is not unique in the corpus |
 | `user_id`, `ts` | |
 | `city_canon`, `dominant_category` | |
 | `seq`, `n_msgs_user` | position in / length of the user's message sequence |
@@ -363,7 +363,7 @@ coverage gaps.
 Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
 combination of the two label columns. Feeds NB3 §4 confusion matrix.
 
-### `nlp_voices` — 1 row per archetype exemplar (4 rows)
+### `nlp_voices` — 1 row per archetype exemplar (6 rows)
 Cols: `cluster_id`, `name`, `message`. One representative quote per
 archetype. Feeds NB3 §5 qualitative voices.
 
