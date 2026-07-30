@@ -1,7 +1,5 @@
 # chatbot_methodology_mmc
 
-Methodology, exploratory data analysis (EDA), and supporting code for the Mixed Migration Centre (MMC) WhatsApp chatbot for migrants in Colombia.
-
 ## What this is
 
 This repo holds the data analysis behind the chatbot's evaluation and methodology: a **three-part "SAMI" narrative** of notebooks, a reproducible Python pipeline, a generated `exports/` gold layer of CSVs, and a Power BI dashboard built on top of that gold layer.
