@@ -141,8 +141,8 @@ def check_tone_labels(ctx: Context) -> Result:
     if path.exists():
         return Result("tone labels", OK, str(path))
     return Result("tone labels", FAIL, f"not found: {path}",
-                  "A full run validates the sentiment model against these human "
-                  "labels. Restore the file, or run with --skip-nlp.")
+                  "A full run reads this file to build the nlp_tone_confusion "
+                  "table. Restore the file, or run with --skip-nlp.")
 
 
 def check_device(ctx: Context) -> Result:
