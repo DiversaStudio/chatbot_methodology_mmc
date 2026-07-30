@@ -91,8 +91,10 @@ def test_require_raises_with_folder_and_fix(fake_datasets):
     with pytest.raises(datasets.DatasetError) as exc:
         datasets.require("meal")
     msg = str(exc.value)
-    assert "datasets/meal" in msg.replace("\\", "/")
+    # Message must contain the resolved directory (tmp_path for this test)
+    assert str(datasets.folder("meal")).replace("\\", "/") in msg.replace("\\", "/")
     assert "fix:" in msg
+    assert "datasets/meal/" in msg
 
 
 def test_require_returns_path_when_present(fake_datasets):
@@ -122,3 +124,19 @@ def test_describe_when_single_file_mentions_no_alternatives(fake_datasets):
 
 def test_describe_when_empty_says_so(fake_datasets):
     assert "no .xlsx" in datasets.describe("responses")
+
+
+def test_missing_message_contains_resolved_directory(fake_datasets):
+    """Regression: message must report the resolved DATASETS_DIR, not a hardcoded literal.
+
+    When Task 2 makes config.py depend on datasets.py and overrides DATASETS_DIR,
+    the error message must show the actual directory on the user's disk, not a
+    hardcoded "datasets/role" that could be misleading.
+    """
+    with pytest.raises(datasets.DatasetError) as exc:
+        datasets.require("responses")
+    msg = str(exc.value)
+    # The message must contain the actual resolved tmp_path
+    resolved_dir = str(datasets.folder("responses")).replace("\\", "/")
+    assert resolved_dir in msg.replace("\\", "/"), \
+        f"Message must contain resolved directory {resolved_dir}, but got: {msg}"

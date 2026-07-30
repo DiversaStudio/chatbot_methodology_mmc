@@ -81,14 +81,12 @@ def require(role: str) -> Path:
 def missing_message(role: str) -> str:
     """Why the role is unresolved and exactly what to do about it."""
     directory = folder(role)
-    # Display as "datasets/role" for the message
-    display_path = f"datasets/{role}"
     return (
         f"No .xlsx found for the {role!r} dataset.\n"
-        f"  looked in: {display_path}\n"
-        f"  fix:  Save the {role} export into that folder. The filename does "
-        f"not matter and the most recently modified .xlsx is used. "
-        f"Alternatively pass an explicit path:\n"
+        f"  looked in: {directory}\n"
+        f"  fix:  Save the {role} export into datasets/{role}/ on your local "
+        f"machine. The filename does not matter and the most recently modified "
+        f".xlsx is used. Alternatively pass an explicit path:\n"
         f"        python run_pipeline.py --{role} PATH.xlsx")
 
 
