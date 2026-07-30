@@ -90,15 +90,28 @@ def test_gender_display_closed_set():
     # the measured free-text variants all fold into the dashboard legend
     assert canon.gender_display("Mujer") == "Woman"
     assert canon.gender_display("Hombre") == "Man"
-    assert canon.gender_display("transgenero") == "Transgender"
-    assert canon.gender_display("Soy una mujer trans") == "Transgender"
     assert canon.gender_display("lgtbQ+") == "LGBTQ+"
     assert canon.gender_display("Gay") == "LGBTQ+"
+    # trans and non-binary self-descriptions join the same umbrella: the cells
+    # were 4 and 2 people, small enough to be re-identifying on their own
+    assert canon.gender_display("transgenero") == "LGBTQ+"
+    assert canon.gender_display("Soy una mujer trans") == "LGBTQ+"
+    assert canon.gender_display("no binario") == "LGBTQ+"
+    # a stated identity and a refusal stay separate buckets, never pooled
     assert canon.gender_display("Prefiero no responder") == "Prefer not to say"
+    assert canon.gender_display("Otro") == "Other"
     # empty stays empty; unknown free text never leaks to a chart
     assert canon.gender_display("") == ""
     assert canon.gender_display(None) == ""
     assert canon.gender_display("cualquier otra cosa") == "Other"
+
+
+def test_gender_display_legend_is_five_labels():
+    """The dashboard legend is closed at five labels plus the empty non-answer."""
+    measured = ["Mujer", "Hombre", "transgenero", "no binario", "lgtbQ+", "Gay",
+                "lesbiana", "bisexual", "Prefiero no responder", "Otro", "bhdhb", ""]
+    assert {canon.gender_display(v) for v in measured} == {
+        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
 
 
 def test_survey_vocabularies_are_english():

@@ -114,7 +114,7 @@ def test_dim_user_display_values_are_english(SD):
     _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
                     "city_duration_canon", "city_canon", "nationality_canon"])
     assert set(d["gender_clean"].dropna()) <= {
-        "Woman", "Man", "Transgender", "LGBTQ+", "Prefer not to say", "Other", ""}
+        "Woman", "Man", "LGBTQ+", "Prefer not to say", "Other", ""}
     # the ordering columns still carry the sort after the labels are translated
     if d["away_duration_order"].notna().any():
         pairs = d.dropna(subset=["away_duration_order"])

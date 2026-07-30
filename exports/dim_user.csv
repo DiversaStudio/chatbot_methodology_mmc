@@ -196,7 +196,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 253457f30450,v1,Woman,35.0,ok,Santa Marta,Magdalena,Venezuela,5+ years,4.0,1+ year,4.0,employment,0.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-06-12 18:05:54.468,False,True,0.0
 2554be1b599e,v1,Woman,58.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,legal_documentation,2.0,Yes,50 and above,Colombia,es,Completed,,,,,,2,True,2026-06-02 18:22:56.660,False,True,3.0
 2578eba6f1bc,v1,Woman,39.0,ok,Barranquilla,Atlántico,Colombia,5+ years,4.0,1+ year,4.0,unclassified,0.0,Yes,36-50,Chile,es,Completed,,,,,,0,False,,False,False,
-258089dc336d,v2,Transgender,48.0,ok,Bogotá,Bogotá,Venezuela,Did not respond,-1.0,1+ year,4.0,unclassified,,No,,,es,Completed,1.0,,,,4.418816666666667,4,True,2026-07-27 15:57:25.102,False,True,3.0
+258089dc336d,v2,LGBTQ+,48.0,ok,Bogotá,Bogotá,Venezuela,Did not respond,-1.0,1+ year,4.0,unclassified,,No,,,es,Completed,1.0,,,,4.418816666666667,4,True,2026-07-27 15:57:25.102,False,True,3.0
 2586a6b45571,v1,Woman,44.0,ok,Bogotá,Bogotá,Venezuela,5+ years,4.0,1+ year,4.0,legal_documentation,2.0,Yes,36-50,Colombia,es,Completed,,,,,,5,True,2026-07-08 16:40:55.633,False,True,2.0
 25b81d68f2ad,v1,Woman,25.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,4–6 months,2.0,legal_documentation,2.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-07-14 22:05:47.314,False,True,2.0
 25bd86f176ac,v1,Woman,34.0,ok,Cúcuta,Norte de Santander,Venezuela,1–3 months,1.0,1–3 months,1.0,unclassified,0.0,Yes,18-35,Colombia,es,Completed,,,,,,0,False,,False,True,
@@ -558,7 +558,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 67b76b55b585,v1,Man,24.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,unclassified,0.0,No,18-35,Colombia,es,Completed,,,,,,0,False,,False,True,
 67bc1b1311b4,v1,Woman,41.0,ok,Barranquilla,Atlántico,Venezuela,5+ years,4.0,1+ year,4.0,humanitarian_assistance,2.0,Yes,36-50,Colombia,es,Completed,,,,,,7,True,2026-05-12 15:04:03.224,False,True,4.0
 67e2bbaedc66,v1,Woman,36.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,journey_information,1.0,Yes,36-50,United States,es,Completed,,,,,,1,True,2026-06-02 22:14:38.232,False,False,4.0
-680eb65432dc,v1,Transgender,25.0,ok,Necoclí,Antioquia,Venezuela,1–5 years,3.0,< 1 month,0.0,humanitarian_assistance,2.0,No,18-35,Venezuela,es,Completed,,,,,,3,True,2026-05-05 16:38:34.265,False,False,4.0
+680eb65432dc,v1,LGBTQ+,25.0,ok,Necoclí,Antioquia,Venezuela,1–5 years,3.0,< 1 month,0.0,humanitarian_assistance,2.0,No,18-35,Venezuela,es,Completed,,,,,,3,True,2026-05-05 16:38:34.265,False,False,4.0
 685101263c25,v1,Man,23.0,ok,Ipiales,Nariño,Venezuela,3–12 months,2.0,< 1 month,0.0,employment,0.0,No,18-35,Colombia,es,Completed,,,,,,0,False,,False,True,
 6863d38c2d07,v1,Woman,30.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,legal_documentation,5.0,Yes,18-35,Colombia,es,Completed,,,,,,5,True,2026-03-25 20:56:58.599,True,True,2.0
 6881c4372f8a,v1,LGBTQ+,24.0,ok,Other,,Venezuela,3–12 months,2.0,7–12 months,3.0,organization_search,3.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-05-15 23:20:39.049,False,True,4.0
@@ -1154,7 +1154,7 @@ d8453c52ba60,v2,,,ok,Other,,Unknown,Did not respond,-1.0,Did not respond,-1.0,un
 d881a73f0891,v1,Woman,22.0,ok,Ipiales,Nariño,Venezuela,5+ years,4.0,< 1 month,0.0,humanitarian_assistance,3.0,Yes,18-35,Colombia,es,Completed,,,,,,9,True,2026-04-30 14:26:26.100,False,True,4.0
 d886bb9194e9,v1,Man,55.0,ok,Barranquilla,Atlántico,Venezuela,1–5 years,3.0,1+ year,4.0,legal_documentation,3.0,Yes,50 and above,Colombia,es,Completed,,,,,,4,True,2026-06-15 12:47:44.274,False,True,2.0
 d8b710015e75,v1,Woman,40.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,protection,1.0,Yes,,Venezuela,es,Completed,,,,,,1,True,2026-06-09 14:43:44.679,False,False,4.0
-d8cb2af5b5b7,v1,Transgender,27.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,legal_documentation,2.0,No,18-35,Colombia,es,Completed,,,,,,6,True,2026-07-14 22:04:42.513,False,True,4.0
+d8cb2af5b5b7,v1,LGBTQ+,27.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,legal_documentation,2.0,No,18-35,Colombia,es,Completed,,,,,,6,True,2026-07-14 22:04:42.513,False,True,4.0
 d90b2bb09217,v1,Woman,49.0,ok,Other,,Venezuela,5+ years,4.0,1+ year,4.0,legal_documentation,0.0,Yes,36-50,Colombia,es,Completed,,,,,,4,True,2026-05-05 18:13:42.553,False,True,2.0
 d948afba6543,v1,Woman,33.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,services,1.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-07-11 16:05:45.171,False,True,1.0
 d9f4bec66e38,v1,Woman,22.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,legal_documentation,3.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-07-11 02:34:45.045,False,True,3.0
@@ -1225,7 +1225,7 @@ e641f51b066c,v1,Woman,56.0,ok,Medellín,Antioquia,Venezuela,3–12 months,2.0,4�
 e685b0c1941c,v1,Woman,26.0,ok,Other,,Venezuela,5+ years,4.0,1+ year,4.0,legal_documentation,3.0,Yes,18-35,Colombia,es,Completed,,,,,,5,True,2026-05-13 19:24:28.218,False,True,1.0
 e6b62393881a,v1,Woman,35.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,4–6 months,2.0,employment,0.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-07-15 16:35:53.740,False,True,4.0
 e6f409ef9b75,v1,Woman,29.0,ok,Barranquilla,Atlántico,Venezuela,5+ years,4.0,1+ year,4.0,humanitarian_assistance,0.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-04-22 04:44:21.841,False,True,4.0
-e719d43df055,v1,Transgender,39.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,employment,1.0,No,36-50,Colombia,es,Completed,,,,,,2,True,2026-04-21 14:35:47.671,False,True,4.0
+e719d43df055,v1,LGBTQ+,39.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,employment,1.0,No,36-50,Colombia,es,Completed,,,,,,2,True,2026-04-21 14:35:47.671,False,True,4.0
 e74ceddc78c6,v1,Man,55.0,ok,Barranquilla,Atlántico,Venezuela,5+ years,4.0,1+ year,4.0,services,0.0,Yes,50 and above,,es,Completed,,,,,,0,False,,False,True,
 e774b802cdb6,v1,Woman,44.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,employment,0.0,Yes,36-50,Colombia,es,Completed,,,,,,2,True,2026-07-15 01:57:42.100,False,True,0.0
 e7a36fffd249,v1,Woman,21.0,ok,Soacha,Cundinamarca,Venezuela,1–3 months,1.0,1–3 months,1.0,humanitarian_assistance,2.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-04-28 19:34:27.134,False,True,4.0

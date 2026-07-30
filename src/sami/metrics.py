@@ -47,29 +47,42 @@ def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,
     message volume — so each is a genuine subset of the prior (mixing the
     questions axis from `responses` with the messages axis broke monotonicity):
 
-        arrived (users) -> sent ≥1 message -> engaged (≥2 messages) ->
-        power user (≥p90 messages)
+        Arrived -> Sent a message -> Sent 2 or more messages ->
+        Sent N or more messages
 
-    The fifth stage, ``surveyed (MEAL)``, is **off that nested axis**: it is the
-    MEAL respondent cohort, which is not a subset of power users (a respondent
-    need not be a heavy messager). It is appended for context only, so its
-    ``conversion_from_prev`` is deliberately NaN — a "% of power users" figure
-    there would be analytically false. The first stage n equals the
+    The fifth stage, ``Answered the survey``, is **off that nested axis**: it is
+    the MEAL respondent cohort, which is not a subset of the heaviest messagers
+    (a respondent need not be a heavy messager). It is appended for context only,
+    so its ``conversion_from_prev`` is deliberately NaN — a "% of heavy users"
+    figure there would be analytically false. The first stage n equals the
     reconciliation user count; every n traces to the P10 reconciliation table.
+
+    **Labels are dashboard-facing prose, not analyst shorthand** (2026-07-29).
+    They are sentence case, spell out "2 or more" rather than "≥2", and name the
+    heavy-user stage by its *actual message threshold* instead of by the
+    percentile that produced it — "Sent 7 or more messages", not "power user
+    (≥p90 messages)". The threshold is still the 90th percentile underneath; a
+    reader should not have to know that to read the chart. Because the label
+    carries the number, it is derived from the same variable the count uses, so
+    the two can never disagree, and it re-derives itself when the distribution
+    moves.
     """
     users = responses["user_id"].nunique()
     msgs_per_user = messages.groupby("user_id")["n_msgs_user"].first()
     sent_1 = int((msgs_per_user >= 1).sum())
     engaged = int((msgs_per_user >= 2).sum())
-    p90 = msgs_per_user.quantile(0.90)
-    power = int((msgs_per_user >= p90).sum()) if msgs_per_user.notna().any() else 0
+    # ceil, so the threshold is a whole number of messages a user can actually
+    # have sent -- the label quotes it verbatim and the count must match it.
+    has_msgs = bool(msgs_per_user.notna().any())
+    heavy_min = int(np.ceil(msgs_per_user.quantile(0.90))) if has_msgs else 2
+    heavy = int((msgs_per_user >= heavy_min).sum()) if has_msgs else 0
     surveyed = meal["user_id"].nunique()
     stages = [
-        ("arrived", users),
-        ("sent ≥1 message", sent_1),
-        ("engaged (≥2 messages)", engaged),
-        ("power user (≥p90 messages)", power),
-        ("surveyed (MEAL, separate cohort)", surveyed),
+        ("Arrived", users),
+        ("Sent a message", sent_1),
+        ("Sent 2 or more messages", engaged),
+        (f"Sent {heavy_min} or more messages", heavy),
+        ("Answered the survey", surveyed),
     ]
     df = pd.DataFrame(stages, columns=["stage", "n"])
     df["conversion_from_prev"] = df["n"] / df["n"].shift(1)

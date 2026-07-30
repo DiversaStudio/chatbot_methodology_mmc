@@ -209,9 +209,18 @@ def city_duration_order(raw) -> int | None:
 # --- gender EN display --------------------------------------------------------
 # `clean_gender` lets free text from Gender_other through verbatim, so the field
 # carries self-reported variants ("transgenero", "Soy una mujer trans", "lgtbQ+",
-# "Gay"). gender_display folds those into the closed EN legend the dashboard uses:
-# every trans self-description collapses to Transgender, and the orientation
-# answers to this gender question go to the LGBTQ+ catch-all.
+# "Gay"). gender_display folds those into the closed EN legend the dashboard uses,
+# which is five labels wide: Woman / Man / LGBTQ+ / Prefer not to say / Other.
+#
+# One merge, settled at the 2026-07-29 dashboard review: trans and non-binary
+# self-descriptions join **LGBTQ+** rather than standing as their own slice.
+# Measured, they were 4 and 2 people; a named cell that small is re-identifying in
+# a migrant population, and the T is already inside the umbrella, so nothing is
+# misrepresented by the merge.
+#
+# "Otro" and "Prefiero no responder" stay **separate**: a stated identity and a
+# refusal are different answers and are not pooled. "Other" also absorbs
+# unrecognized free text, so it must never be read as "chose Other" alone.
 GENDER_DISPLAY: dict[str, str] = {
     "Mujer": "Woman",
     "Hombre": "Man",
@@ -221,9 +230,9 @@ GENDER_DISPLAY: dict[str, str] = {
 _GENDER_VARIANTS: dict[str, str] = {
     "mujer": "Woman", "femenino": "Woman", "f": "Woman",
     "hombre": "Man", "masculino": "Man", "m": "Man",
-    "transgenero": "Transgender", "trans": "Transgender",
-    "mujer trans": "Transgender", "soy una mujer trans": "Transgender",
-    "hombre trans": "Transgender", "no binario": "Transgender",
+    "transgenero": "LGBTQ+", "trans": "LGBTQ+",
+    "mujer trans": "LGBTQ+", "soy una mujer trans": "LGBTQ+",
+    "hombre trans": "LGBTQ+", "no binario": "LGBTQ+",
     "lgtbq+": "LGBTQ+", "lgbtq+": "LGBTQ+", "lgtbiq+": "LGBTQ+", "lgbtiq+": "LGBTQ+",
     "gay": "LGBTQ+", "lesbiana": "LGBTQ+", "bisexual": "LGBTQ+",
     "prefiero no responder": "Prefer not to say",

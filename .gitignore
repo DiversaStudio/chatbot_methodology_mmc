@@ -17,3 +17,6 @@ __pycache__/
 # Notebook execution cache
 notebooks/cache/
 *.bak
+
+# graphify knowledge-graph output (regenerable)
+graphify-out/
