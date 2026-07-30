@@ -162,8 +162,7 @@ Every field that reaches `dim_user` or `fact_meal` is classified in a fixed
 policy table, `cohort.POLICY`, as one of four kinds
 (`cohort.Policy`):
 
-- one value meaning the field is reported as a single combined total across
-  both versions.
+- `POOLABLE` — reported as a single combined total across both versions.
 - `SPLIT` — reported separately per `instrument_version`, never combined.
 - `V1_ONLY` — the underlying question was retired in v2; the series is
   frozen at whatever v1 respondents produced.
