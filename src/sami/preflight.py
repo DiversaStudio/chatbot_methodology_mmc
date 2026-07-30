@@ -93,9 +93,14 @@ def check_salt(ctx: Context) -> Result:
 
 def _check_export(path: Path | None, source: str, required) -> Result:
     if path is None:
+        # missing_message() is "<why>\n  looked in: <dir>\n  fix:  <text>\n
+        # <continuation>". `detail` below already states the directory, so
+        # drop the "looked in:" line too, and strip the embedded "fix:" label
+        # since `render()` adds its own.
+        fix_lines = datasets.missing_message(source).splitlines()[2:]
+        fix_lines[0] = fix_lines[0].split("fix:", 1)[1].strip()
         return Result(source, FAIL, f"no .xlsx in {datasets.folder(source)}",
-                      "\n        ".join(
-                          datasets.missing_message(source).splitlines()[1:]))
+                      "\n        ".join(fix_lines))
     if not path.exists():
         return Result(source, FAIL, f"not found: {path}",
                       "Save the export into datasets/%s/ (the filename does "

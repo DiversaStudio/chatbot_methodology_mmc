@@ -73,6 +73,34 @@ def test_uppercase_extension_is_accepted(fake_datasets):
     assert datasets.resolve("meal") == f
 
 
+def test_candidates_skips_a_file_whose_stat_fails(fake_datasets, monkeypatch):
+    """Regression: a file removed/locked between iterdir() and the sort key's
+    stat() call must not raise a bare OSError out of candidates() — that
+    would bypass every SchemaError handler in run_pipeline.py and print a
+    traceback instead of a fix.
+
+    is_file() is stubbed to True for every path so the race is isolated to
+    the sort key's own stat() call, which is what candidates() actually
+    guards against.
+    """
+    _touch(fake_datasets / "responses" / "good.xlsx")
+    _touch(fake_datasets / "responses" / "flaky.xlsx")
+
+    monkeypatch.setattr(Path, "is_file", lambda self: True)
+
+    real_stat = Path.stat
+
+    def flaky_stat(self, *args, **kwargs):
+        if self.name == "flaky.xlsx":
+            raise OSError("file vanished mid-scan")
+        return real_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", flaky_stat)
+
+    result = datasets.candidates("responses")  # must not raise
+    assert {p.name for p in result} == {"good.xlsx", "flaky.xlsx"}
+
+
 def test_roles_are_independent(fake_datasets):
     r = _touch(fake_datasets / "responses" / "r.xlsx")
     m = _touch(fake_datasets / "meal" / "m.xlsx")
