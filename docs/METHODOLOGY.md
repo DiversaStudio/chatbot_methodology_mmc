@@ -29,6 +29,7 @@ hash to the same `user_id`. The hash is salted with `SAMI_SALT`, resolved by
 `config.get_salt()` and never committed to the repository (see `SAMI_SALT` in
 `OPERATIONS.md`); it is deterministic for a given salt and input, and
 non-reversible — there is no function that recovers a name from a `user_id`.
+`exports/dim_user.csv` carries 1,392 pseudonymised users (`exports/_manifest.csv`).
 
 Every table written to `exports/` is scanned for raw phone numbers and
 `whatsapp:`-prefixed identifiers before it is written. `export.write_all`
@@ -37,11 +38,14 @@ raises and nothing is written — a failed scan leaves the previous `exports/`
 directory untouched rather than producing a partially-clean refresh. The scan
 (`qa.pii_scan`) checks every string/object column except `user_id` and
 `message_id` (both are hashes this pipeline computes, not source text) for
-the literal `whatsapp:` or a run of 7 or more consecutive digits. `load.py`
-also runs a best-effort redaction pass (`_redact_pii_runs`) on the responses
-and MEAL frames as they are loaded, replacing any 7+-digit run in an
-open-text column (e.g. a pasted phone number or cédula) with the literal
-token `[redacted]`; the authoritative gate is the scan at write time, not this
+the literal `whatsapp:` or a match of the pattern `\b\d{7,}\b` — a run of 7
+or more digits set off by a word boundary on each side, so it catches a
+phone number written with no separators but not, say, a digit run fused to
+surrounding letters or underscores in a filename-like token. `load.py` also
+runs a best-effort redaction pass (`_redact_pii_runs`) on the responses and
+MEAL frames as they are loaded, replacing any 7+-digit run in an open-text
+column (e.g. a pasted phone number or cédula) with the literal token
+`[redacted]`; the authoritative gate is the scan at write time, not this
 earlier pass.
 
 ## 2. The message spine
@@ -168,13 +172,14 @@ policy table, `cohort.POLICY`, as one of four kinds
 
 `cohort.policy_for(column)` looks a column up in this table and raises
 `CohortError` — naming the column and the fix (classify it in
-`cohort.POLICY`) — if the column has no entry. Builders that aggregate
-`dim_user` or `fact_meal` columns across the whole user base go through this
-lookup, so a column reaching either table with no policy entry stops the
-run rather than being pooled silently. Aggregate builders elsewhere in
-`export.py` that are not routed through `dim_user`/`fact_meal` (for example
+`cohort.POLICY`) — if the column has no entry. This classification is
+enforced by the test suite: `tests/test_export.py` calls `cohort.policy_for`
+for every column of `dim_user` and every column of `fact_meal`, so a field
+reaching either table without a policy entry fails the tests rather than
+shipping unclassified. Aggregate builders elsewhere in `export.py` that are
+not routed through `dim_user`/`fact_meal` (for example
 `build_agg_registration_funnel` and `build_agg_language`) implement their
-own per-cohort split directly, for the same reason.
+own per-cohort split directly.
 
 ## 6. Sentiment
 
@@ -184,9 +189,9 @@ the model named in `meta_run.csv`'s `sentiment_model` field:
 `fact_message.sentiment_label`, one value per message row. A run started
 with `--skip-nlp` leaves this column null for every row.
 
-`src/sami/validation.py` also produces `nlp_tone_confusion.csv`, a
-confusion table comparing the model's output against a human-labelled
-reference set.
+A full run also writes `nlp_tone_confusion.csv`, produced by
+`src/sami/validation.py`. Its columns are documented in
+[`exports/_schema.md`](../exports/_schema.md).
 
 ## 7. Quality checks
 
@@ -203,8 +208,10 @@ message:
 | `P7_unclassified_share` | Of the response records that carry a `Chat_summary` at all, fewer than 10% are `unclassified`. |
 | `P9_summary_format` | Of the `Chat_summary` values that are label-shaped (not the v2 timestamped-prose format), no more than 5% (`validation.SUMMARY_PROSE_THRESHOLD`) fail to map to a category. |
 
-The `P1_`, `P6_`, and `P9_` families are critical: a failure in any of these
-stops the run. `export.write_all` additionally scans every table
+The `P1_`, `P6_`, and `P9_` families are critical: `facade.load_sami` raises
+`RuntimeError` the moment any check whose name starts with one of those
+prefixes fails, before any table is built or written. `export.write_all`
+additionally scans every table
 immediately before writing it (§1) and raises, refusing to write any file,
 if that scan finds a hit — this is independent of, and runs later than, the
 `P1_` checks in `qa.run_checks`.
