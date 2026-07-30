@@ -1,4 +1,4 @@
-# chatbot_methodology_mmc
+# SAMI Methodology: MMC’s AI Chatbot
 
 ## What this is
 
