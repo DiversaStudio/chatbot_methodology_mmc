@@ -24,6 +24,12 @@ notebooks/cache/
 # graphify knowledge-graph output (regenerable)
 graphify-out/
 
+# Client deliverables and internal working documents, not repository artefacts:
+# the executive report is distributed to MMC directly, and the dashboard user
+# manual is an internal Diversa document. Neither travels with the code.
+report/
+USER_MANUAL.md
+
 # Dataset intake: the folder structure and its docs are tracked, the data never
 # is (the raw platform exports carry users' WhatsApp phone numbers).
 datasets/**/*.xls
