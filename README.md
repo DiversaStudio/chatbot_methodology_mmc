@@ -43,6 +43,8 @@ Drop a new export into `datasets/responses/` or `datasets/meal/` — the folder 
 
 The three notebooks import their shared loaders, cleaning, metrics, and NLP logic from [`src/sami/`](src/sami/). Earlier, fully self-contained exploratory notebooks are retained for reference in [`notebooks/arxiv/`](notebooks/arxiv/).
 
+They run on the project's `.venv` in order 01 → 02 → 03 — see [Running the notebooks in `docs/OPERATIONS.md`](docs/OPERATIONS.md#running-the-notebooks) for how to launch them.
+
 ## The export layer
 
 `exports/` is the gold layer the Power BI report binds to: a set of tidy CSVs (dimensional `dim_*` / `fact_*` / `agg_*` / `nlp_*` tables, plus `meta_run` and `parity_check`) from which every plot in the three notebooks can also be reproduced. It is generated — never hand-edited — by `run_pipeline.py`, via `src/sami/export.py`. `dim_user` carries an `instrument_version` column (`v1` / `v2`) recording which questionnaire version produced each user's registration record.
