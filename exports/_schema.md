@@ -71,8 +71,6 @@ carry `dominant_category`, `city_canon`, `sentiment_label`) — no separate
 `meta_run` carries `tone_gate_passed` and `sentiment_quotable` as boolean
 columns, and `tone_kappa` as a numeric column, all three written only on a
 full run; see that table's entry below for the full column list.
-`sentiment_label` (`dim_user` / `fact_message`) and `nlp_tone_confusion` are
-shown as rank-order signal only, never as a published percentage.
 
 This file documents what `exports/_manifest.csv` (the authoritative, generated
 list) actually contains. Where the design spec
@@ -326,9 +324,7 @@ Cols: `category`, `messages`, `users`, `pct_repeat`, `mean_rating`, `meal_n`,
 `rating_is_fallback`, `pct_negative`, `n_axes`, `unmet_need`. Feeds NB2 §6
 priority matrix (volume × unmet-need × tone).
 
-> `pct_negative` here is a rank-order score input (one z-scored axis of
-> `unmet_need`), not a publishable rate. Use it to rank categories, never as a
-> headline percentage.
+> `pct_negative` here is one of the z-scored axes combined into `unmet_need`.
 
 *Discrepancy: the design spec's placeholder column list
 (`category, volume, unmet_score, tone_score`) doesn't match the shipped
