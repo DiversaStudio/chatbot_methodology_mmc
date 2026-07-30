@@ -81,6 +81,10 @@ POLICY: dict[str, Policy] = {
     "n_msgs_user": Policy.POOLABLE,
     "has_text": Policy.POOLABLE,
     "first_seen": Policy.POOLABLE,
+    # Stamped by the platform on the response record, not asked by either
+    # questionnaire, so the version a user registered under does not change how
+    # it is recorded.
+    "registered_at": Policy.POOLABLE,
     "is_repeat_asker": Policy.POOLABLE,
     "cluster_id": Policy.POOLABLE,
     # Session time is timed by the PLATFORM, not asked by either questionnaire,

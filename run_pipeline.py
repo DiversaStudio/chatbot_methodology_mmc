@@ -157,6 +157,7 @@ def main(argv=None) -> int:
             "fact_meal": fact_meal,
             "dim_category": export.build_dim_category(),
             "dim_city": export.build_dim_city(),
+            "dim_quadrant": export.build_dim_quadrant(),
             "agg_funnel": export.build_agg_funnel(SD.responses, SD.messages, SD.meal),
             "agg_registration_funnel": export.build_agg_registration_funnel(SD.responses),
             "agg_language": export.build_agg_language(SD.responses),

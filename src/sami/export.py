@@ -184,6 +184,13 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     # first message timestamp per user (NaT if the user has no text)
     first = messages.groupby("user_id")["ts"].min()
     agg["first_seen"] = agg.index.to_series().map(first)
+    # Registration timestamp: the user's earliest response record. Distinct from
+    # `first_seen`, which is their first MESSAGE and is therefore null for the
+    # users who registered and never wrote anything. A "new users" count built on
+    # first_seen silently drops those people and disagrees with a plain user count
+    # for a reason invisible on the dashboard; this column is never null, because
+    # every row in dim_user comes from at least one response record.
+    agg["registered_at"] = r.groupby("user_id")["ts"].min()
     # repeat asker — the exact definition behind reconciliation.repeat_askers_pct
     q = responses.groupby("user_id")["n_questions"].max()
     p90 = q.quantile(0.90)
@@ -401,14 +408,69 @@ def build_agg_priority_matrix(messages, fact_meal, dim_user,
         dim_user[["user_id", "dominant_category"]].drop_duplicates("user_id"),
         on="user_id", how="left")
     pm = metrics.priority_matrix_frame(msgs_pm, meal_cat, neg_by_category=neg_by_cat)
-    return pm.reset_index().rename(columns={"dominant_category": "category"})
+    out = pm.reset_index().rename(columns={"dominant_category": "category"})
+
+    # Carry the canonical EN label and colour, from the same CAT_EN source
+    # dim_category is built from. The dashboard used to recover the label with a
+    # DAX LOOKUPVALUE against dim_category -- but the two tables have no
+    # relationship, and LOOKUPVALUE returns BLANK for a key it cannot find, so a
+    # category the taxonomy gained would plot as an unlabelled bubble rather than
+    # failing. Resolving it here means an unknown key raises at export instead.
+    cat = build_dim_category().set_index("category_key")
+    unknown = sorted(set(out["category"]) - set(cat.index))
+    if unknown:
+        raise KeyError(
+            f"priority matrix has categories absent from CAT_EN: {unknown}. "
+            "Add them to export.CAT_EN so the dashboard can label them.")
+    out["category_en"] = out["category"].map(cat["category_en"])
+    out["color_hex"] = out["category"].map(cat["color_hex"])
+    return out
 
 
 def build_dim_cluster(prof: pd.DataFrame, names: dict) -> pd.DataFrame:
     d = prof.reset_index().rename(columns={"archetype": "cluster_id"})
     d["name"] = d["cluster_id"].map(names)
-    cols = ["cluster_id", "name", "n_users", "n_messages", "median_age", "top_categories"]
+
+    # Colour and sort by SIZE RANK, not cluster_id. Cluster ids are assigned by
+    # the clustering run and carry no meaning across runs, so binding a colour
+    # to an id makes the dashboard re-colour itself on every re-cluster. Rank by
+    # n_users is stable in the way that matters: the biggest archetype keeps the
+    # primary brand hue. Ties break on cluster_id so the result is deterministic.
+    order = (d.sort_values(["n_users", "cluster_id"], ascending=[False, True],
+                           kind="stable")["cluster_id"].tolist())
+    rank = {cid: i for i, cid in enumerate(order)}
+    d["display_order"] = d["cluster_id"].map(rank)
+    palette = (theme.ARCHETYPE if len(order) <= len(theme.ARCHETYPE)
+               else theme.bar_colors(len(order)))   # k > 6 falls back to full CAT
+    d["color_hex"] = d["display_order"].map(lambda i: palette[i])
+
+    cols = ["cluster_id", "name", "n_users", "n_messages", "median_age",
+            "top_categories", "display_order", "color_hex"]
     return d[[c for c in cols if c in d.columns]]
+
+
+# The four cells of the priority matrix, as a table so Power BI can draw a real
+# legend bound to data instead of four hand-placed shapes with hand-typed hexes.
+# Static by construction: the quadrants are a fixed reading of the two axes, not
+# something the data decides. `axis_x` / `axis_y` name the side of each median
+# line the cell sits on, so the legend can be regenerated if the axes ever swap.
+_QUADRANTS = [
+    ("high_volume_high_need", "Big and badly served", "Act here",
+     "high", "high", theme.QUADRANT["high_volume_high_need"]),
+    ("low_volume_high_need", "Small but badly served", "Watch",
+     "low", "high", theme.QUADRANT["low_volume_high_need"]),
+    ("high_volume_low_need", "Big and well served", "Protect",
+     "high", "low", theme.QUADRANT["high_volume_low_need"]),
+    ("low_volume_low_need", "Small and well served", "Steady state",
+     "low", "low", theme.QUADRANT["low_volume_low_need"]),
+]
+
+
+def build_dim_quadrant() -> pd.DataFrame:
+    return pd.DataFrame(
+        [{"quadrant_key": key, "label": label, "action": action,
+          "axis_x": ax, "axis_y": ay, "color_hex": hexv, "display_order": i}
+         for i, (key, label, action, ax, ay, hexv) in enumerate(_QUADRANTS)])
 
 
 def build_nlp_umap(XY, labels, user_ids) -> pd.DataFrame:
@@ -455,10 +517,18 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# Version of the DASHBOARD, bumped by hand when the report's visuals or fields
+# change. Deliberately not the package version in pyproject.toml: the code and
+# the report move on different cadences, and a viewer reading the footer wants
+# to know which report they are looking at, not which library built it.
+REPORT_VERSION = "1.1.0"
+
+
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "3") -> pd.DataFrame:
+                   schema_version: str = "4") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
+    merged["report_version"] = REPORT_VERSION
     if nlp_meta:
         merged.update(nlp_meta)
     return pd.DataFrame([{"key": k, "value": str(v)} for k, v in merged.items()])
