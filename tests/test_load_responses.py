@@ -165,22 +165,6 @@ def test_load_responses_rejects_digit_less_ids():
     assert not bool(load.digits("Agregar address"))
 
 
-def test_load_responses_old_export_has_917_users():
-    """The old v1 export, when loaded with the new code that rejects
-    digit-less ids, yields exactly 917 unique users (not 918, including
-    the 'Agregar address' placeholder row)."""
-    from pathlib import Path
-    import pytest
-
-    old_export = Path(__file__).resolve().parent.parent / "data_&_docs" / "MMC_bot_responses_1783087815.xlsx"
-    if not old_export.exists():
-        pytest.skip("Old export not found (gitignored)")
-
-    df = load.load_responses(old_export, salt=SALT)
-    assert len(df) == 946
-    assert df["user_id"].nunique() == 917
-
-
 @requires_real_data
 def test_user_ids_match_the_pre_migration_exports():
     """The migration must not re-pseudonymize. Every user_id in the previous

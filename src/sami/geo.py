@@ -2,7 +2,7 @@
 
 Reads bundled GeoJSON assets only (no runtime network) so the pipeline is
 deterministic and reproducible offline (doc 02 Rule 2). Assets are trimmed
-Natural Earth layers committed under data_&_docs/geo/.
+Natural Earth layers committed under src/sami/assets/geo/.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -38,8 +38,8 @@ def _add_basemap(ax, labels=True, zorder=-1):
         cx.add_basemap(ax, crs="EPSG:4326", source=_BASEMAP_LABELS,
                        attribution=False, zorder=zorder)
 
-# Assets live inside the package (data_&_docs/ is gitignored) so they travel
-# with the code and the pipeline stays deterministic + offline.
+# Assets live inside the package so they travel with the code and the
+# pipeline stays deterministic + offline.
 GEO_DIR = Path(__file__).resolve().parent / "assets" / "geo"
 _COLOMBIA = GEO_DIR / "colombia_departments.geojson"
 _AMERICAS = GEO_DIR / "americas_countries.geojson"
