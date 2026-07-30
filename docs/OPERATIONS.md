@@ -77,7 +77,7 @@ End-to-end sequence for refreshing the exports with a new data export:
 2. **Verify the machine and the files:**
 
    ```powershell
-   .venv/Scripts/python.exe run_pipeline.py --check
+   .venv\Scripts\python.exe run_pipeline.py --check
    ```
 
    Success looks like ten `OK` (or `OK`/`WARN`, never `FAIL`) lines ending in
@@ -89,7 +89,7 @@ End-to-end sequence for refreshing the exports with a new data export:
 3. **Run the pipeline:**
 
    ```powershell
-   .venv/Scripts/python.exe run_pipeline.py
+   .venv\Scripts\python.exe run_pipeline.py
    ```
 
    Success looks like numbered, timed stage lines (`[1/9] loading responses +
@@ -110,14 +110,14 @@ End-to-end sequence for refreshing the exports with a new data export:
 ## The three run modes
 
 ```powershell
-.venv/Scripts/python.exe run_pipeline.py             # full run
-.venv/Scripts/python.exe run_pipeline.py --skip-nlp   # non-NLP tables only
-.venv/Scripts/python.exe run_pipeline.py --check      # preflight only, no work
+.venv\Scripts\python.exe run_pipeline.py             # full run
+.venv\Scripts\python.exe run_pipeline.py --skip-nlp   # non-NLP tables only
+.venv\Scripts\python.exe run_pipeline.py --check      # preflight only, no work
 ```
 
 | Mode | What it does | Measured duration |
 | --- | --- | --- |
-| `run_pipeline.py` | Full pipeline: load, embed, cluster, sentiment, dimension/fact/aggregate tables, PII scan, write. Produces all 19 export tables. | ~174 seconds (this run, RTX 3050 Ti, model cache warm). Previously measured at 2m11s on the same GPU and 5m22s on CPU only (also model cache warm); the CPU figure has not been re-measured on this branch. |
+| `run_pipeline.py` | Full pipeline: load, embed, cluster, sentiment, dimension/fact/aggregate tables, PII scan, write. Writes the full set of tables in `exports/`. | ~174 seconds (this run, RTX 3050 Ti, model cache warm). Previously measured at 2m11s on the same GPU and 5m22s on CPU only (also model cache warm); the CPU figure has not been re-measured on this branch. |
 | `--skip-nlp` | Everything except embedding, clustering, and sentiment. No model download, no NLP-dependent tables (`dim_cluster`, `nlp_*`). | ~7 seconds (this run). |
 | `--check` | Runs the ten preflight checks and exits. No data is loaded, nothing is written. | Seconds. |
 
@@ -183,9 +183,9 @@ after resolving the underlying data or code issue.
 ## CPU and GPU
 
 The pipeline runs on GPU when one is present and falls back to CPU otherwise;
-both produce the same 19 export tables. Comparing a full run on each device
-against the same input data: 17 of the 19 tables are byte-identical. The two
-that differ:
+both produce the same set of tables in `exports/`. Comparing a full run on
+each device against the same input data: **every table except `meta_run` and
+`nlp_umap` is byte-identical.** The two that differ:
 
 - `meta_run.csv` — differs only in its `generated_at` timestamp.
 - `nlp_umap.csv` — every `user_id` and `cluster_id` matches between devices;
