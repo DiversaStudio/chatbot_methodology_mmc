@@ -32,10 +32,14 @@ legend is translated on the way out (`export.to_english_user` /
 duration scales, the `Otra`/`Desconocida` catch-alls, and the three MEAL fields.
 Translation is **in place** — the column keeps its name, the `*_order` columns
 still carry the sort, and `rating_num` is computed before the labels change.
-Gender is additionally canonicalized into a closed set: `transgenero` and
-`Soy una mujer trans` → **Transgender**, `lgtbQ+` and `Gay` → **LGBTQ+**, and any
-unrecognized free text → **Other**, so the legend can never grow an unplanned
-slice. The analysis frames (`SD.responses`, `SD.meal`) keep the Spanish source
+Gender is additionally canonicalized into a closed set of five: `transgenero`,
+`Soy una mujer trans` and `no binario` → **LGBTQ+** alongside `lgtbQ+` and `Gay`;
+`Prefiero no responder` → **Prefer not to say**; `Otro` and any unrecognized free
+text → **Other**, so the legend can never grow an unplanned slice. Folding the
+trans self-descriptions into LGBTQ+ is a small-cell disclosure control (the
+separate slice was 4 people), dated 2026-07-29. `Other` and `Prefer not to say`
+are deliberately **not** pooled — a stated identity and a refusal are different
+answers. The analysis frames (`SD.responses`, `SD.meal`) keep the Spanish source
 values; only the exports are translated. Proper nouns (city, department,
 nationality, `age_range`) are unchanged.
 
@@ -103,7 +107,7 @@ of their earliest record — the survey they actually answered.
 |---|---|
 | `user_id` | key |
 | `instrument_version` | `v1` / `v2` — which registration survey the user answered. **New in schema v3.** See "Questionnaire cohorts" below; not all columns in this table may be pooled across the two values — check `src/sami/cohort.py` |
-| `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / Transgender / LGBTQ+ / Prefer not to say / Other, `minors` is Yes / No |
+| `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Prefer not to say / Other (empty for unfinished registrations), `minors` is Yes / No |
 | `city_canon`, `department` | current-city geo |
 | `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2** |
 | `away_duration_canon`, `away_duration_order` | time away from origin; never null — see non-response below. **v1-only**: the question (Q9) was retired in v2, so this series is frozen at whatever v1 already carries |

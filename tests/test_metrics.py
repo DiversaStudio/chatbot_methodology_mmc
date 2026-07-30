@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import numpy as np
 import pandas as pd
 import pytest
@@ -45,6 +46,32 @@ def test_funnel_is_monotonic_and_tops_at_users(data):
     assert pd.isna(f["conversion_from_prev"].iloc[0])       # first stage has no prior
     # surveyed is off the nested axis -> its conversion is deliberately NaN
     assert pd.isna(f["conversion_from_prev"].iloc[-1])
+
+
+def test_funnel_labels_are_plain_language(data):
+    """Dashboard-facing labels: sentence case, no jargon, no percentile notation."""
+    f = metrics.funnel_stages(data.responses, data.messages, data.meal)
+    stages = list(f["stage"])
+    assert stages[0] == "Arrived"
+    assert stages[1] == "Sent a message"
+    assert stages[2] == "Sent 2 or more messages"
+    assert stages[4] == "Answered the survey"
+    # the heavy-user stage names its actual threshold instead of naming a percentile
+    assert re.fullmatch(r"Sent \d+ or more messages", stages[3]), stages[3]
+    for s in stages:
+        assert s[0].isupper(), f"{s!r} is not sentence case"
+        assert s == s[0] + s[1:].replace("SAMI", "SAMI"), s
+        for banned in ("p90", "percentile", "≥", ">=", "power user", "MEAL"):
+            assert banned not in s, f"{banned!r} leaked into label {s!r}"
+
+
+def test_funnel_heavy_stage_threshold_matches_its_label(data):
+    """The number in the label must be the threshold actually applied."""
+    f = metrics.funnel_stages(data.responses, data.messages, data.meal)
+    label = f["stage"].iloc[3]
+    threshold = int(re.search(r"\d+", label).group())
+    msgs_per_user = data.messages.groupby("user_id")["n_msgs_user"].first()
+    assert int(f["n"].iloc[3]) == int((msgs_per_user >= threshold).sum())
 
 
 def test_priority_matrix_frame_importable_but_deferred():
