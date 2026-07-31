@@ -75,5 +75,5 @@ The project targets Python 3.11+ and uses `uv` for dependency management.
 ```powershell
 uv run python -m pytest
 ```
-
+For anything not covered here: contact diana@diversa.studio
 If you are working with the notebooks, start from the same environment created by `uv sync` so the local kernel matches the pipeline dependencies.
