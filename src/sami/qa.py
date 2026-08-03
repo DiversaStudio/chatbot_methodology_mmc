@@ -23,7 +23,10 @@ SUMMARY_PROSE_THRESHOLD = 0.05
 
 # Checked AFTER schema.normalize_columns, so these are the canonical names.
 _CRITICAL = {
-    "responses": ["Name", "Timestamp", "City", "Age", "Messages", "Chat_summary"],
+    # Chat_summary was required only by the retired category mapping. The v2
+    # platform emits free prose there and nothing in the pipeline reads it, so
+    # requiring it would fail a source export for a field we do not use.
+    "responses": ["Name", "Timestamp", "City", "Age", "Messages"],
     "meal": ["Name", "Timestamp"],
 }
 # Accepted sheet names per source. v2 renamed them ('users', 'survey responses');

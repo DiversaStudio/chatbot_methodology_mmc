@@ -38,6 +38,13 @@ def test_users_with_text(users_fixture):
     assert msgs["user_id"].nunique() == 5
 
 
+def test_spine_does_not_carry_dominant_category(users_fixture):
+    from sami import load
+    resp = load.load_responses(users_fixture)
+    msgs = load.load_messages(resp)
+    assert "dominant_category" not in msgs.columns
+
+
 @requires_real_data
 def test_spine_invariants_hold_on_real_export():
     """The P6 spine invariant and the noise/seq properties, re-checked on the
