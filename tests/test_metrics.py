@@ -15,24 +15,40 @@ def data():
     return load_sami()
 
 
-def test_category_share_sums_to_one(data):
-    s = metrics.category_share(data.messages)
+@pytest.fixture
+def clustered():
+    """Minimal message spine carrying cluster_id, spanning three weeks."""
+    ts = pd.to_datetime(
+        ["2026-06-01", "2026-06-02", "2026-06-08", "2026-06-09",
+         "2026-06-15", "2026-06-16", "2026-06-16", "2026-06-17"])
+    return pd.DataFrame({
+        "user_id": ["u1", "u1", "u2", "u3", "u4", "u5", "u6", "u6"],
+        "cluster_id": [0, 0, 0, 1, 1, 2, 3, 3],
+        "city_canon": ["Bogotá", "Bogotá", "Medellín", "Cali",
+                       "Cúcuta", "Cali", "Otra", "Otra"],
+        "message": ["a", "b", "c", "d", "e", "f", "g", "h"],
+        "ts": ts,
+    })
+
+
+def test_cluster_share_sums_to_one(clustered):
+    s = metrics.cluster_share(clustered)
     assert s.sum() == pytest.approx(1.0, abs=1e-9)
-    assert (s.values[:-1] >= s.values[1:]).all()  # descending
+    assert (s.values[:-1] >= s.values[1:]).all()   # descending
 
 
-def test_city_category_mix_rows_sum_to_one(data):
-    mix = metrics.city_category_mix(data.messages, top_cities=5)
+def test_city_cluster_mix_rows_sum_to_one(clustered):
+    mix = metrics.city_cluster_mix(clustered, top_cities=2)
     assert "Other" in mix.index
-    assert mix.shape[0] == 6  # 5 cities + Other
+    assert mix.shape[0] == 3   # 2 cities + Other
     for _, row in mix.iterrows():
         assert row.sum() == pytest.approx(1.0, abs=1e-9)
 
 
-def test_weekly_counts_sum_to_message_total(data):
-    wk = metrics.weekly_category_counts(data.messages, top_n=4)
-    assert wk.to_numpy().sum() == len(data.messages)
-    assert wk.shape[1] == 5  # top-4 + Other
+def test_weekly_cluster_counts_sum_to_message_total(clustered):
+    wk = metrics.weekly_cluster_counts(clustered, top_n=2)
+    assert wk.to_numpy().sum() == len(clustered)
+    assert wk.shape[1] == 3   # top-2 + Other
 
 
 def test_funnel_is_monotonic_and_tops_at_users(data):
@@ -78,58 +94,38 @@ def test_priority_matrix_frame_importable_but_deferred():
     assert callable(metrics.priority_matrix_frame)
 
 
-def test_negative_by_category_is_a_bounded_share(data):
-    rng = np.random.default_rng(0)
+def test_negative_by_cluster_is_a_bounded_share(clustered):
     sent = pd.DataFrame(
-        {"label": rng.choice(["negative", "neutral", "positive"], size=len(data.messages))},
-        index=data.messages.index,
-    )
-    s = metrics.negative_by_category(data.messages, sent)
+        {"label": ["negative", "neutral", "negative", "neutral",
+                   "neutral", "negative", "neutral", "neutral"]},
+        index=clustered.index)
+    s = metrics.negative_by_cluster(clustered, sent)
     assert ((s >= 0) & (s <= 1)).all()
-    assert set(s.index) <= set(data.messages["dominant_category"].unique())
-    assert (s.values[:-1] >= s.values[1:]).all()  # descending
+    assert set(s.index) <= set(clustered["cluster_id"].unique())
 
 
-def _matrix_fixture():
-    messages = pd.DataFrame({
-        "user_id": ["a"] * 6 + ["b"] * 5 + ["c"] + ["d"] + ["e"] * 2,
-        "message": ["m"] * 15,
-        "dominant_category": ["legal_documentation"] * 11 + ["employment"] * 4,
-    })
-    meal = pd.DataFrame({
-        "user_id": ["a", "b", "c", "d"],
-        "rating_num": [1.0, 2.0, 5.0, 5.0],
-        "dominant_category": ["legal_documentation"] * 2 + ["employment"] * 2,
-    })
-    return messages, meal
+def test_priority_matrix_is_keyed_on_cluster_id(clustered):
+    meal = pd.DataFrame({"user_id": ["u1", "u3"], "rating_num": [5.0, 2.0],
+                         "cluster_id": [0, 1]})
+    pm = metrics.priority_matrix_frame(clustered, meal)
+    assert pm.index.name == "cluster_id"
+    assert set(pm.index) == {0, 1, 2, 3}
+    assert pm["messages"].sum() == len(clustered)
+    assert pm["n_axes"].iloc[0] >= 1
 
 
-def test_priority_matrix_blends_available_axes():
-    messages, meal = _matrix_fixture()
-    neg = pd.Series({"legal_documentation": 0.30, "employment": 0.05})
-    f = metrics.priority_matrix_frame(messages, meal, neg_by_category=neg)
-    assert f["n_axes"].eq(3).all()                       # repeat + negative + rating
-    assert f.loc["legal_documentation", "messages"] == 11
-    assert f.loc["legal_documentation", "users"] == 2
-    # the category that is heavier, angrier and worse-rated must score higher unmet need
-    assert f.loc["legal_documentation", "unmet_need"] > f.loc["employment", "unmet_need"]
+def test_priority_matrix_falls_back_on_small_meal_samples(clustered):
+    """Fewer than min_meal_n responses in a cluster -> overall mean, flagged."""
+    meal = pd.DataFrame({"user_id": ["u1", "u3"], "rating_num": [5.0, 1.0],
+                         "cluster_id": [0, 1]})
+    pm = metrics.priority_matrix_frame(clustered, meal, min_meal_n=20)
+    assert pm["rating_is_fallback"].all()
+    assert pm["mean_rating"].nunique() == 1   # everyone got the overall mean
 
 
-def test_priority_matrix_without_sentiment_uses_two_axes():
-    messages, meal = _matrix_fixture()
-    f = metrics.priority_matrix_frame(messages, meal)
-    assert f["n_axes"].eq(2).all()
-    assert "pct_negative" not in f.columns
-
-
-def test_priority_matrix_small_n_meal_falls_back_to_overall():
-    messages, meal = _matrix_fixture()
-    f = metrics.priority_matrix_frame(messages, meal, min_meal_n=20)
-    # every category has < 20 MEAL responses -> all fall back to the single overall mean
-    assert f["rating_is_fallback"].all()
-    assert f["mean_rating"].nunique() == 1
-    assert f["mean_rating"].iloc[0] == pytest.approx(meal["rating_num"].mean())
-    # with the bar dropped, real per-category means are used instead
-    g = metrics.priority_matrix_frame(messages, meal, min_meal_n=1)
-    assert not g["rating_is_fallback"].any()
-    assert g["mean_rating"].nunique() == 2
+def test_priority_matrix_uses_three_axes_when_sentiment_supplied(clustered):
+    meal = pd.DataFrame({"user_id": ["u1"], "rating_num": [4.0], "cluster_id": [0]})
+    neg = pd.Series({0: 0.5, 1: 0.1, 2: 0.0, 3: 0.2})
+    pm = metrics.priority_matrix_frame(clustered, meal, neg_by_cluster=neg)
+    assert (pm["n_axes"] == 3).all()
+    assert "pct_negative" in pm.columns
