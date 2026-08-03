@@ -13,6 +13,8 @@
 # Old names (BLUES, bar_colors, NEGRO, CIELO, ...) are kept as aliases so
 # existing notebooks keep working unchanged.
 
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -56,13 +58,46 @@ PRIMARY = TEAL                                      # single-series brand teal
 ACCENT  = WINE                                      # annotations / the one pop
 DEEP    = NAVY                                      # flags, secondary series
 
-# Archetype identity colours, indexed by SIZE RANK (0 = largest archetype), not
-# by cluster_id. Cluster ids are an artefact of one clustering run and are not
-# stable across re-runs; "the biggest archetype is brand teal" is. Consumed by
+# Cluster identity colours, indexed by SIZE RANK (0 = largest cluster), not by
+# cluster_id. Cluster ids are an artefact of one clustering run and are not
+# stable across re-runs; "the biggest cluster is brand teal" is. Consumed by
 # `export.build_dim_cluster`, which writes the hex into `dim_cluster.color_hex`
 # so Power BI binds colour from the data instead of a hand-typed list.
-# Six slots because k = 6; all six sit inside CAT's validated range.
-ARCHETYPE = CAT[:6]
+#
+# Seven slots, because CAT is validated to seven (see CAT_VALIDATED above) --
+# NOT because k is seven. k is chosen by the stability rule and may exceed it.
+CLUSTER_IDENTITY = CAT[:CAT_VALIDATED]
+
+# CAT slot 8. Reserved for the cluster_id = -1 "No conversation text" bucket and
+# never handed to a real cluster: it is the grey the retired `unclassified`
+# category used, so the "no information" reading carries over for anyone who
+# knew the old dashboard.
+NO_TEXT_COLOR = CAT[7]
+
+# The readability ceiling on k. Not a limit on what the data may support -- the
+# stability rule still picks k freely -- but the point past which colour stops
+# being able to tell the clusters apart, so charts must direct-label their marks
+# or fold the tail into "Other".
+K_SOFT_CAP = CAT_VALIDATED
+
+
+def cluster_colors(n):
+    """Return n cluster identity colours by size rank.
+
+    Up to `K_SOFT_CAP` these come from CAT's validated range. Past it the extras
+    are pulled from the sequential ramp and a warning is raised, because CAT's
+    remaining slots are near-neutral pales sitting ΔE 3-4 apart under both normal
+    and protan vision — a chart reaching them cannot use colour for identity at
+    all. `NO_TEXT_COLOR` is never returned.
+    """
+    if n <= K_SOFT_CAP:
+        return CLUSTER_IDENTITY[:n]
+    warnings.warn(
+        f"{n} clusters exceeds the {K_SOFT_CAP}-colour validated palette: colour "
+        "can no longer distinguish them. Direct-label every mark, or fold the "
+        "smallest clusters into an 'Other' series.",
+        stacklevel=2)
+    return CLUSTER_IDENTITY + seq_colors(n - K_SOFT_CAP)
 
 # Priority-matrix quadrant shading. Keyed by the two axes of
 # `agg_priority_matrix`: volume (x, messages) and unmet need (y). These are
