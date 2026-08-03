@@ -3,37 +3,44 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from . import taxonomy
 
-
-def category_share(frame: pd.DataFrame, col: str = "dominant_category") -> pd.Series:
-    """Normalized category share (descending), excluding nothing — 'unclassified' shown."""
+def cluster_share(frame: pd.DataFrame, col: str = "cluster_id") -> pd.Series:
+    """Normalized cluster share (descending). Nothing is excluded."""
     return frame[col].value_counts(normalize=True).sort_values(ascending=False)
 
 
-def _top_categories(messages: pd.DataFrame, top_n: int) -> list[str]:
-    return list(messages["dominant_category"].value_counts().head(top_n).index)
+def _top_clusters(messages: pd.DataFrame, top_n: int) -> list:
+    return list(messages["cluster_id"].value_counts().head(top_n).index)
 
 
-def city_category_mix(messages: pd.DataFrame, top_cities: int = 5) -> pd.DataFrame:
-    """100%-stacked source frame: rows = top-N cities + 'Other', cols = categories, rows sum to 1."""
+def city_cluster_mix(messages: pd.DataFrame, top_cities: int = 5) -> pd.DataFrame:
+    """100%-stacked source frame: rows = top-N cities + 'Other', cols = clusters, rows sum to 1."""
     m = messages.copy()
     top = list(m["city_canon"].value_counts().head(top_cities).index)
     m["city_grp"] = np.where(m["city_canon"].isin(top), m["city_canon"], "Other")
-    ct = pd.crosstab(m["city_grp"], m["dominant_category"])
+    ct = pd.crosstab(m["city_grp"], m["cluster_id"])
     # order rows: top cities in frequency order, then Other last
     order = [c for c in top if c in ct.index] + (["Other"] if "Other" in ct.index else [])
     ct = ct.reindex(order)
     return ct.div(ct.sum(axis=1), axis=0)
 
 
-def weekly_category_counts(messages: pd.DataFrame, top_n: int = 4) -> pd.DataFrame:
-    """Messages per week (Monday-start, via W-SUN periods) x top-N category + 'Other'. Record-arrival grain."""
+def weekly_cluster_counts(messages: pd.DataFrame, top_n: int = 4) -> pd.DataFrame:
+    """Messages per week (Monday-start, via W-SUN periods) x top-N cluster + 'Other'.
+
+    Record-arrival grain. NOTE the reading this carries: clusters are assigned
+    per USER, so a message counts under its author's cluster. The series is
+    "messages written this week by users of this type", not "messages about this
+    topic this week".
+    """
     m = messages.dropna(subset=["ts"]).copy()
-    top = _top_categories(m, top_n)
-    m["cat_grp"] = np.where(m["dominant_category"].isin(top), m["dominant_category"], "Other")
+    top = _top_clusters(m, top_n)
+    # .astype(object) guards against np.where silently upcasting an integer
+    # cluster_id and the "Other" string to a common '<U..' dtype, which would
+    # stringify the ids and break the later `in wk.columns` identity check.
+    m["cluster_grp"] = np.where(m["cluster_id"].isin(top), m["cluster_id"].astype(object), "Other")
     m["week_start"] = m["ts"].dt.to_period("W-SUN").dt.start_time
-    wk = m.pivot_table(index="week_start", columns="cat_grp", values="user_id",
+    wk = m.pivot_table(index="week_start", columns="cluster_grp", values="user_id",
                        aggfunc="count", fill_value=0)
     cols = [c for c in top if c in wk.columns] + (["Other"] if "Other" in wk.columns else [])
     return wk.reindex(columns=cols, fill_value=0)
@@ -91,15 +98,15 @@ def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,
     return df
 
 
-def negative_by_category(messages: pd.DataFrame, sentiment: pd.DataFrame,
-                         col: str = "dominant_category") -> pd.Series:
-    """Share of messages classified negative, per official category.
+def negative_by_cluster(messages: pd.DataFrame, sentiment: pd.DataFrame,
+                        col: str = "cluster_id") -> pd.Series:
+    """Share of messages classified negative, per cluster.
 
     `sentiment` must be index-aligned to `messages` (as `nlp.sentiment_messages`
-    returns). This is the series NB2's priority matrix has been waiting on — its
-    unmet-need axis. Whether the resulting numbers may be *quoted* depends on the
-    NB3 validation gate (`validation.validation_report(...)['gate_passed']`);
-    below the kappa bar the caller must use it directionally only.
+    returns). This is the priority matrix's unmet-need axis. Whether the
+    resulting numbers may be *quoted* depends on the NB3 validation gate
+    (`validation.validation_report(...)['gate_passed']`); below the kappa bar the
+    caller must use it directionally only.
     """
     neg = (sentiment.loc[messages.index, "label"] == "negative")
     return neg.groupby(messages[col]).mean().sort_values(ascending=False)
@@ -111,41 +118,42 @@ def _zscore(s: pd.Series) -> pd.Series:
 
 
 def priority_matrix_frame(messages: pd.DataFrame, meal: pd.DataFrame,
-                          neg_by_category: pd.Series | None = None,
+                          neg_by_cluster: pd.Series | None = None,
                           min_meal_n: int = 20) -> pd.DataFrame:
-    """NB2 §6 climax: per-category priority frame — which needs are big AND badly served.
+    """NB2 §6 climax: per-cluster priority frame — which needs are big AND badly served.
 
     x = message volume, y = `unmet_need` (mean of the z-scores of % repeat-askers,
     % negative sentiment, and *inverted* mean MEAL rating), bubble = users.
 
     Two guards matter more than the blend itself:
 
-    - **Small-n MEAL fallback.** The MEAL join is ~69 users across 8 categories, so a
-      per-category mean rating is often built on a handful of responses. Categories with
+    - **Small-n MEAL fallback.** The MEAL join is ~69 users across the clusters, so a
+      per-cluster mean rating is often built on a handful of responses. Clusters with
       fewer than `min_meal_n` responses fall back to the overall mean rating (column
-      `rating_is_fallback` marks them) rather than contributing an unstable per-category
+      `rating_is_fallback` marks them) rather than contributing an unstable per-cluster
       mean to the score.
-    - **The sentiment axis is optional.** Without `neg_by_category` the score is built
+    - **The sentiment axis is optional.** Without `neg_by_cluster` the score is built
       from the two axes that remain, and `n_axes` records how many were used. Callers
       must not present a 2-axis score as if it were the 3-axis one.
 
     Whether the sentiment axis may be quoted as a *rate* depends on NB3's validation gate;
     below the kappa bar the caller must label the axis directional.
     """
-    vol = messages["dominant_category"].value_counts()
+    vol = messages["cluster_id"].value_counts()
     frame = pd.DataFrame({"messages": vol})
-    frame["users"] = messages.groupby("dominant_category")["user_id"].nunique()
+    frame.index.name = "cluster_id"
+    frame["users"] = messages.groupby("cluster_id")["user_id"].nunique()
 
-    # repeat askers: users at or above the p90 message volume, as a share of the category
+    # repeat askers: users at or above the p90 message volume, as a share of the cluster
     per_user = messages.groupby("user_id").agg(
-        n=("message", "size"), cat=("dominant_category", "first"))
+        n=("message", "size"), cid=("cluster_id", "first"))
     p90 = per_user["n"].quantile(0.90)
-    frame["pct_repeat"] = (per_user["n"] >= p90).groupby(per_user["cat"]).mean().reindex(frame.index)
+    frame["pct_repeat"] = (per_user["n"] >= p90).groupby(per_user["cid"]).mean().reindex(frame.index)
 
-    # mean MEAL rating per category, with the small-n fallback
+    # mean MEAL rating per cluster, with the small-n fallback
     m = meal.dropna(subset=["rating_num"]) if "rating_num" in meal.columns else meal.iloc[0:0]
-    if len(m) and "dominant_category" in m.columns:
-        grp = m.groupby("dominant_category")["rating_num"]
+    if len(m) and "cluster_id" in m.columns:
+        grp = m.groupby("cluster_id")["rating_num"]
         cat_mean, cat_n = grp.mean(), grp.size()
         overall = float(m["rating_num"].mean())
         rating = cat_mean.reindex(frame.index)
@@ -160,8 +168,8 @@ def priority_matrix_frame(messages: pd.DataFrame, meal: pd.DataFrame,
         frame["rating_is_fallback"] = True
 
     axes = [_zscore(frame["pct_repeat"])]
-    if neg_by_category is not None:
-        frame["pct_negative"] = neg_by_category.reindex(frame.index)
+    if neg_by_cluster is not None:
+        frame["pct_negative"] = neg_by_cluster.reindex(frame.index)
         axes.append(_zscore(frame["pct_negative"]))
     if frame["mean_rating"].notna().any():
         axes.append(_zscore(-frame["mean_rating"]))   # inverted: worse rating -> higher need
