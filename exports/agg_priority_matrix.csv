@@ -1,8 +1,7 @@
-category,messages,users,pct_repeat,mean_rating,meal_n,rating_is_fallback,pct_negative,n_axes,unmet_need,category_en,color_hex
-legal_documentation,2170,575,0.1273996509598604,3.82,50,False,0.1755760368663594,3,0.5135564817448541,Legal & documentation,#009ba4
-humanitarian_assistance,848,217,0.1455399061032863,4.307692307692308,26,False,0.1544811320754717,3,-0.635088040081893,Humanitarian assistance,#671e42
-employment,400,128,0.0793650793650793,3.921739130434783,4,True,0.12,3,-0.3980215646527818,Employment,#a3557a
-services,331,108,0.1057692307692307,3.921739130434783,5,True,0.1389728096676737,3,-0.1038848451706579,Services,#a6dfe3
-organization_search,154,26,0.1739130434782608,3.921739130434783,5,True,0.1363636363636363,3,0.3048613559983865,Finding organizations,#000031
-journey_information,45,20,0.0,3.921739130434783,2,True,0.2222222222222222,3,-0.2002884094161273,Journey information,#c78fa4
-protection,30,17,0.0666666666666666,3.921739130434783,1,True,0.2666666666666666,3,0.5188650215782322,Protection,#62c8ce
+cluster_id,messages,users,pct_repeat,mean_rating,meal_n,rating_is_fallback,pct_negative,n_axes,unmet_need,name,top_terms,color_hex
+4,1854,310,0.21935483870967742,4.209302325581396,43,False,0.16828478964401294,3,0.06702770247207661,Urgent humanitarian needs,"terminal, humanitaria, ipiales, cali, danés, bucaramanga",#009ba4
+2,1292,303,0.17491749174917492,3.78125,32,False,0.17414860681114552,3,1.0732581541725728,Nationality and family papers,"colombiana, pasaporte, colombiano, venezuela, nacionalidad, permiso",#671e42
+1,743,217,0.10599078341013825,3.95,20,False,0.17496635262449528,3,0.37572072861658007,Stuck mid-procedure,"biométrico, tutor, migración, trámite, rumv, perdió",#62c8ce
+3,394,164,0.024390243902439025,3.9217391304347826,10,True,0.1548223350253807,3,-0.07905927584128185,"Permits, visas and travel","permiso, visa, salvoconducto, visitante, pasaporte, conducto",#a3557a
+0,208,98,0.0,3.9217391304347826,0,True,0.09615384615384616,3,-0.7942050867678647,Building a livelihood,"emprendimiento, emprendimientos, beneficios, negocio, emprendedores, empleabilidad",#c78fa4
+5,172,106,0.0,3.9217391304347826,4,True,0.11046511627906977,3,-0.6427422226520714,Settling in,"humanitaria, humanitarias, cali, ipiales, ayudas, casa",#000031
