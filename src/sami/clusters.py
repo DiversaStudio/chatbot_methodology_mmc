@@ -1,8 +1,10 @@
 """Clustering, stability and interpretation for NB3 archetypes.
 
-Clustering is *discovery*, not the headline (doc 02 §6.2): k comes from a scan,
-never from fiat, and a solution that fails the stability bar is reported as
-"soft structure" rather than dressed up as hard segments.
+Clustering is the pipeline's categorization axis: the platform's own `Chat_summary`
+labelling was retired (2026-08-03) as its coverage degraded, and the discovered
+clusters replaced it. k still comes from a stability scan, never from fiat, and a
+solution that fails the stability bar is still reported as "soft structure" rather
+than dressed up as hard segments.
 """
 from __future__ import annotations
 
