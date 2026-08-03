@@ -924,6 +924,27 @@ def test_agg_weekly_cluster_is_long_and_named_without_category():
     assert w["n"].sum() == len(messages)
 
 
+def test_agg_priority_matrix_happy_path_excludes_no_text_bucket(prof, resolved):
+    """Synthetic replacement for the happy-path coverage that was dropped along
+    with the old category-keyed priority-matrix tests: exercises the
+    NO_CLUSTER_ID filter at export.py's `real = messages[...]` line (the input
+    deliberately contains a -1 row), and checks that a successful return is
+    fully labelled from dim_cluster and reports the 2-axis (no-sentiment) score."""
+    dim_cluster = export.build_dim_cluster(prof, resolved)
+    messages = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3"], "cluster_id": [0, 1, export.NO_CLUSTER_ID],
+        "message": ["a", "b", "c"],
+        "ts": pd.to_datetime(["2026-06-01", "2026-06-02", "2026-06-03"])})
+    fact_meal = pd.DataFrame({"user_id": ["u1", "u2"], "rating_num": [4.0, 3.0]})
+    dim_user = pd.DataFrame({"user_id": ["u1", "u2", "u3"],
+                             "cluster_id": [0, 1, export.NO_CLUSTER_ID]})
+    pm = export.build_agg_priority_matrix(messages, fact_meal, dim_user, dim_cluster)
+
+    assert export.NO_CLUSTER_ID not in set(pm["cluster_id"])  # the -1 row never reaches the matrix
+    assert pm[["name", "top_terms", "color_hex"]].notna().all().all()
+    assert (pm["n_axes"] <= 2).all()  # no sentiment axis supplied
+
+
 def test_agg_priority_matrix_rejects_a_cluster_absent_from_dim_cluster(prof, resolved):
     messages = pd.DataFrame({
         "user_id": ["u1", "u2"], "cluster_id": [0, 99], "message": ["a", "b"],
