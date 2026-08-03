@@ -23,7 +23,10 @@ def clustered():
          "2026-06-15", "2026-06-16", "2026-06-16", "2026-06-17"])
     return pd.DataFrame({
         "user_id": ["u1", "u1", "u2", "u3", "u4", "u5", "u6", "u6"],
-        "cluster_id": [0, 0, 0, 1, 1, 2, 3, 3],
+        # 5 distinct clusters (was 4, which sat exactly on the retired top_n=4
+        # threshold and let the old rollup pass through unexercised): the
+        # last row is cluster 4, not a repeat of cluster 3.
+        "cluster_id": [0, 0, 0, 1, 1, 2, 3, 4],
         "city_canon": ["Bogotá", "Bogotá", "Medellín", "Cali",
                        "Cúcuta", "Cali", "Otra", "Otra"],
         "message": ["a", "b", "c", "d", "e", "f", "g", "h"],
@@ -118,7 +121,7 @@ def test_priority_matrix_is_keyed_on_cluster_id(clustered):
                          "cluster_id": [0, 1]})
     pm = metrics.priority_matrix_frame(clustered, meal)
     assert pm.index.name == "cluster_id"
-    assert set(pm.index) == {0, 1, 2, 3}
+    assert set(pm.index) == {0, 1, 2, 3, 4}
     assert pm["messages"].sum() == len(clustered)
     assert pm["n_axes"].iloc[0] >= 1
 
