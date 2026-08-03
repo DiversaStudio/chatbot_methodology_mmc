@@ -13,12 +13,11 @@ REAL_HEADER = ["Name", "Timestamp", "City", "Age", "Messages", "Chat_summary"]
 
 @pytest.fixture
 def ctx(tmp_path):
-    """A context pointing at nothing, with NLP off so no model/network is touched."""
+    """A context pointing at nothing."""
     return preflight.Context(
         responses_path=tmp_path / "missing_responses.xlsx",
         meal_path=tmp_path / "missing_meal.xlsx",
         out_dir=tmp_path / "out",
-        skip_nlp=True,
     )
 
 
@@ -30,6 +29,13 @@ def _write_export(path, header=REAL_HEADER, banner=2):
     rows = [r + [None] * (width - len(r)) for r in rows]
     pd.DataFrame(rows).to_excel(path, index=False, header=False)
     return path
+
+
+def test_context_has_no_skip_nlp_flag():
+    """NLP is mandatory: without clustering there is no categorisation to export."""
+    import dataclasses
+    fields = {f.name for f in dataclasses.fields(preflight.Context)}
+    assert "skip_nlp" not in fields
 
 
 # ---- the contract every check must honour -------------------------------------
@@ -113,16 +119,8 @@ def test_output_dir_creatable_parent_passes(ctx, tmp_path):
     assert preflight.check_output_dir(ctx).status == preflight.OK
 
 
-def test_skip_nlp_neutralizes_the_nlp_checks(ctx):
-    """--skip-nlp must not demand tone labels, a device or a model download."""
-    for check in (preflight.check_tone_labels, preflight.check_device,
-                  preflight.check_models):
-        assert check(ctx).status == preflight.OK
-
-
 def test_cpu_device_warns_but_does_not_block(ctx, monkeypatch):
     """The headline requirement: no GPU is a warning, never a failure."""
-    ctx.skip_nlp = False
     import torch
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     result = preflight.check_device(ctx)
@@ -135,7 +133,6 @@ def test_cuda_visible_but_no_device_falls_back_to_cpu(ctx, monkeypatch):
     """Regression: with CUDA_VISIBLE_DEVICES="" torch reports is_available()==True
     while device_count()==0, and every later CUDA call raises 'Invalid device id'.
     The device check must degrade to a CPU warning, not blow up."""
-    ctx.skip_nlp = False
     import torch
 
     from sami import nlp
