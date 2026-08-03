@@ -183,83 +183,15 @@ def test_validate_schema_single_sheet_escape_hatch(tmp_path):
     assert out["rows"] == 1
 
 
-def test_summary_unmappable_share_detects_unmappable():
-    df = pd.DataFrame({"Chat_summary": [
-        "#legal documentation",        # v1 format, maps to legal_documentation
-        "#humanitarian assistance",    # v1 format, maps to humanitarian_assistance
-        "[2026-07-24 14:15] prose",   # v2 format, unmappable
-        None,                          # null
-    ]})
-    # 1 unmappable of 3 non-null
-    assert abs(qa.summary_unmappable_share(df) - 1 / 3) < 1e-9
-
-
-def test_summary_unmappable_share_is_zero_without_the_column():
-    assert qa.summary_unmappable_share(pd.DataFrame({"a": [1]})) == 0.0
-
-
-def test_summary_format_check_passes_below_threshold():
-    df = pd.DataFrame({"Chat_summary": ["#employment"] * 99
-                       + ["[2026-07-24 10:00] prosa"]})
-    name, ok, _ = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
-    assert ok is True
-
-
-def test_summary_format_check_ignores_prose_share():
-    """Prose is the expected post-migration format, not a failure. Half the
-    summaries being prose must NOT fail the run while the labelled ones map."""
-    df = pd.DataFrame({"Chat_summary": ["#employment"] * 5
-                       + ["[2026-07-24 10:00] prosa"] * 5})
-    name, ok, detail = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
-    assert ok is True
-    assert "50.0%" in detail  # prose share still reported
-
-
-def test_summary_format_check_fails_when_labels_stop_mapping():
-    """The regression P9 still guards: label-shaped summaries the taxonomy
-    cannot place (a renamed category), independent of the prose share."""
-    df = pd.DataFrame({"Chat_summary": ["#employment"] * 5
-                       + ["#nueva categoria del proveedor"] * 5
-                       + ["[2026-07-24 10:00] prosa"] * 90})
-    name, ok, detail = [c for c in _checks_for(df) if c[0] == "P9_summary_format"][0]
-    assert ok is False
-    assert "50.0%" in detail
-
-
-def test_labelled_unmappable_share_excludes_prose():
-    df = pd.DataFrame({"Chat_summary": [
-        "#legal documentation",       # maps
-        "[2026-07-24 14:15] prose",   # prose — excluded entirely
-        None,                          # null — excluded
-    ]})
-    assert qa.labelled_unmappable_share(df) == 0.0
-
-
-def test_labelled_unmappable_share_is_zero_with_no_labels_left():
-    """All-prose export: nothing label-shaped remains to check, so the gate is
-    vacuously satisfied rather than failing every run."""
-    df = pd.DataFrame({"Chat_summary": ["[2026-07-24 14:15] prose"] * 10})
-    assert qa.labelled_unmappable_share(df) == 0.0
-
-
 def _checks_for(responses):
     """run_checks needs three frames; build the minimal messages/meal shapes."""
     responses = responses.assign(
         user_id=[f"u{i}" for i in range(len(responses))],
-        dominant_category="employment",
         n_questions=1)
     messages = pd.DataFrame({"user_id": responses["user_id"],
                              "n_msgs_user": 1, "message": "x"})
     meal = pd.DataFrame({"user_id": responses["user_id"]})
     return qa.run_checks(responses, messages, meal)
-
-
-def test_facade_critical_prefix_p9_raises():
-    """A failing P9_ check is recognized as critical and would cause raise."""
-    # Test the critical-prefix filter logic by checking which prefixes are caught
-    checks = [("P9_summary_format", False, "test failure")]
-    failed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
-    assert len(failed) == 1, "P9_ should be recognized as critical"
 
 
 def test_facade_critical_prefix_p11_does_not_raise():
@@ -280,3 +212,47 @@ def test_facade_critical_prefix_bare_p1_doesnt_match_p11():
     # Anchored prefix (fixed way) correctly skips P11:
     failed_fixed = [c for c in checks if not c[1] and c[0].startswith(("P1_", "P6_", "P9_"))]
     assert len(failed_fixed) == 0, "Anchored P1_ prefix correctly skips P11_"
+
+
+def test_reconciliation_has_no_category_metric():
+    resp = pd.DataFrame({"user_id": ["a", "b"], "n_questions": [1, 2]})
+    msgs = pd.DataFrame({"user_id": ["a", "b"]})
+    meal = pd.DataFrame({"user_id": ["a"]})
+    table = qa.reconciliation_table(resp, msgs, meal)
+    metrics_seen = set(table["metric"])
+    assert "legal_documentation_pct" not in metrics_seen
+    assert not any("categor" in m for m in metrics_seen)
+    # the ledger's real job is untouched
+    assert {"users", "records", "messages", "users_with_text"} <= metrics_seen
+
+
+def test_category_gates_are_gone():
+    for gone in ("summary_unmappable_share", "labelled_unmappable_share",
+                 "_count_prose_share", "SUMMARY_PROSE_THRESHOLD"):
+        assert not hasattr(qa, gone), gone
+
+
+def test_run_checks_no_longer_has_p7_or_p9():
+    resp = pd.DataFrame({"user_id": ["u0"], "n_questions": [1]})
+    msgs = pd.DataFrame({"user_id": ["u0"], "n_msgs_user": [1], "message": ["x"]})
+    meal = pd.DataFrame({"user_id": ["u0"]})
+    names = {c[0] for c in qa.run_checks(resp, msgs, meal)}
+    assert not any(n.startswith(("P7_", "P9_")) for n in names)
+    assert {"P1_pii_responses", "P6_spine_invariant", "P8_meal_unique"} <= names
+
+
+def test_cluster_coverage_counts_only_real_clusters():
+    dim_user = pd.DataFrame({"user_id": list("abcde"),
+                             "cluster_id": [0, 1, 2, -1, -1]})
+    assert qa.cluster_coverage(dim_user) == pytest.approx(0.6)
+
+
+def test_cluster_coverage_treats_null_as_uncovered():
+    dim_user = pd.DataFrame({"user_id": list("abcd"),
+                             "cluster_id": [0, 1, None, -1]})
+    assert qa.cluster_coverage(dim_user) == pytest.approx(0.5)
+
+
+def test_cluster_coverage_threshold_is_below_todays_value():
+    """86% today; the bar leaves drift room without tolerating a silent collapse."""
+    assert qa.CLUSTER_COVERAGE_THRESHOLD == 0.80

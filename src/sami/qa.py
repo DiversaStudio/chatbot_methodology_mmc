@@ -4,22 +4,12 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from . import config, schema, taxonomy
+from . import config, schema
 
 # \b anchors keep this from matching a digit run glued to underscores/letters
 # (e.g. a "..._1783087815.xlsx" source-file id) while still catching real
 # phone numbers, which are always set off by a delimiter (+, space, :, etc.).
 _PII_PATTERNS = [re.compile(r"whatsapp:", re.I), re.compile(r"\b\d{7,}\b")]
-
-# From July 2026 the v2 platform emits a timestamped prose summary instead of
-# the short taxonomy label v1 emitted ("[2026-07-24 14:15] El usuario preguntó
-# sobre..."). taxonomy.normalize_category is an exact-match lookup, so prose
-# becomes 'unclassified' — which is the ACCEPTED outcome: those records, and all
-# future ones, land in the 'Suggestion' bucket alongside the records that never
-# carried a category (checkpoint 2026-07-28). P9 therefore gates on the
-# label-shaped summaries only; see labelled_unmappable_share.
-_SUMMARY_PROSE = re.compile(r"^\s*\[\d{4}-\d{2}-\d{2}")
-SUMMARY_PROSE_THRESHOLD = 0.05
 
 # Checked AFTER schema.normalize_columns, so these are the canonical names.
 _CRITICAL = {
@@ -107,7 +97,6 @@ def reconciliation_table(responses: pd.DataFrame, messages: pd.DataFrame,
                          meal: pd.DataFrame) -> pd.DataFrame:
     n_users = responses["user_id"].nunique()
     n_msgs = len(messages)
-    legal = (messages["dominant_category"] == "legal_documentation").mean() if "dominant_category" in messages else float("nan")
     # repeat-asker proxy: users at/above p90 question volume
     q = responses.groupby("user_id")["n_questions"].max()
     p90 = q.quantile(0.90)
@@ -119,71 +108,10 @@ def reconciliation_table(responses: pd.DataFrame, messages: pd.DataFrame,
         ("users_with_text", messages["user_id"].nunique()),
         ("meal_responses", len(meal)),
         ("meal_response_rate_pct", round(100 * len(meal) / n_users, 1)),
-        ("legal_documentation_pct", round(100 * legal, 1)),
         ("repeat_askers_pct", repeat_pct),
         ("negative_tone_pct", "pending"),  # from NB3 sentiment
     ]
     return pd.DataFrame(rows, columns=["metric", "value"])
-
-
-def summary_unmappable_share(responses: pd.DataFrame,
-                             col: str = "Chat_summary") -> float:
-    """Share of non-null summaries that taxonomy.normalize_category cannot map.
-
-    This measures what actually matters: a summary we hold but cannot turn into
-    a category. The underlying cause (format change, taxonomy gap, etc.) is
-    diagnosed separately. Returns 0.0 if the column is absent or all-null.
-    """
-    if col not in responses.columns:
-        return 0.0
-    values = responses[col].dropna()
-    if values.empty:
-        return 0.0
-    unmappable = values.apply(lambda v: taxonomy.normalize_category(v) == "unclassified")
-    return float(unmappable.mean())
-
-
-def _count_prose_share(responses: pd.DataFrame,
-                       col: str = "Chat_summary") -> float:
-    """Share of non-null summaries in v2 timestamped-prose format.
-
-    Reported on every run so the migration is visible, but NOT itself a failure
-    condition — see labelled_unmappable_share.
-    """
-    if col not in responses.columns:
-        return 0.0
-    values = responses[col].dropna()
-    if values.empty:
-        return 0.0
-    prose = values.astype(str).str.match(_SUMMARY_PROSE)
-    return float(prose.mean())
-
-
-def labelled_unmappable_share(responses: pd.DataFrame,
-                              col: str = "Chat_summary") -> float:
-    """Share of *label-shaped* summaries the taxonomy cannot place.
-
-    Timestamped-prose summaries are excluded from both numerator and
-    denominator. From the July 2026 platform change onward the summary field is
-    free prose carrying no category at all, and those records go to the
-    'Suggestion' bucket by design (checkpoint 2026-07-28) — so a growing prose
-    share is the expected new normal, not a regression, and gating on it would
-    fail every future run.
-
-    What this still catches is the thing that would actually be a bug: a summary
-    that LOOKS like a v1 taxonomy label but no longer maps, i.e. the platform
-    renamed a category or the taxonomy drifted. Returns 0.0 when there are no
-    label-shaped summaries left to check.
-    """
-    if col not in responses.columns:
-        return 0.0
-    values = responses[col].dropna().astype(str)
-    labelled = values[~values.str.match(_SUMMARY_PROSE)]
-    if labelled.empty:
-        return 0.0
-    unmappable = labelled.apply(
-        lambda v: taxonomy.normalize_category(v) == "unclassified")
-    return float(unmappable.mean())
 
 
 def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
@@ -195,36 +123,26 @@ def run_checks(responses, messages, meal) -> list[tuple[str, bool, str]]:
     per_user = messages.groupby("user_id")["n_msgs_user"].first().sum()
     checks.append(("P6_spine_invariant", bool(per_user == len(messages)), f"{per_user} == {len(messages)}"))
     checks.append(("P8_meal_unique", bool(meal["user_id"].is_unique), "one MEAL row per user"))
-    # P7 asks one question: of the summaries we HOLD, how many can the taxonomy
-    # place? Records with no summary at all (306 of 1460 in the 28-Jul export —
-    # users who registered but never chatted) are not a taxonomy failure, and
-    # counting them put the gate at 22.6% against a 10% limit. They are reported
-    # alongside so a jump in silent registrations is still visible.
-    # Column-absence tolerant, like every other helper here: a caller passing a
-    # hand-built frame gets a vacuous pass, not a KeyError.
-    has_summary = (responses["Chat_summary"].notna() if "Chat_summary" in responses
-                   else pd.Series(True, index=responses.index))
-    n_summary = int(has_summary.sum())
-    unclass = float(
-        (responses.loc[has_summary, "dominant_category"] == "unclassified").mean()
-    ) if n_summary else 0.0
-    no_summary = float((~has_summary).mean())
-    checks.append((
-        "P7_unclassified_share",
-        bool(unclass < 0.10),
-        f"{unclass:.1%} of {n_summary} summaries unclassified "
-        f"({no_summary:.1%} of records carry no summary at all)"))
-    labelled_unmappable = labelled_unmappable_share(responses)
-    prose = _count_prose_share(responses)
-    overall = summary_unmappable_share(responses)
-    msg = (
-        f"{labelled_unmappable:.1%} of label-shaped summaries cannot be mapped "
-        f"(limit {SUMMARY_PROSE_THRESHOLD:.0%}); {prose:.1%} are v2 timestamped prose "
-        f"(expected — those go to the 'Suggestion' bucket); {overall:.1%} unmappable "
-        f"overall. Remedy: if a v1 category label stopped mapping, extend the "
-        f"taxonomy in src/sami/taxonomy.py.")
-    checks.append((
-        "P9_summary_format",
-        bool(labelled_unmappable <= SUMMARY_PROSE_THRESHOLD),
-        msg))
     return checks
+
+
+# Share of users that must carry a real cluster. Coverage was 1,198/1,392 = 86%
+# at the 2026-07-28 export; the shortfall is structural — users who registered
+# and never wrote a message have no document to cluster, and land in the
+# cluster_id = -1 bucket by design. The bar sits below today's value with room
+# for normal drift, but tight enough to catch a clustering run that silently
+# dropped a chunk of the corpus.
+CLUSTER_COVERAGE_THRESHOLD = 0.80
+
+
+def cluster_coverage(dim_user: pd.DataFrame) -> float:
+    """Share of users carrying a real cluster (not -1, not null).
+
+    NOT a `run_checks` entry: `run_checks` runs inside `load_sami`, before any
+    clustering has happened, so a cluster gate cannot live there. `run_pipeline`
+    calls this after dim_user is built and surfaces it in parity_check.
+    """
+    if "cluster_id" not in dim_user.columns or dim_user.empty:
+        return 0.0
+    cid = pd.to_numeric(dim_user["cluster_id"], errors="coerce")
+    return float((cid.notna() & (cid != -1)).mean())
