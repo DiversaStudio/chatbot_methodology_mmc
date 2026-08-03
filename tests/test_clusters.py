@@ -105,7 +105,7 @@ def test_project_2d_shapes():
     assert clusters.project_2d(X, method="pca").shape == (60, 2)
 
 
-def test_archetype_profiles_sizes_and_columns():
+def test_archetype_profiles_sizes_and_terms():
     labels = pd.Series([0, 0, 1], index=["u1", "u2", "u3"], name="archetype")
     responses = pd.DataFrame(
         {
@@ -118,16 +118,29 @@ def test_archetype_profiles_sizes_and_columns():
     messages = pd.DataFrame(
         {
             "user_id": ["u1", "u1", "u2", "u3"],
-            "dominant_category": ["legal_documentation"] * 3 + ["employment"],
             "message": ["a", "b", "c", "d"],
         }
     )
-    prof = clusters.archetype_profiles(labels, responses, messages)
+    terms = {
+        0: pd.Series({"rumv": 3.0, "biometrico": 2.0, "cita": 1.0}),
+        1: pd.Series({"emprendimiento": 2.0, "negocio": 1.0}),
+    }
+    prof = clusters.archetype_profiles(labels, responses, messages, terms=terms)
+
     assert prof.loc[0, "n_users"] == 2 and prof.loc[0, "n_messages"] == 3
     assert prof.loc[0, "median_age"] == pytest.approx(35.0)
     # sub-18 flagged record is excluded from the age read (P9)
     assert np.isnan(prof.loc[1, "median_age"])
-    assert "legal_documentation" in prof.loc[0, "top_categories"]
+    assert prof.loc[0, "top_terms"] == "rumv, biometrico, cita"
+    assert "top_categories" not in prof.columns
+
+
+def test_archetype_profiles_without_terms_leaves_top_terms_blank():
+    labels = pd.Series([0, 0], index=["u1", "u2"], name="archetype")
+    responses = pd.DataFrame({"user_id": ["u1", "u2"], "city_canon": ["Bogotá"] * 2})
+    messages = pd.DataFrame({"user_id": ["u1", "u2"], "message": ["a", "b"]})
+    prof = clusters.archetype_profiles(labels, responses, messages)
+    assert prof.loc[0, "top_terms"] == ""
 
 
 def test_silhouette_is_flat_detects_noise_level_curve():

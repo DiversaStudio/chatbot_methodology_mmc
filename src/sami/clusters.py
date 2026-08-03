@@ -210,11 +210,19 @@ def ctfidf_terms(docs, labels, top_n: int = 10, min_user_df: int = 5) -> dict[in
 def archetype_profiles(
     labels: pd.Series, responses: pd.DataFrame, messages: pd.DataFrame,
     sentiment: pd.DataFrame | None = None,
+    terms: dict[int, pd.Series] | None = None,
+    n_terms: int = 6,
 ) -> pd.DataFrame:
-    """Per-cluster profile: size, dominant categories, demographic skew, tone.
+    """Per-cluster profile: size, distinctive terms, demographic skew, tone.
 
     `labels` must be a Series indexed by `user_id`. Median age excludes records
     flagged `unreliable_sub18` (P9) — those are never read as a real cohort.
+
+    `terms` is the dict `ctfidf_terms` returns. Its top `n_terms` per cluster are
+    joined into `top_terms`, which is what tells a reader what a cluster is
+    ABOUT — the column that used to hold the platform's category labels. Passing
+    None leaves it blank rather than failing, so a caller that only wants the
+    size and demographic columns need not compute terms.
     """
     lab = labels.rename("archetype")
     msgs = messages.merge(lab, left_on="user_id", right_index=True, how="inner")
@@ -226,8 +234,9 @@ def archetype_profiles(
     rows = []
     for arch, g in msgs.groupby("archetype"):
         r = resp[resp["archetype"] == arch]
-        cats = g["dominant_category"].value_counts(normalize=True)
-        top_cats = ", ".join(f"{c} ({s:.0%})" for c, s in cats.head(2).items())
+        top_terms = ""
+        if terms is not None and int(arch) in terms:
+            top_terms = ", ".join(terms[int(arch)].head(n_terms).index)
         if "age_flag" in r.columns:
             ages = r.loc[r["age_flag"] != "unreliable_sub18", "age_num"]
         else:
@@ -236,7 +245,7 @@ def archetype_profiles(
             "archetype": int(arch),
             "n_users": int(g["user_id"].nunique()),
             "n_messages": int(len(g)),
-            "top_categories": top_cats,
+            "top_terms": top_terms,
             "median_age": float(ages.median()) if ages.notna().any() else np.nan,
             "top_city": r["city_canon"].mode().iat[0] if r["city_canon"].notna().any() else None,
             "top_nationality": (
