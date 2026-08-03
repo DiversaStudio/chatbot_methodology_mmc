@@ -9,10 +9,6 @@ def cluster_share(frame: pd.DataFrame, col: str = "cluster_id") -> pd.Series:
     return frame[col].value_counts(normalize=True).sort_values(ascending=False)
 
 
-def _top_clusters(messages: pd.DataFrame, top_n: int) -> list:
-    return list(messages["cluster_id"].value_counts().head(top_n).index)
-
-
 def city_cluster_mix(messages: pd.DataFrame, top_cities: int = 5) -> pd.DataFrame:
     """100%-stacked source frame: rows = top-N cities + 'Other', cols = clusters, rows sum to 1."""
     m = messages.copy()
@@ -25,25 +21,28 @@ def city_cluster_mix(messages: pd.DataFrame, top_cities: int = 5) -> pd.DataFram
     return ct.div(ct.sum(axis=1), axis=0)
 
 
-def weekly_cluster_counts(messages: pd.DataFrame, top_n: int = 4) -> pd.DataFrame:
-    """Messages per week (Monday-start, via W-SUN periods) x top-N cluster + 'Other'.
+def weekly_cluster_counts(messages: pd.DataFrame) -> pd.DataFrame:
+    """Messages per week (Monday-start, via W-SUN periods) x cluster.
 
-    Record-arrival grain. NOTE the reading this carries: clusters are assigned
-    per USER, so a message counts under its author's cluster. The series is
-    "messages written this week by users of this type", not "messages about this
-    topic this week".
+    Record-arrival grain. Columns are ordered by descending total volume.
+
+    EVERY cluster gets its own column. The retired category version folded the
+    tail into an "Other" bucket, which was harmless when the key was a string;
+    with integer cluster ids it makes the exported key column mixed-type, and
+    Power BI cannot relate a mixed-type column to dim_cluster[cluster_id] -- so
+    the chart would lose the names, colours and sort order that dim_cluster
+    exists to supply. If k ever grows past the readable ceiling, theme's
+    K_SOFT_CAP warning is what says so; silently hiding clusters here is not.
+
+    NOTE the reading this carries: clusters are assigned per USER, so a message
+    counts under its author's cluster. The series is "messages written this week
+    by users of this type", not "messages about this topic this week".
     """
     m = messages.dropna(subset=["ts"]).copy()
-    top = _top_clusters(m, top_n)
-    # .astype(object) guards against np.where silently upcasting an integer
-    # cluster_id and the "Other" string to a common '<U..' dtype, which would
-    # stringify the ids and break the later `in wk.columns` identity check.
-    m["cluster_grp"] = np.where(m["cluster_id"].isin(top), m["cluster_id"].astype(object), "Other")
     m["week_start"] = m["ts"].dt.to_period("W-SUN").dt.start_time
-    wk = m.pivot_table(index="week_start", columns="cluster_grp", values="user_id",
+    wk = m.pivot_table(index="week_start", columns="cluster_id", values="user_id",
                        aggfunc="count", fill_value=0)
-    cols = [c for c in top if c in wk.columns] + (["Other"] if "Other" in wk.columns else [])
-    return wk.reindex(columns=cols, fill_value=0)
+    return wk.reindex(columns=wk.sum(axis=0).sort_values(ascending=False).index)
 
 
 def funnel_stages(responses: pd.DataFrame, messages: pd.DataFrame,

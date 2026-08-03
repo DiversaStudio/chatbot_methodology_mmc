@@ -915,13 +915,18 @@ def test_fact_message_has_no_category_column():
     assert f["cluster_id"].tolist() == [0]
 
 
-def test_agg_weekly_cluster_is_long_and_named_without_category():
-    ts = pd.to_datetime(["2026-06-01", "2026-06-02", "2026-06-08"])
-    messages = pd.DataFrame({"user_id": ["u1", "u2", "u1"], "cluster_id": [0, 1, 0],
-                             "ts": ts, "message": ["a", "b", "c"]})
+def test_agg_weekly_cluster_is_long_with_an_integer_key():
+    ts = pd.to_datetime(["2026-06-01", "2026-06-02", "2026-06-08", "2026-06-09",
+                         "2026-06-09", "2026-06-10"])
+    messages = pd.DataFrame({"user_id": ["u1", "u2", "u1", "u3", "u4", "u5"],
+                             "cluster_id": [0, 1, 0, 2, 3, 4],
+                             "ts": ts, "message": list("abcdef")})
     w = export.build_agg_weekly_cluster(messages)
     assert list(w.columns) == ["week", "cluster_id", "n"]
     assert w["n"].sum() == len(messages)
+    # Five clusters, none folded away -- the key must stay joinable to dim_cluster.
+    assert set(w["cluster_id"]) == {0, 1, 2, 3, 4}
+    assert {type(v).__name__ for v in w["cluster_id"]} <= {"int", "int64"}
 
 
 def test_agg_priority_matrix_happy_path_excludes_no_text_bucket(prof, resolved):
