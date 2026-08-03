@@ -45,10 +45,19 @@ def test_city_cluster_mix_rows_sum_to_one(clustered):
         assert row.sum() == pytest.approx(1.0, abs=1e-9)
 
 
-def test_weekly_cluster_counts_sum_to_message_total(clustered):
-    wk = metrics.weekly_cluster_counts(clustered, top_n=2)
+def test_weekly_cluster_counts_emits_every_cluster(clustered):
+    """No 'Other' rollup: a mixed int/str key column cannot relate to dim_cluster."""
+    wk = metrics.weekly_cluster_counts(clustered)
     assert wk.to_numpy().sum() == len(clustered)
-    assert wk.shape[1] == 3   # top-2 + Other
+    assert set(wk.columns) == set(clustered["cluster_id"].unique())
+    assert all(isinstance(c, (int, np.integer)) for c in wk.columns)
+    assert "Other" not in wk.columns
+
+
+def test_weekly_cluster_counts_orders_columns_by_volume(clustered):
+    wk = metrics.weekly_cluster_counts(clustered)
+    totals = wk.sum(axis=0)
+    assert list(totals.values) == sorted(totals.values, reverse=True)
 
 
 def test_funnel_is_monotonic_and_tops_at_users(data):

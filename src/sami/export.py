@@ -368,7 +368,7 @@ def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_agg_weekly_cluster(messages: pd.DataFrame) -> pd.DataFrame:
-    wk = metrics.weekly_cluster_counts(messages, top_n=4)
+    wk = metrics.weekly_cluster_counts(messages)
     return (wk.reset_index()
             .melt(id_vars="week_start", var_name="cluster_id", value_name="n")
             .rename(columns={"week_start": "week"}))
