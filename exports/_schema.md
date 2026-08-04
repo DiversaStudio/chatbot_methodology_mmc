@@ -419,9 +419,33 @@ Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
 combination of the two label columns. Feeds NB3 §4 confusion matrix.
 
 ### `nlp_voices` — 1 row per cluster exemplar (6 rows)
-Cols: `cluster_id`, `name`, `message`. One representative quote per real
-cluster (the `-1` "No conversation text" bucket has no message to quote).
-Feeds NB3 §5 qualitative voices.
+Cols: `cluster_id`, `name`, `matched_term`, `message`. One representative quote
+per real cluster (the `-1` "No conversation text" bucket has no message to
+quote). Feeds NB3 §5 qualitative voices.
+
+The quote is chosen by searching that cluster's messages (60–190 characters) for
+a term distinctive to it, in this order: the naming marker, then `top_terms` that
+appear in **no other cluster's** `top_terms`, then its remaining shared terms.
+`message` is `—` and `matched_term` null when nothing distinctive is quotable.
+
+`matched_term` is the provenance of the quote. **When it differs from the
+cluster's marker the quote is a fallback**, and anything presenting it as an
+exemplar should say so — the marker is the term the cluster was named for, so a
+fallback quote is by definition not about the thing the name promises.
+
+Two reasons the exclusivity step exists. A marker can be absent from every
+quotable message (the "Settling in" marker `regulación` is), which before this
+fallback existed made that cluster export a literal em-dash while five siblings
+showed a real voice. And a term two clusters share makes a poor exemplar:
+"Settling in" and "Urgent humanitarian needs" both rank *humanitaria*, *cali*
+and *ipiales*, so searching shared terms first handed the settlement cluster a
+quote about returning to Venezuela.
+
+**A fallback quote is a signal worth reading, not just a fallback.** If a
+cluster's marker is never quotable and its exclusive terms are near-synonyms of
+a neighbour's, that is evidence the two clusters are close, or that the curated
+name in `taxonomy.CLUSTER_NAMES` no longer fits the data. Re-read the terms
+before trusting the name.
 
 *Discrepancy: the design spec also listed `nlp_negative_by_category` (share
 of negative-sentiment messages per category) and `nlp_sentiment_dist`

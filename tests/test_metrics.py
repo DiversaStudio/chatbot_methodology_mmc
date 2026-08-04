@@ -123,7 +123,29 @@ def test_priority_matrix_is_keyed_on_cluster_id(clustered):
     assert pm.index.name == "cluster_id"
     assert set(pm.index) == {0, 1, 2, 3, 4}
     assert pm["messages"].sum() == len(clustered)
-    assert pm["n_axes"].iloc[0] >= 1
+    # Exactly two axes here: repeat-asker share, and the (fallback) MEAL rating.
+    # `>= 1` would pass even if the axis-counting logic broke entirely, and
+    # n_axes is what stops a caller presenting a 2-axis score as the 3-axis one.
+    assert (pm["n_axes"] == 2).all()
+
+
+def test_priority_matrix_n_axes_counts_the_axes_actually_used(clustered):
+    """n_axes must move with the inputs, not sit at a constant.
+
+    It is the guard that stops a 2-axis unmet-need score being read as the
+    3-axis one, so a test that merely asserts it is positive guards nothing.
+    """
+    meal = pd.DataFrame({"user_id": ["u1"], "rating_num": [4.0], "cluster_id": [0]})
+    no_meal = meal.iloc[0:0]
+    neg = pd.Series({0: 0.5, 1: 0.1, 2: 0.0, 3: 0.2, 4: 0.3})
+
+    # repeat-asker only
+    assert (metrics.priority_matrix_frame(clustered, no_meal)["n_axes"] == 1).all()
+    # + MEAL rating
+    assert (metrics.priority_matrix_frame(clustered, meal)["n_axes"] == 2).all()
+    # + sentiment
+    assert (metrics.priority_matrix_frame(
+        clustered, meal, neg_by_cluster=neg)["n_axes"] == 3).all()
 
 
 def test_priority_matrix_falls_back_on_small_meal_samples(clustered):

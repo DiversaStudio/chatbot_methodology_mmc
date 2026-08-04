@@ -4,7 +4,7 @@
 #
 # Two layers live here:
 #   1. The Diversa BRAND colours (AGUA, MADERA, ...) used by illustration-style
-#      semantic palettes (e.g. the MMC category colours in analysis_responses).
+#      semantic palettes (e.g. the priority-matrix quadrant fills).
 #   2. A general CHART design system (CAT / BLUE_SEQ + helpers) matching the EDA
 #      notebooks: a fixed-order categorical palette for identity charts and a
 #      light->dark ramp for ordered magnitude. Colour comes last; text and
@@ -13,6 +13,7 @@
 # Old names (BLUES, bar_colors, NEGRO, CIELO, ...) are kept as aliases so
 # existing notebooks keep working unchanged.
 
+import colorsys
 import warnings
 
 import numpy as np
@@ -80,6 +81,12 @@ NO_TEXT_COLOR = CAT[7]
 # or fold the tail into "Other".
 K_SOFT_CAP = CAT_VALIDATED
 
+# Step budget for `cluster_colors`' past-the-cap hue walk. Generous enough that
+# it never trips for a real cluster count (k is capped at 12 by `choose_k`'s
+# scan range) and small enough that an absurd request fails in milliseconds
+# instead of hanging. See the comment at the walk itself.
+_HUE_WALK_BUDGET = 5000
+
 
 def cluster_colors(n):
     """Return n cluster identity colours by size rank.
@@ -104,6 +111,10 @@ def cluster_colors(n):
     hard to tell apart for colour-blind viewers, so charts past the cap must
     still direct-label their marks or fold the tail into "Other". `NO_TEXT_COLOR`
     is never returned.
+
+    Raises ValueError for an n far beyond any real cluster count (see
+    `_HUE_WALK_BUDGET`) rather than looping forever looking for a colour that
+    does not exist.
     """
     if n <= K_SOFT_CAP:
         return CLUSTER_IDENTITY[:n]
@@ -133,9 +144,18 @@ def cluster_colors(n):
     # Not validated for CVD or brand fit, but deterministic (same seed, same
     # step count every call) and guaranteed distinct, which is the property
     # `dim_cluster.color_hex` actually needs once we're this far past the cap.
-    import colorsys
+    #
+    # The walk is BOUNDED. At fixed saturation and value the wheel quantises to
+    # a finite set of 8-bit hexes, so past a few hundred colours every new step
+    # lands on one already issued and an unbounded loop would spin forever. A
+    # hang is the worst possible failure here -- `run_pipeline` would appear to
+    # stall with no output -- so we stop and say why instead. Nothing in this
+    # pipeline can reach it: `choose_k` selects from `range(3, 13)`, capping k
+    # at 12, and this branch only runs past k=7.
     hue = 0.0
-    while len(extra) < needed:
+    for _ in range(_HUE_WALK_BUDGET):
+        if len(extra) == needed:
+            break
         hue = (hue + 0.618034) % 1.0  # golden ratio conjugate
         r, g, b = colorsys.hsv_to_rgb(hue, 0.55, 0.75)
         fallback = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
@@ -143,12 +163,22 @@ def cluster_colors(n):
             issued.add(fallback)
             extra.append(fallback)
 
+    if len(extra) < needed:
+        raise ValueError(
+            f"cluster_colors({n}) cannot produce {n} distinct colours: the "
+            f"hue walk exhausted its {_HUE_WALK_BUDGET}-step budget with only "
+            f"{K_SOFT_CAP + len(extra)} distinct values available. A palette "
+            "this large is not a colour problem, it is a chart that should not "
+            "be drawn -- fold the tail into 'Other' or label the marks directly.")
+
     return CLUSTER_IDENTITY + extra
 
 # Priority-matrix quadrant shading. Keyed by the two axes of
 # `agg_priority_matrix`: volume (x, messages) and unmet need (y). These are
 # BACKGROUND fills, not series colours -- they are meant to be laid down at 90%
-# transparency or higher, under bubbles that carry the category colours.
+# transparency or higher, under bubbles that carry the cluster colours.
+# Exported as `dim_quadrant` so the notebook and the Power BI legend bind to one
+# source rather than each hardcoding its own four hexes.
 QUADRANT = {
     "high_volume_high_need": WINE,    # act here
     "low_volume_high_need":  '#a3557a',  # watch

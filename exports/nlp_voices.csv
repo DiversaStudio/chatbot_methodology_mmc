@@ -1,7 +1,7 @@
-cluster_id,name,message
-0,Building a livelihood,Hola me gustaría q me diera información sobre... empleo o emprendimiento.
-1,Stuck mid-procedure,Pero luego del biométrico  puedo usar el rumv para afiliación de eps
-2,Nationality and family papers,Y que documentos necesito para darle la nacionalidad venezolana a mi hija
-3,"Permits, visas and travel",Me dijeron que puedo hacer una visa especial de visitante ya que mi pasaporte está vigente y el último sello de entrada fué en 2023
-4,Urgent humanitarian needs,Cual ayuda mas recurrente da el pao en Medellín terminal del norte
-5,Settling in,—
+cluster_id,name,matched_term,message
+0,Building a livelihood,emprendimiento,Hola me gustaría q me diera información sobre... empleo o emprendimiento.
+1,Stuck mid-procedure,rumv,Pero luego del biométrico  puedo usar el rumv para afiliación de eps
+2,Nationality and family papers,nacionalidad,Y que documentos necesito para darle la nacionalidad venezolana a mi hija
+3,"Permits, visas and travel",visitante,Me dijeron que puedo hacer una visa especial de visitante ya que mi pasaporte está vigente y el último sello de entrada fué en 2023
+4,Urgent humanitarian needs,terminal,Cual ayuda mas recurrente da el pao en Medellín terminal del norte
+5,Settling in,humanitarias,Saber que ayudas humanitarias ofrecen para retornar a mi pais

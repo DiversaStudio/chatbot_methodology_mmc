@@ -297,18 +297,77 @@ def test_nlp_voices_picks_marker_quote():
     msgs_lab = pd.DataFrame({"archetype": [cid, cid], "user_id": ["u1", "u2"],
                              "seq": [0, 1], "message": [msg, "corto"]})
     v = export.build_nlp_voices(msgs_lab, resolved)
-    assert list(v.columns) == ["cluster_id", "name", "message"]
+    assert list(v.columns) == ["cluster_id", "name", "matched_term", "message"]
     assert v.loc[0, "message"] == msg
     assert v.loc[0, "name"] == resolved[cid]["name"]
+    assert v.loc[0, "matched_term"] == marker
 
 
-def test_nlp_voices_dash_fallback_when_no_match():
+def test_nlp_voices_falls_through_to_the_next_distinctive_term():
+    """A marker absent from every quotable message must not blank the panel.
+
+    This is the "Settling in" case: its marker 'regulación' appears in no
+    message of quotable length, which left one of six dashboard panels showing
+    an em-dash beside five real voices.
+    """
+    cid = 0
+    resolved = {cid: {"name": "Settler", "marker": "regulación", "provisional": False}}
+    msg = ("necesito ayuda con la vivienda y el arriendo en esta ciudad "
+           "porque acabo de llegar con mi familia")   # 60-190 chars, no marker
+    msgs_lab = pd.DataFrame({"archetype": [cid], "user_id": ["u1"],
+                             "seq": [0], "message": [msg]})
+    terms = {cid: "regulación, vivienda, arriendo"}
+
+    # Marker alone finds nothing -> em-dash, the old behaviour.
+    assert export.build_nlp_voices(msgs_lab, resolved).loc[0, "message"] == "—"
+    # With the term pool it falls through to the next distinctive term.
+    v = export.build_nlp_voices(msgs_lab, resolved, terms_by_cluster=terms)
+    assert v.loc[0, "message"] == msg
+    assert v.loc[0, "matched_term"] == "vivienda"
+
+
+def test_nlp_voices_prefers_a_term_no_other_cluster_shares():
+    """A term two clusters both rank highly makes a bad exemplar.
+
+    "Settling in" and "Urgent humanitarian needs" both list *humanitaria*.
+    Searching shared terms first handed "Settling in" a quote about returning
+    to Venezuela — close to the opposite of settling. The exclusive term must
+    win even when the shared one outranks it.
+    """
+    resolved = {0: {"name": "Settling in", "marker": "regulación", "provisional": False},
+                1: {"name": "Urgent need", "marker": "terminal", "provisional": False}}
+    # `humanitaria` is shared and ranks FIRST; `casa` is exclusive and ranks last.
+    terms = {0: "humanitaria, cali, casa", 1: "terminal, humanitaria, cali"}
+
+    shared_msg = ("quiero saber que ayuda humanitaria dan para regresar a mi "
+                  "pais porque ya no quiero seguir aca")
+    excl_msg = ("estoy buscando una casa en arriendo para mi familia porque "
+                "vamos a quedarnos en esta ciudad")
+    msgs_lab = pd.DataFrame({
+        "archetype": [0, 0, 1],
+        "user_id": ["u1", "u2", "u3"],
+        "seq": [0, 0, 0],
+        "message": [shared_msg, excl_msg, "en la terminal del norte no me quisieron "
+                                          "atender y llevo dos dias esperando aqui"]})
+
+    v = export.build_nlp_voices(msgs_lab, resolved,
+                                terms_by_cluster=terms).set_index("cluster_id")
+    # Exclusive `casa` beats shared `humanitaria` despite ranking lower.
+    assert v.loc[0, "matched_term"] == "casa"
+    assert v.loc[0, "message"] == excl_msg
+    # Cluster 1's own marker still wins outright.
+    assert v.loc[1, "matched_term"] == "terminal"
+
+
+def test_nlp_voices_dash_fallback_when_nothing_is_quotable():
     cid = 0
     resolved = {cid: {"name": "X", "marker": "pasaporte", "provisional": False}}
     msgs_lab = pd.DataFrame({"archetype": [cid], "user_id": ["u1"],
                              "seq": [0], "message": ["corto"]})   # too short, no marker
-    v = export.build_nlp_voices(msgs_lab, resolved)
+    v = export.build_nlp_voices(msgs_lab, resolved,
+                                terms_by_cluster={cid: "visa, cita"})
     assert v.loc[0, "message"] == "—"
+    assert v.loc[0, "matched_term"] is None
 
 
 def test_meta_run_flags():
