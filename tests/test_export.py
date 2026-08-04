@@ -888,6 +888,10 @@ def test_dim_cluster_at_twelve_clusters_still_assigns_distinct_ids():
     assert len(real) == 12
     assert theme.NO_TEXT_COLOR not in set(real["color_hex"])
     assert sorted(d["display_order"]) == list(range(len(d)))
+    # Power BI binds colour straight from color_hex; two structurally different
+    # clusters sharing a hex would be silently indistinguishable on the dashboard,
+    # not merely harder to tell apart. All 12 real clusters must get distinct colours.
+    assert real["color_hex"].is_unique, real["color_hex"].tolist()
 
 
 def test_dim_user_labels_textless_users_minus_one():
