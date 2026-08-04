@@ -423,15 +423,29 @@ Cols: `cluster_id`, `name`, `matched_term`, `message`. One representative quote
 per real cluster (the `-1` "No conversation text" bucket has no message to
 quote). Feeds NB3 §5 qualitative voices.
 
-The quote is chosen by searching that cluster's messages (60–190 characters)
-for a term distinctive to it: the naming marker first, then the cluster's other
-`top_terms` in rank order. `matched_term` records which one found the quote, so
-a reader can see when the marker itself was not quotable — which happens: on the
-2026-08-04 export the "Settling in" marker `regulación` appears in no message of
-that length, and the quote was found on `humanitaria` instead. Before the
-fallback existed that cluster exported a literal em-dash, and the dashboard's
-voices visual rendered one empty panel beside five real ones. `message` is still
-`—` and `matched_term` null if nothing distinctive is quotable at all.
+The quote is chosen by searching that cluster's messages (60–190 characters) for
+a term distinctive to it, in this order: the naming marker, then `top_terms` that
+appear in **no other cluster's** `top_terms`, then its remaining shared terms.
+`message` is `—` and `matched_term` null when nothing distinctive is quotable.
+
+`matched_term` is the provenance of the quote. **When it differs from the
+cluster's marker the quote is a fallback**, and anything presenting it as an
+exemplar should say so — the marker is the term the cluster was named for, so a
+fallback quote is by definition not about the thing the name promises.
+
+Two reasons the exclusivity step exists. A marker can be absent from every
+quotable message (the "Settling in" marker `regulación` is), which before this
+fallback existed made that cluster export a literal em-dash while five siblings
+showed a real voice. And a term two clusters share makes a poor exemplar:
+"Settling in" and "Urgent humanitarian needs" both rank *humanitaria*, *cali*
+and *ipiales*, so searching shared terms first handed the settlement cluster a
+quote about returning to Venezuela.
+
+**A fallback quote is a signal worth reading, not just a fallback.** If a
+cluster's marker is never quotable and its exclusive terms are near-synonyms of
+a neighbour's, that is evidence the two clusters are close, or that the curated
+name in `taxonomy.CLUSTER_NAMES` no longer fits the data. Re-read the terms
+before trusting the name.
 
 *Discrepancy: the design spec also listed `nlp_negative_by_category` (share
 of negative-sentiment messages per category) and `nlp_sentiment_dist`
