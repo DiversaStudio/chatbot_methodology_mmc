@@ -57,7 +57,6 @@ class Context:
     meal_path: Path | None = field(
         default_factory=lambda: datasets.resolve("meal"))
     out_dir: Path = field(default_factory=lambda: Path("exports"))
-    skip_nlp: bool = False
 
 
 # ---- individual checks --------------------------------------------------------
@@ -70,7 +69,7 @@ def check_python(ctx: Context) -> Result:
 
 
 def check_packages(ctx: Context) -> Result:
-    needed = list(_REQUIRED_PACKAGES) + ([] if ctx.skip_nlp else list(_NLP_PACKAGES))
+    needed = list(_REQUIRED_PACKAGES) + list(_NLP_PACKAGES)
     missing = [m for m in needed if importlib.util.find_spec(m) is None]
     if not missing:
         return Result("packages", OK, f"{len(needed)} required packages present")
@@ -136,18 +135,14 @@ def check_meal(ctx: Context) -> Result:
 
 def check_tone_labels(ctx: Context) -> Result:
     path = Path("validation/tone_labels_analyst.csv")
-    if ctx.skip_nlp:
-        return Result("tone labels", OK, "not needed (--skip-nlp)")
     if path.exists():
         return Result("tone labels", OK, str(path))
     return Result("tone labels", FAIL, f"not found: {path}",
                   "A full run reads this file to build the nlp_tone_confusion "
-                  "table. Restore the file, or run with --skip-nlp.")
+                  "table. Restore the file.")
 
 
 def check_device(ctx: Context) -> Result:
-    if ctx.skip_nlp:
-        return Result("device", OK, "no NLP (--skip-nlp)")
     try:
         import torch
 
@@ -179,8 +174,6 @@ def _network_ok(host: str = "huggingface.co", port: int = 443, timeout: float = 
 def check_models(ctx: Context) -> Result:
     """Models must be either already cached or downloadable — this is the check
     that saves someone from a 20-minute run that dies at the download step."""
-    if ctx.skip_nlp:
-        return Result("models", OK, "not needed (--skip-nlp)")
     from . import nlp
     cache = _hf_cache_dir()
     wanted = {
@@ -198,11 +191,11 @@ def check_models(ctx: Context) -> Result:
     return Result("models", FAIL,
                   f"not cached and huggingface.co unreachable: {', '.join(absent)}",
                   "Connect to the network for the first run, or copy a populated "
-                  f"cache to {cache}, or run with --skip-nlp.")
+                  f"cache to {cache}.")
 
 
 def check_disk(ctx: Context) -> Result:
-    need = 0.5 if ctx.skip_nlp else MODEL_CACHE_GB
+    need = MODEL_CACHE_GB
     try:
         free_gb = shutil.disk_usage(Path.cwd()).free / 1e9
     except OSError as exc:

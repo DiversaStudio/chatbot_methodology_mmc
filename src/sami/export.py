@@ -13,21 +13,14 @@ import pandas as pd
 
 from . import metrics, taxonomy, qa, canon, theme, cohort
 
-# EN display for the official categories (chart text only) — mirrors the notebooks.
-CAT_EN = {
-    "legal_documentation": "Legal & documentation",
-    "humanitarian_assistance": "Humanitarian assistance",
-    "protection": "Protection",
-    "employment": "Employment",
-    "organization_search": "Finding organizations",
-    "journey_information": "Journey information",
-    "services": "Services",
-    # The platform's own categorisation is presented as a SUGGESTION, not
-    # ground truth (checkpoint 2026-07-28). This bucket holds every record the
-    # taxonomy cannot place: users with no summary at all, and the v2
-    # timestamped-prose summaries that carry no category label.
-    "unclassified": "Suggestion",
-}
+# The categorisation bucket for users with no message text. Clustering needs a
+# document, so the ~194 users who registered and never wrote anything cannot be
+# labelled. Naming that bucket rather than leaving it null keeps user counts
+# reconciling and makes a cluster-sliced KPI's disagreement with the headline
+# count an intentional, visible thing. Same reasoning as NO_RESPONSE_EN below.
+NO_CLUSTER_ID = -1
+NO_CLUSTER_NAME = "No conversation text"
+
 # EN display for the emergent-need probes (mirrors NB3).
 PROBE_EN = {
     "transport_logistics": "Transport & movement",
@@ -127,7 +120,7 @@ def to_english_meal(f: pd.DataFrame) -> pd.DataFrame:
 _PROFILE_COLS = [
     "instrument_version", "gender_clean", "age_num", "age_flag", "city_canon", "department",
     "nationality_canon", "away_duration_canon", "away_duration_order",
-    "city_duration_canon", "city_duration_order", "dominant_category", "n_questions",
+    "city_duration_canon", "city_duration_order", "n_questions",
 ]
 # Raw survey columns that carry into dim_user under friendlier names.
 _RAW_RENAME = {"Minors": "minors", "Age Ranges": "age_range",
@@ -140,15 +133,6 @@ _RAW_RENAME = {"Minors": "minors", "Age Ranges": "age_range",
                "Escalation Status": "escalation_status"}
 
 
-def build_dim_category() -> pd.DataFrame:
-    # CAT_EN is ordered like taxonomy.OFFICIAL_CATEGORIES + ["unclassified"];
-    # theme.CAT is the fixed categorical palette (unclassified -> grey #b7b7b7).
-    return pd.DataFrame(
-        [{"category_key": k, "category_es": k, "category_en": v,
-          "color_hex": theme.CAT[i], "display_order": i}
-         for i, (k, v) in enumerate(CAT_EN.items())])
-
-
 def build_dim_city() -> pd.DataFrame:
     """One row per canonical city with coordinates for the dashboard bubble map.
     The 'Otra'/Other bucket is excluded — it has no location."""
@@ -159,9 +143,10 @@ def build_dim_city() -> pd.DataFrame:
 
 
 def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
-                   lab: "pd.Series | None" = None) -> pd.DataFrame:
-    """One row per user. `lab` (Series indexed by user_id -> archetype) fills
-    `cluster_id`; None leaves it null (the --skip-nlp contract)."""
+                   lab: pd.Series) -> pd.DataFrame:
+    """One row per user. `lab` (Series indexed by user_id -> cluster_id) fills
+    `cluster_id`; users absent from it — those with no message text to cluster —
+    get NO_CLUSTER_ID."""
     r = responses.sort_values("ts", kind="stable")
     # Derived before the groupby so 'first' picks the version of the user's
     # earliest record — a user who appears in both cohorts is counted as v1,
@@ -204,23 +189,23 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
             else pd.Series(index=agg.index, dtype=object))
     agg["intends_to_stay"] = dest.map(_stay).astype(bool)
     agg["cluster_id"] = (agg.index.to_series().map(lab.to_dict())
-                         if lab is not None else pd.NA)
+                         .fillna(NO_CLUSTER_ID).astype(int))
     return to_english_user(agg.reset_index())
 
 
 _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
-                  "dominant_category", "seq", "n_msgs_user"]
+                  "seq", "n_msgs_user"]
 
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
-                       lab: "pd.Series | None" = None) -> pd.DataFrame:
+                       *, lab: pd.Series) -> pd.DataFrame:
     f = messages.copy()
     f["message_id"] = [message_key(u, s, m) for u, s, m
                        in zip(f["user_id"], f["seq"], f["message"])]
     f = f[[c for c in _FACT_MSG_COLS if c in f.columns]].copy()
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)
-    f["cluster_id"] = (f["user_id"].map(lab.to_dict()) if lab is not None else pd.NA)
+    f["cluster_id"] = f["user_id"].map(lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
     _translate(f, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     return f
 
@@ -382,10 +367,10 @@ def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["kind", "entity", "n"])
 
 
-def build_agg_weekly_category(messages: pd.DataFrame) -> pd.DataFrame:
-    wk = metrics.weekly_category_counts(messages, top_n=4)
+def build_agg_weekly_cluster(messages: pd.DataFrame) -> pd.DataFrame:
+    wk = metrics.weekly_cluster_counts(messages)
     return (wk.reset_index()
-            .melt(id_vars="week_start", var_name="category", value_name="n")
+            .melt(id_vars="week_start", var_name="cluster_id", value_name="n")
             .rename(columns={"week_start": "week"}))
 
 
@@ -401,51 +386,82 @@ def build_agg_weekly_rating(fact_meal: pd.DataFrame) -> pd.DataFrame:
                                            "count": "n"})
 
 
-def build_agg_priority_matrix(messages, fact_meal, dim_user,
-                              neg_by_cat: "pd.Series | None" = None) -> pd.DataFrame:
-    msgs_pm = messages[messages["dominant_category"] != "unclassified"]
-    meal_cat = fact_meal.merge(
-        dim_user[["user_id", "dominant_category"]].drop_duplicates("user_id"),
-        on="user_id", how="left")
-    pm = metrics.priority_matrix_frame(msgs_pm, meal_cat, neg_by_category=neg_by_cat)
-    out = pm.reset_index().rename(columns={"dominant_category": "category"})
+def build_agg_priority_matrix(messages, fact_meal, dim_user, dim_cluster,
+                              neg_by_cluster: "pd.Series | None" = None) -> pd.DataFrame:
+    """Per-cluster priority frame, labelled with each cluster's own terms.
 
-    # Carry the canonical EN label and colour, from the same CAT_EN source
-    # dim_category is built from. The dashboard used to recover the label with a
-    # DAX LOOKUPVALUE against dim_category -- but the two tables have no
-    # relationship, and LOOKUPVALUE returns BLANK for a key it cannot find, so a
-    # category the taxonomy gained would plot as an unlabelled bubble rather than
-    # failing. Resolving it here means an unknown key raises at export instead.
-    cat = build_dim_category().set_index("category_key")
-    unknown = sorted(set(out["category"]) - set(cat.index))
+    Only real clusters are plotted: the NO_CLUSTER_ID bucket has no text, so it
+    has no unmet-need signal to place on either axis.
+
+    READING THE AXES. x is the share of conversation volume a cluster's users
+    generate, NOT how much demand exists for a topic — clusters are assigned per
+    user, so every message a user writes counts under their one cluster. The
+    `top_terms` column is carried onto the frame so a bubble can be read as the
+    needs behind the segment rather than mistaken for a topic.
+    """
+    real = messages[messages["cluster_id"] != NO_CLUSTER_ID]
+    meal_cl = fact_meal.merge(
+        dim_user[["user_id", "cluster_id"]].drop_duplicates("user_id"),
+        on="user_id", how="left")
+    pm = metrics.priority_matrix_frame(real, meal_cl, neg_by_cluster=neg_by_cluster)
+    out = pm.reset_index()
+
+    # Resolve the label and colour here, from the dim_cluster this same run
+    # built, so an unknown key raises at export instead of plotting as an
+    # unlabelled bubble. The dashboard used to recover the label with a DAX
+    # LOOKUPVALUE, which returns BLANK for a key it cannot find and therefore
+    # failed silently.
+    cl = dim_cluster.set_index("cluster_id")
+    unknown = sorted(set(out["cluster_id"]) - set(cl.index))
     if unknown:
         raise KeyError(
-            f"priority matrix has categories absent from CAT_EN: {unknown}. "
-            "Add them to export.CAT_EN so the dashboard can label them.")
-    out["category_en"] = out["category"].map(cat["category_en"])
-    out["color_hex"] = out["category"].map(cat["color_hex"])
+            f"priority matrix has clusters absent from dim_cluster: {unknown}. "
+            "dim_cluster and the labels must come from the same clustering run.")
+    out["name"] = out["cluster_id"].map(cl["name"])
+    out["top_terms"] = out["cluster_id"].map(cl["top_terms"])
+    out["color_hex"] = out["cluster_id"].map(cl["color_hex"])
     return out
 
 
-def build_dim_cluster(prof: pd.DataFrame, names: dict) -> pd.DataFrame:
-    d = prof.reset_index().rename(columns={"archetype": "cluster_id"})
-    d["name"] = d["cluster_id"].map(names)
+def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
+    """The dashboard's one categorisation dimension.
 
-    # Colour and sort by SIZE RANK, not cluster_id. Cluster ids are assigned by
-    # the clustering run and carry no meaning across runs, so binding a colour
-    # to an id makes the dashboard re-colour itself on every re-cluster. Rank by
-    # n_users is stable in the way that matters: the biggest archetype keeps the
-    # primary brand hue. Ties break on cluster_id so the result is deterministic.
+    `resolved` is `taxonomy.resolve_cluster_names`' output:
+    {cluster_id: {"name", "marker", "provisional"}}.
+
+    Colour and sort by SIZE RANK, not cluster_id. Cluster ids are assigned by
+    the clustering run and carry no meaning across runs, so binding a colour to
+    an id makes the dashboard re-colour itself on every re-cluster. Rank by
+    n_users is stable in the way that matters: the biggest cluster keeps the
+    primary brand hue. Ties break on cluster_id so the result is deterministic.
+    """
+    d = prof.reset_index().rename(columns={"archetype": "cluster_id"})
+    d["name"] = d["cluster_id"].map(lambda c: resolved[c]["name"])
+    d["name_is_provisional"] = d["cluster_id"].map(
+        lambda c: bool(resolved[c]["provisional"]))
+    d["is_real_cluster"] = True
+    if "top_terms" not in d.columns:
+        d["top_terms"] = ""
+
     order = (d.sort_values(["n_users", "cluster_id"], ascending=[False, True],
                            kind="stable")["cluster_id"].tolist())
     rank = {cid: i for i, cid in enumerate(order)}
     d["display_order"] = d["cluster_id"].map(rank)
-    palette = (theme.ARCHETYPE if len(order) <= len(theme.ARCHETYPE)
-               else theme.bar_colors(len(order)))   # k > 6 falls back to full CAT
+    palette = theme.cluster_colors(len(order))   # warns past the validated ceiling
     d["color_hex"] = d["display_order"].map(lambda i: palette[i])
 
-    cols = ["cluster_id", "name", "n_users", "n_messages", "median_age",
-            "top_categories", "display_order", "color_hex"]
+    # The no-text bucket, appended last so it sorts to the end of every legend
+    # and slicer. is_real_cluster is the flag the dashboard filters on.
+    d = pd.concat([d, pd.DataFrame([{
+        "cluster_id": NO_CLUSTER_ID, "name": NO_CLUSTER_NAME, "top_terms": "",
+        "n_users": pd.NA, "n_messages": pd.NA, "median_age": pd.NA,
+        "display_order": len(order), "color_hex": theme.NO_TEXT_COLOR,
+        "is_real_cluster": False, "name_is_provisional": False,
+    }])], ignore_index=True)
+
+    cols = ["cluster_id", "name", "top_terms", "n_users", "n_messages",
+            "median_age", "display_order", "color_hex", "is_real_cluster",
+            "name_is_provisional"]
     return d[[c for c in cols if c in d.columns]]
 
 
@@ -504,15 +520,18 @@ def build_nlp_tone_confusion(report: dict) -> pd.DataFrame:
                                 cm.columns.name: "model_label"})
 
 
-def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
+def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict) -> pd.DataFrame:
+    """One verbatim message per cluster, picked by that cluster's marker term."""
     rows = []
     for cid in sorted(msgs_lab["archetype"].unique()):
-        marker = taxonomy.ARCHETYPE_NAMES[cid]["marker"]
+        meta = resolved[int(cid)]
+        marker = meta["marker"]
         g = (msgs_lab[(msgs_lab["archetype"] == cid)
                       & msgs_lab["message"].str.len().between(60, 190)
-                      & msgs_lab["message"].str.contains(marker, case=False, na=False)]
+                      & msgs_lab["message"].str.contains(marker, case=False, na=False,
+                                                         regex=False)]
              .sort_values(["user_id", "seq"], kind="stable"))
-        rows.append({"cluster_id": int(cid), "name": names.get(cid),
+        rows.append({"cluster_id": int(cid), "name": meta["name"],
                      "message": g["message"].iloc[0] if len(g) else "—"})
     return pd.DataFrame(rows)
 
@@ -521,11 +540,11 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, names: dict) -> pd.DataFrame:
 # change. Deliberately not the package version in pyproject.toml: the code and
 # the report move on different cadences, and a viewer reading the footer wants
 # to know which report they are looking at, not which library built it.
-REPORT_VERSION = "1.1.0"
+REPORT_VERSION = "2.0.0"
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "4") -> pd.DataFrame:
+                   schema_version: str = "5") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
@@ -563,6 +582,13 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.
     rows.append({"metric": "repeat_askers_pct", "exported_value": rap_exp,
                  "reconciliation_value": rap_rec,
                  "match": rap_rec is not None and float(rap_rec) == rap_exp})
+    # Categorisation coverage. Unlike the rows above this has no reconciliation
+    # counterpart — reconciliation is computed before clustering — so it is
+    # matched against the threshold instead.
+    cov = round(100 * qa.cluster_coverage(dim_user), 1)
+    rows.append({"metric": "cluster_coverage_pct", "exported_value": cov,
+                 "reconciliation_value": round(100 * qa.CLUSTER_COVERAGE_THRESHOLD, 1),
+                 "match": cov >= 100 * qa.CLUSTER_COVERAGE_THRESHOLD})
     return pd.DataFrame(rows)
 
 
@@ -591,11 +617,13 @@ def write_all(out_dir, tables: dict) -> pd.DataFrame:
 def _warn_stale_tables(out: Path, written: set) -> None:
     """Name CSVs in `out` that this run did not write.
 
-    A `--skip-nlp` run does not delete the NLP tables it skips, so the previous
-    run's `dim_cluster` / `nlp_*` files stay on disk. Power BI and the notebooks
-    load them without complaint, silently joining an older — and possibly
-    smaller — cohort to today's users. They are not deleted here because a
-    deliberate skip-NLP workflow still wants them; the run says so instead.
+    Every table the pipeline builds is written every run, so an orphan CSV in
+    `out` means either a failed or interrupted run left partial output behind,
+    or the file is left over from an older export whose table set has since
+    changed (a renamed or removed table). Power BI and the notebooks load
+    every CSV in the folder without complaint, silently joining stale data
+    to today's cohort. They are not deleted here so the run can flag them
+    instead and let a human decide.
     """
     orphans = sorted(
         p.name for p in out.glob("*.csv")
@@ -603,7 +631,7 @@ def _warn_stale_tables(out: Path, written: set) -> None:
     if orphans:
         warnings.warn(
             f"{len(orphans)} table(s) in {out} were NOT written by this run and "
-            f"may be from an older export: {', '.join(orphans)}. They are absent "
-            "from _manifest.csv. Re-run without --skip-nlp for a coherent "
-            "folder, or delete them.",
+            f"may be from a failed run or an older export: {', '.join(orphans)}. "
+            "They are absent from _manifest.csv. Delete them, or re-run the "
+            "pipeline to confirm they are regenerated.",
             stacklevel=2)

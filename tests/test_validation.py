@@ -13,9 +13,7 @@ def toy():
         {
             "user_id": [f"u{i % 40}" for i in range(n)],
             "message": [f"mensaje numero {i}" for i in range(n)],
-            "dominant_category": rng.choice(
-                ["legal_documentation", "employment", "protection"], size=n
-            ),
+            "cluster_id": rng.choice([0, 1, 2], size=n),
         }
     )
     sent = pd.DataFrame(
@@ -49,8 +47,8 @@ def test_sample_covers_every_non_empty_stratum(toy):
     msgs, sent = toy
     s = validation.stratified_sample(msgs, sent, n=100, random_state=0)
     picked = msgs.loc[s["message_id"]]
-    # every category present in the corpus survives into the sample
-    assert set(picked["dominant_category"]) == set(msgs["dominant_category"])
+    # every cluster present in the corpus survives into the sample
+    assert set(picked["cluster_id"]) == set(msgs["cluster_id"])
 
 
 def test_binarize_collapses_to_two_classes():
@@ -94,6 +92,30 @@ def test_validation_report_gate():
     rep_ok = validation.validation_report(human, human)
     assert rep_ok["gate_passed"] is True
     assert rep_ok["accuracy"] == pytest.approx(1.0)
+
+
+def test_stratified_sample_strata_are_cluster_by_sentiment():
+    n_rows = 40
+    messages = pd.DataFrame({
+        "user_id": [f"u{i}" for i in range(n_rows)],
+        "message": [f"mensaje numero {i} con texto suficiente" for i in range(n_rows)],
+        "cluster_id": [i % 4 for i in range(n_rows)],
+        "seq": list(range(n_rows)),
+    })
+    sentiment = pd.DataFrame(
+        {"label": ["negative" if i % 2 else "neutral" for i in range(n_rows)]},
+        index=messages.index)
+
+    out = validation.stratified_sample(messages, sentiment, n=16, random_state=0)
+
+    assert len(out) <= 16
+    assert "dominant_category" not in out.columns
+    # every cluster survives the allocation floor. stratified_sample returns a
+    # frame reset to a fresh 0..k-1 index, so out.index cannot be used to look
+    # messages back up -- message_id (the original messages.index, carried
+    # through as a column) is the only reliable join key.
+    picked = messages.loc[out["message_id"], "cluster_id"]
+    assert set(picked) == {0, 1, 2, 3}
 
 
 # ---- gold-label alignment (the positional-join bug) ---------------------------
