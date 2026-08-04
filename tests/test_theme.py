@@ -45,3 +45,19 @@ def test_cluster_colors_warns_past_the_cap_but_still_returns_n():
         cols = theme.cluster_colors(9)
     assert len(cols) == 9
     assert cols[:7] == theme.CLUSTER_IDENTITY
+
+
+def test_cluster_colors_are_always_distinct():
+    """BLUE_SEQ shares three literal hexes with CAT (#009ba4, #62c8ce, #a6dfe3),
+    all three inside CLUSTER_IDENTITY. Naively concatenating CLUSTER_IDENTITY with
+    seq_colors() therefore reissues colours already handed out at n=8, 10 and 12 --
+    two structurally different clusters would get the identical color_hex in
+    dim_cluster, not merely a harder-to-separate one. Every n from 1 to 12 must
+    come back with n distinct colours, and NO_TEXT_COLOR must never be among them."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for n in range(1, 13):
+            cols = theme.cluster_colors(n)
+            assert len(cols) == n
+            assert len(set(cols)) == n, f"n={n}: duplicates {cols}"
+            assert theme.NO_TEXT_COLOR not in cols
