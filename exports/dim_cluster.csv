@@ -1,7 +1,8 @@
-cluster_id,name,n_users,n_messages,median_age,top_categories,display_order,color_hex
-4,Urgent humanitarian needs,310,1854,33.0,"humanitarian_assistance (39%), unclassified (20%)",0,#009ba4
-2,Nationality and family papers,303,1292,32.0,"legal_documentation (86%), unclassified (9%)",1,#671e42
-1,Stuck mid-procedure,217,743,31.0,"legal_documentation (67%), unclassified (16%)",2,#62c8ce
-3,"Permits, visas and travel",164,394,33.0,"legal_documentation (72%), unclassified (10%)",3,#a3557a
-5,Settling in,106,172,32.0,"humanitarian_assistance (37%), legal_documentation (22%)",4,#000031
-0,Building a livelihood,98,208,35.0,"employment (71%), unclassified (11%)",5,#c78fa4
+cluster_id,name,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_cluster,name_is_provisional
+4,Urgent humanitarian needs,"terminal, humanitaria, ipiales, cali, danés, bucaramanga",310,1854,33.0,0,#009ba4,True,False
+2,Nationality and family papers,"colombiana, pasaporte, colombiano, venezuela, nacionalidad, permiso",303,1292,32.0,1,#671e42,True,False
+1,Stuck mid-procedure,"biométrico, tutor, migración, trámite, rumv, perdió",217,743,31.0,2,#62c8ce,True,False
+3,"Permits, visas and travel","permiso, visa, salvoconducto, visitante, pasaporte, conducto",164,394,33.0,3,#a3557a,True,False
+5,Settling in,"humanitaria, humanitarias, cali, ipiales, ayudas, casa",106,172,32.0,4,#000031,True,False
+0,Building a livelihood,"emprendimiento, emprendimientos, beneficios, negocio, emprendedores, empleabilidad",98,208,35.0,5,#c78fa4,True,False
+-1,No conversation text,,,,,6,#b7b7b7,False,False

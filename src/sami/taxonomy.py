@@ -1,55 +1,24 @@
-"""Official MMC category taxonomy + dictionary extraction of institutions/procedures."""
+"""Cluster-name registry + dictionary extraction of institutions/procedures.
+
+The platform's own `Chat_summary` categorisation was removed on 2026-08-03: it
+is the bot summarising itself, its coverage was degrading as the v2 platform
+moved to free prose, and the discovered clusters replaced it as the pipeline's
+single categorisation axis. See
+docs/superpowers/specs/2026-08-03-cluster-categorization-migration-design.md.
+"""
 from __future__ import annotations
 from collections import Counter
 from typing import Iterable
 import re
+import warnings
 import unicodedata
 import pandas as pd
-
-OFFICIAL_CATEGORIES: list[str] = [
-    "legal_documentation",
-    "humanitarian_assistance",
-    "protection",
-    "employment",
-    "organization_search",
-    "journey_information",
-    "services",
-]
-
-# folded, separator-free aliases -> canonical category
-_CATEGORY_ALIASES: dict[str, str] = {
-    "legaldocumentation": "legal_documentation",
-    "humanitarianassistance": "humanitarian_assistance",
-    "protection": "protection",
-    "employment": "employment",
-    "organizationsearch": "organization_search",
-    "journeyinformation": "journey_information",
-    "services": "services",
-}
 
 
 def _fold(s: str) -> str:
     s = unicodedata.normalize("NFKD", str(s))
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.lower()
-
-
-def normalize_category(raw) -> str:
-    """Map a raw Chat_summary value to one official category or 'unclassified'.
-
-    Handles '#' hashtags, '_'/space separators, case; multi-label (comma) and
-    the leftover prompt instruction row both resolve to 'unclassified'.
-    """
-    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
-        return "unclassified"
-    text = str(raw).strip()
-    if text == "" or "," in text:  # blank or multi-label
-        return "unclassified"
-    if len(text) > 60:  # the prompt-leftover instruction row is long
-        return "unclassified"
-    key = _fold(text).lstrip("#").strip()
-    key = re.sub(r"[\s_]+", "", key)  # drop spaces and underscores
-    return _CATEGORY_ALIASES.get(key, "unclassified")
 
 
 # ---- institutions / procedures dictionary ----
@@ -116,7 +85,7 @@ def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
 
 
 # ---- candidate emergent intents (NB3 §3) ----
-# Needs the 7 official categories have no slot for. These are the vocabulary the
+# Needs the discovered clusters do not separate out. These are the vocabulary the
 # NB3 coverage-gap section may assign to a cluster.
 CANDIDATE_INTENT_SLUGS: list[str] = [
     "transport_logistics",
@@ -141,60 +110,90 @@ CANDIDATE_INTENT_PROBES: dict[str, str] = {
     "connectivity": r"\b(?:recarga|datos m[oó]viles|saldo|internet|wifi)\b",
 }
 
-# Named archetypes for the k=6 solution at random_state=0 (NB3 §2). Cluster ids are
-# deterministic under that seed; `marker` is a term that MUST appear in the cluster's
-# top c-TF-IDF terms, so `assert_archetype_mapping` fails loudly if a data refresh
-# reshuffles the ids rather than letting mislabelled archetypes ship.
+# Cluster names, keyed by MARKER TERM rather than by cluster id.
 #
-# REWRITTEN 2026-07-28 for the v2 export. The previous k=4 mapping was read off a
-# 800-user corpus; the v2 corpus is 1,198 user documents and `choose_k` now selects
-# **6** (stability ARI 0.836, well clear of the 0.6 bar; k=5 scores marginally higher
-# at 0.883 but 6 is the largest k clearing the bar, which is the rule). The guard
-# caught this correctly — the old cluster 0 "Urgent humanitarian need" had become an
-# entrepreneurship cluster, and shipping the old names would have mislabelled every
-# archetype.
+# Cluster ids are assigned by one clustering run and carry no meaning across
+# runs: a data refresh reshuffles them freely. The previous id-keyed dict had to
+# be hand-rewritten every time that happened, and `assert_archetype_mapping`
+# hard-failed the whole export until someone did. Keying on a term that is
+# distinctive to the cluster's content means the name follows the cluster.
 #
-# What changed substantively: the old single "Regularising from scratch" bucket has
-# split into two genuinely different populations — people establishing **nationality**
-# for a Colombian-born child (2) versus people chasing **permits and visas** for
-# themselves (3) — and the humanitarian bucket has split into acute need at transit
-# points (4) versus longer-term settlement services (5). Both splits are real and
-# useful; do not collapse them back without re-reading the terms.
+# `marker` MUST be a term that appears in the cluster's top c-TF-IDF terms. The
+# pipeline requests top_n=40 while NB3 renders top_n=12, so a marker ranked
+# below 12 resolves in the pipeline and looks unresolved in the notebook --
+# choose markers from the top handful.
 #
-# Markers are chosen to be UNIQUE to their cluster and inside the top 12 terms,
-# because NB3 calls ctfidf_terms(top_n=12) while the pipeline uses top_n=40 — a
-# marker ranked below 12 would pass the pipeline and fail the notebook.
-ARCHETYPE_NAMES: dict[int, dict[str, str]] = {
-    4: {"name": "Urgent humanitarian needs",
-        "marker": "terminal",
-        "blurb": "Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent."},
-    2: {"name": "Nationality and family papers",
-        "marker": "nacionalidad",
-        "blurb": "Colombian nationality for a child born here: birth registration, apostilles, parents' documents."},
-    1: {"name": "Stuck mid-procedure",
-        "marker": "rumv",
-        "blurb": "Already inside the RUMV/PPT pipeline and blocked: biometrics, appointments, guardianship for minors, collection."},
-    3: {"name": "Permits, visas and travel",
-        "marker": "visitante",
-        "blurb": "Regularising as an adult — PPT, visitor permits, salvoconductos, cédula de extranjería, extensions and onward travel."},
-    5: {"name": "Settling in",
-        "marker": "regulación",
-        "blurb": "Housing, education, transport and regularisation — building a life here rather than meeting an emergency."},
-    0: {"name": "Building a livelihood",
-        "marker": "emprendimiento",
-        "blurb": "Work, training and enterprise support — planning ahead, not in crisis."},
-}
+# Names below were read off the k=6 solution on the 1,198-user v2 corpus
+# (2026-07-28). A cluster whose marker no longer appears is auto-named and
+# flagged provisional rather than blocking the run; review the terms and add or
+# amend an entry here when that happens.
+CLUSTER_NAMES: list[dict[str, str]] = [
+    {"marker": "terminal", "name": "Urgent humanitarian needs",
+     "blurb": "Food, shelter, disability and transport support — often at a bus "
+              "terminal or border town, often stated as urgent."},
+    {"marker": "nacionalidad", "name": "Nationality and family papers",
+     "blurb": "Colombian nationality for a child born here: birth registration, "
+              "apostilles, parents' documents."},
+    {"marker": "rumv", "name": "Stuck mid-procedure",
+     "blurb": "Already inside the RUMV/PPT pipeline and blocked: biometrics, "
+              "appointments, guardianship for minors, collection."},
+    {"marker": "visitante", "name": "Permits, visas and travel",
+     "blurb": "Regularising as an adult — PPT, visitor permits, salvoconductos, "
+              "cédula de extranjería, extensions and onward travel."},
+    {"marker": "regulación", "name": "Settling in",
+     "blurb": "Housing, education, transport and regularisation — building a life "
+              "here rather than meeting an emergency."},
+    {"marker": "emprendimiento", "name": "Building a livelihood",
+     "blurb": "Work, training and enterprise support — planning ahead, not in crisis."},
+]
 
 
-def assert_archetype_mapping(terms: dict[int, "pd.Series"]) -> None:
-    """Fail loudly if cluster ids no longer match ARCHETYPE_NAMES (seed/data drift)."""
-    for cid, meta in ARCHETYPE_NAMES.items():
-        if cid not in terms:
-            raise AssertionError(f"cluster {cid} missing from solution — archetype mapping is stale")
-        if meta["marker"] not in set(terms[cid].index):
-            raise AssertionError(
-                f"cluster {cid} no longer contains marker '{meta['marker']}' "
-                f"(top terms: {list(terms[cid].index[:6])}). Re-read the clusters and "
-                "update ARCHETYPE_NAMES before reporting archetypes."
-            )
+def resolve_cluster_names(terms: dict[int, "pd.Series"],
+                          n_auto_terms: int = 3) -> dict[int, dict]:
+    """Name every cluster in `terms`, auto-naming the ones no marker matches.
+
+    `terms` is what `clusters.ctfidf_terms` returns: {cluster_id -> Series of
+    term -> weight, descending}. Returns {cluster_id -> {"name", "marker",
+    "provisional"}}.
+
+    Each registry entry is claimed at most once, and clusters are visited in
+    ascending id order, so the result is deterministic when two clusters happen
+    to share a marker: the lower id wins it and the other is auto-named.
+
+    This function NEVER raises. A cluster it cannot place gets a name built from
+    its own top terms, `provisional=True`, and a warning. That is deliberate: an
+    unreviewed cluster name is a thing to flag on the dashboard, not a reason to
+    refuse to produce the export at all.
+    """
+    unclaimed = list(CLUSTER_NAMES)
+    out: dict[int, dict] = {}
+    provisional: list[int] = []
+
+    for cid in sorted(terms):
+        top = list(terms[cid].index)
+        top_set = set(top)
+        entry = next((e for e in unclaimed if e["marker"] in top_set), None)
+        if entry is not None:
+            unclaimed.remove(entry)
+            out[int(cid)] = {"name": entry["name"], "marker": entry["marker"],
+                             "provisional": False}
+            continue
+        head = top[:n_auto_terms]
+        out[int(cid)] = {
+            "name": f"Cluster {int(cid)} · {', '.join(head)}",
+            # The top term stands in for a curated marker so downstream consumers
+            # (e.g. export.build_nlp_voices) can still pick a representative quote.
+            "marker": head[0] if head else "",
+            "provisional": True,
+        }
+        provisional.append(int(cid))
+
+    if provisional:
+        warnings.warn(
+            f"{len(provisional)} cluster(s) matched no marker in CLUSTER_NAMES and "
+            f"were given provisional auto-names: {provisional}. They are flagged "
+            "`name_is_provisional` in dim_cluster. Read their top terms and add an "
+            "entry to taxonomy.CLUSTER_NAMES to name them properly.",
+            stacklevel=2)
+    return out
 

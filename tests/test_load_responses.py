@@ -68,11 +68,17 @@ def test_nationality_is_overwhelmingly_venezuelan_on_real_export():
     assert share >= 0.9
 
 
-def test_dominant_category_in_official_set(users_fixture):
-    df = load.load_responses(users_fixture, salt=SALT)
-    from sami.taxonomy import OFFICIAL_CATEGORIES
-    allowed = set(OFFICIAL_CATEGORIES) | {"unclassified"}
-    assert set(df["dominant_category"]).issubset(allowed)
+def test_dominant_category_is_gone(users_fixture):
+    """The platform's own categorisation is not loaded at all any more."""
+    df = load.load_responses(users_fixture)
+    assert "dominant_category" not in df.columns
+
+
+def test_chat_summary_is_no_longer_required(users_fixture):
+    """Chat_summary fed only the retired category mapping, so a source export
+    that stops emitting it must still load."""
+    from sami import qa
+    assert "Chat_summary" not in qa._CRITICAL["responses"]
 
 
 def test_split_messages_drops_redacted_only_lines():

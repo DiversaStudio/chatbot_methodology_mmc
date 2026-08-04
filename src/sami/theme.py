@@ -13,6 +13,8 @@
 # Old names (BLUES, bar_colors, NEGRO, CIELO, ...) are kept as aliases so
 # existing notebooks keep working unchanged.
 
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -56,13 +58,92 @@ PRIMARY = TEAL                                      # single-series brand teal
 ACCENT  = WINE                                      # annotations / the one pop
 DEEP    = NAVY                                      # flags, secondary series
 
-# Archetype identity colours, indexed by SIZE RANK (0 = largest archetype), not
-# by cluster_id. Cluster ids are an artefact of one clustering run and are not
-# stable across re-runs; "the biggest archetype is brand teal" is. Consumed by
+# Cluster identity colours, indexed by SIZE RANK (0 = largest cluster), not by
+# cluster_id. Cluster ids are an artefact of one clustering run and are not
+# stable across re-runs; "the biggest cluster is brand teal" is. Consumed by
 # `export.build_dim_cluster`, which writes the hex into `dim_cluster.color_hex`
 # so Power BI binds colour from the data instead of a hand-typed list.
-# Six slots because k = 6; all six sit inside CAT's validated range.
-ARCHETYPE = CAT[:6]
+#
+# Seven slots, because CAT is validated to seven (see CAT_VALIDATED above) --
+# NOT because k is seven. k is chosen by the stability rule and may exceed it.
+CLUSTER_IDENTITY = CAT[:CAT_VALIDATED]
+
+# CAT slot 8. Reserved for the cluster_id = -1 "No conversation text" bucket and
+# never handed to a real cluster: it is the grey the retired `unclassified`
+# category used, so the "no information" reading carries over for anyone who
+# knew the old dashboard.
+NO_TEXT_COLOR = CAT[7]
+
+# The readability ceiling on k. Not a limit on what the data may support -- the
+# stability rule still picks k freely -- but the point past which colour stops
+# being able to tell the clusters apart, so charts must direct-label their marks
+# or fold the tail into "Other".
+K_SOFT_CAP = CAT_VALIDATED
+
+
+def cluster_colors(n):
+    """Return n cluster identity colours by size rank.
+
+    Up to `K_SOFT_CAP` these come from CAT's validated range, unchanged. Past it
+    the extras are pulled from the sequential ramp and a warning is raised,
+    because CAT's remaining slots are near-neutral pales sitting ΔE 3-4 apart
+    under both normal and protan vision — a chart reaching them cannot use
+    colour for identity at all.
+
+    BLUE_SEQ (the ramp `seq_colors` draws from) shares three literal hexes with
+    CLUSTER_IDENTITY (#009ba4, #62c8ce, #a6dfe3), so naively appending it would
+    reissue a colour already handed out -- two structurally different clusters
+    getting the identical `color_hex` in `dim_cluster`, not merely a
+    harder-to-separate one. `export.build_dim_cluster` writes these straight
+    into Power BI's colour binding, so this function guarantees the *distinct*
+    part unconditionally: it skips any ramp colour already issued, and if the
+    ramp still can't supply enough distinct values (only 3 fresh ones exist
+    past the 7 already used) it fills the remainder by darkening MUTED
+    deterministically, one step per extra slot. What it does NOT guarantee past
+    `K_SOFT_CAP` is CVD separation -- distinct-but-adjacent colours can still be
+    hard to tell apart for colour-blind viewers, so charts past the cap must
+    still direct-label their marks or fold the tail into "Other". `NO_TEXT_COLOR`
+    is never returned.
+    """
+    if n <= K_SOFT_CAP:
+        return CLUSTER_IDENTITY[:n]
+    warnings.warn(
+        f"{n} clusters exceeds the {K_SOFT_CAP}-colour validated palette: colour "
+        "can no longer distinguish them. Direct-label every mark, or fold the "
+        "smallest clusters into an 'Other' series.",
+        stacklevel=2)
+
+    issued = set(CLUSTER_IDENTITY)
+    extra = []
+    # Pull fresh colours from the sequential ramp, skipping any already issued.
+    # Oversample the ramp (ask for more steps than we need) so there's enough
+    # room to filter down to the count of genuinely NEW colours still required.
+    needed = n - K_SOFT_CAP
+    for c in seq_colors(needed + len(BLUE_SEQ)):
+        if len(extra) == needed:
+            break
+        if c not in issued:
+            issued.add(c)
+            extra.append(c)
+
+    # BLUE_SEQ only has 3 hexes outside CLUSTER_IDENTITY, so large n can still
+    # run the ramp dry. Fall back to walking the hue wheel at the golden-angle
+    # step -- an old trick for handing out any number of colours that stay
+    # maximally spread apart from each other and from whatever came before.
+    # Not validated for CVD or brand fit, but deterministic (same seed, same
+    # step count every call) and guaranteed distinct, which is the property
+    # `dim_cluster.color_hex` actually needs once we're this far past the cap.
+    import colorsys
+    hue = 0.0
+    while len(extra) < needed:
+        hue = (hue + 0.618034) % 1.0  # golden ratio conjugate
+        r, g, b = colorsys.hsv_to_rgb(hue, 0.55, 0.75)
+        fallback = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+        if fallback not in issued:
+            issued.add(fallback)
+            extra.append(fallback)
+
+    return CLUSTER_IDENTITY + extra
 
 # Priority-matrix quadrant shading. Keyed by the two axes of
 # `agg_priority_matrix`: volume (x, messages) and unmet need (y). These are

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import config, canon, taxonomy, schema, datasets
+from . import config, canon, schema, datasets
 
 _NOISE = {"undefined", "?", ""}
 
@@ -195,7 +195,6 @@ def load_responses(path=None, salt=None) -> pd.DataFrame:
     _session = (df["last_message_ts"] - df["ts"]).dt.total_seconds() / 60
     df["session_minutes"] = _session.where(_session >= 0)
     df["n_questions"] = pd.to_numeric(df.get("Questions per user"), errors="coerce")
-    df["dominant_category"] = df["Chat_summary"].map(taxonomy.normalize_category)
     # P4: *_other consolidation (city already done above) + display-ready derivations
     df["gender_clean"] = [canon.clean_gender(g, o) for g, o in zip(_col("Gender"), _col("Gender_other"))]
     df["nationality_clean"] = [canon.clean_nationality(n, o) for n, o in zip(_col("Nationality"), _col("Nationality_other"))]
@@ -215,7 +214,7 @@ def load_messages(responses_df: pd.DataFrame) -> pd.DataFrame:
     (2-3 records for 26 of 917 users in the real export); `n_msgs_user` and
     `seq` are computed per USER (across all of that user's records), not per
     record, so the P6 invariant (sum of per-user counts == total rows) holds."""
-    carry = [c for c in ["user_id", "ts", "city_canon", "dominant_category",
+    carry = [c for c in ["user_id", "ts", "city_canon",
                          "Gender", "Age Ranges", "Nationality", "age_num"]
              if c in responses_df.columns]
     rows = []

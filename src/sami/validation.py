@@ -79,16 +79,21 @@ def stratified_sample(
     n: int = 200,
     random_state: int = 0,
 ) -> pd.DataFrame:
-    """Blind validation sample, stratified by category x predicted sentiment.
+    """Blind validation sample, stratified by cluster x predicted sentiment.
 
     Proportional allocation with a floor of one row per non-empty stratum, so
-    rare strata (e.g. negative + protection) cannot vanish. The returned frame
-    contains SAMPLE_COLUMNS only — the prediction is deliberately withheld.
+    rare strata (e.g. negative + a small cluster) cannot vanish. The returned
+    frame contains SAMPLE_COLUMNS only — the prediction is deliberately
+    withheld.
+
+    Re-stratifying changes the shape of any FUTURE sample. The existing tone
+    gold labels stay valid: they are keyed by message content hash and resolved
+    through `align_gold`, not by position in this sample.
     """
     frame = messages.copy()
     frame["_strat_sent"] = sentiment.loc[frame.index, "label"].values
     frame["_strat"] = (
-        frame["dominant_category"].astype(str) + "|" + frame["_strat_sent"].astype(str)
+        frame["cluster_id"].astype(str) + "|" + frame["_strat_sent"].astype(str)
     )
     frame = frame[frame["message"].astype(str).str.strip() != ""]
 
