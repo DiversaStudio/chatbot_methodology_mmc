@@ -525,32 +525,51 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
     """One verbatim message per cluster, picked by a term distinctive to it.
 
     `terms_by_cluster` maps cluster_id -> the comma-joined `top_terms` string
-    `dim_cluster` carries. It is the fallback pool: the naming marker is tried
-    first, then the cluster's other distinctive terms in rank order. Passing
-    None restricts the search to the marker alone, which is the pre-2026-08-04
-    behaviour and can leave a cluster with no quotable message.
+    `dim_cluster` carries. It is the fallback pool, searched in this order:
 
-    `matched_term` records which term actually found the quote, so a reader can
-    see when the marker itself was not quotable.
+    1. the cluster's naming marker
+    2. its top terms that appear in NO other cluster's top terms
+    3. its remaining (shared) top terms
+
+    Passing None restricts the search to the marker alone, which is the
+    pre-2026-08-04 behaviour and can leave a cluster with no quotable message.
+
+    Step 2 exists because a shared term makes a bad exemplar. "Settling in" and
+    "Urgent humanitarian needs" both list *humanitaria*, *cali* and *ipiales*;
+    searching those first handed "Settling in" a quote about returning to
+    Venezuela, which is close to the opposite of settling. Preferring a term
+    unique to the cluster keeps the quote about what distinguishes it.
+
+    `matched_term` records which term actually found the quote. When it differs
+    from `resolved[cid]["marker"]` the quote is a fallback, and a consumer
+    showing it as an exemplar should say so.
     """
     terms_by_cluster = terms_by_cluster or {}
+
+    def _terms(cid) -> list:
+        return [t for t in str(terms_by_cluster.get(int(cid), "")).split(", ") if t]
+
+    # A term is "shared" when more than one cluster lists it among its top terms.
+    shared = {t for t in
+              (t for cid in terms_by_cluster for t in _terms(cid))
+              if sum(t in _terms(c) for c in terms_by_cluster) > 1}
+
     rows = []
     for cid in sorted(msgs_lab["archetype"].unique()):
         meta = resolved[int(cid)]
         in_cluster = msgs_lab[(msgs_lab["archetype"] == cid)
                               & msgs_lab["message"].str.len().between(60, 190)]
 
-        # Try the cluster's naming marker first, then its other distinctive
-        # terms in rank order. A marker can be genuinely absent from every
-        # message in this length band -- "regulación" was, for the Settling in
-        # cluster, which left that panel rendering an em-dash on the dashboard
-        # while five siblings showed a real voice. Falling through the terms
-        # keeps the quote DISTINCTIVE (it still contains something c-TF-IDF
-        # picked out for this cluster) rather than dropping to an arbitrary
-        # message, and only gives up when nothing distinctive is quotable.
-        candidates = [meta["marker"]] + [
-            t for t in str(terms_by_cluster.get(int(cid), "")).split(", ")
-            if t and t != meta["marker"]]
+        # A marker can be genuinely absent from every message in this length
+        # band -- "regulación" was, for the Settling in cluster, which left that
+        # panel rendering an em-dash on the dashboard while five siblings showed
+        # a real voice. Falling through the terms keeps the quote DISTINCTIVE
+        # rather than dropping to an arbitrary message, and only gives up when
+        # nothing distinctive is quotable.
+        rest = [t for t in _terms(cid) if t != meta["marker"]]
+        candidates = ([meta["marker"]]
+                      + [t for t in rest if t not in shared]
+                      + [t for t in rest if t in shared])
 
         message, matched = "—", None
         for term in candidates:

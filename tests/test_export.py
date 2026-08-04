@@ -326,6 +326,39 @@ def test_nlp_voices_falls_through_to_the_next_distinctive_term():
     assert v.loc[0, "matched_term"] == "vivienda"
 
 
+def test_nlp_voices_prefers_a_term_no_other_cluster_shares():
+    """A term two clusters both rank highly makes a bad exemplar.
+
+    "Settling in" and "Urgent humanitarian needs" both list *humanitaria*.
+    Searching shared terms first handed "Settling in" a quote about returning
+    to Venezuela — close to the opposite of settling. The exclusive term must
+    win even when the shared one outranks it.
+    """
+    resolved = {0: {"name": "Settling in", "marker": "regulación", "provisional": False},
+                1: {"name": "Urgent need", "marker": "terminal", "provisional": False}}
+    # `humanitaria` is shared and ranks FIRST; `casa` is exclusive and ranks last.
+    terms = {0: "humanitaria, cali, casa", 1: "terminal, humanitaria, cali"}
+
+    shared_msg = ("quiero saber que ayuda humanitaria dan para regresar a mi "
+                  "pais porque ya no quiero seguir aca")
+    excl_msg = ("estoy buscando una casa en arriendo para mi familia porque "
+                "vamos a quedarnos en esta ciudad")
+    msgs_lab = pd.DataFrame({
+        "archetype": [0, 0, 1],
+        "user_id": ["u1", "u2", "u3"],
+        "seq": [0, 0, 0],
+        "message": [shared_msg, excl_msg, "en la terminal del norte no me quisieron "
+                                          "atender y llevo dos dias esperando aqui"]})
+
+    v = export.build_nlp_voices(msgs_lab, resolved,
+                                terms_by_cluster=terms).set_index("cluster_id")
+    # Exclusive `casa` beats shared `humanitaria` despite ranking lower.
+    assert v.loc[0, "matched_term"] == "casa"
+    assert v.loc[0, "message"] == excl_msg
+    # Cluster 1's own marker still wins outright.
+    assert v.loc[1, "matched_term"] == "terminal"
+
+
 def test_nlp_voices_dash_fallback_when_nothing_is_quotable():
     cid = 0
     resolved = {cid: {"name": "X", "marker": "pasaporte", "provisional": False}}
