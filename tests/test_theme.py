@@ -61,3 +61,27 @@ def test_cluster_colors_are_always_distinct():
             assert len(cols) == n
             assert len(set(cols)) == n, f"n={n}: duplicates {cols}"
             assert theme.NO_TEXT_COLOR not in cols
+
+
+def test_cluster_colors_terminates_on_an_absurd_request():
+    """An n past the reachable colour space raises instead of hanging.
+
+    The past-the-cap hue walk draws from a finite set: at fixed saturation and
+    value the wheel quantises to a few hundred 8-bit hexes. Without a bound the
+    loop would spin forever hunting a colour that does not exist, and the
+    pipeline would appear to stall with no output. Unreachable in practice --
+    `choose_k` caps k at 12 -- so this test guards the failure mode, not a
+    real code path.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pytest.raises(ValueError, match="fold the tail"):
+            theme.cluster_colors(5000)
+
+
+def test_cluster_colors_is_deterministic_across_calls():
+    """color_hex is exported data, so the same n must always give the same list."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert theme.cluster_colors(12) == theme.cluster_colors(12)
+        assert theme.cluster_colors(9)[:7] == theme.CLUSTER_IDENTITY

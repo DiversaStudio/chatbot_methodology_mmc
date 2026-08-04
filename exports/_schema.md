@@ -419,9 +419,19 @@ Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
 combination of the two label columns. Feeds NB3 §4 confusion matrix.
 
 ### `nlp_voices` — 1 row per cluster exemplar (6 rows)
-Cols: `cluster_id`, `name`, `message`. One representative quote per real
-cluster (the `-1` "No conversation text" bucket has no message to quote).
-Feeds NB3 §5 qualitative voices.
+Cols: `cluster_id`, `name`, `matched_term`, `message`. One representative quote
+per real cluster (the `-1` "No conversation text" bucket has no message to
+quote). Feeds NB3 §5 qualitative voices.
+
+The quote is chosen by searching that cluster's messages (60–190 characters)
+for a term distinctive to it: the naming marker first, then the cluster's other
+`top_terms` in rank order. `matched_term` records which one found the quote, so
+a reader can see when the marker itself was not quotable — which happens: on the
+2026-08-04 export the "Settling in" marker `regulación` appears in no message of
+that length, and the quote was found on `humanitaria` instead. Before the
+fallback existed that cluster exported a literal em-dash, and the dashboard's
+voices visual rendered one empty panel beside five real ones. `message` is still
+`—` and `matched_term` null if nothing distinctive is quotable at all.
 
 *Discrepancy: the design spec also listed `nlp_negative_by_category` (share
 of negative-sentiment messages per category) and `nlp_sentiment_dist`
