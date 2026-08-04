@@ -57,12 +57,11 @@ it before `requirements.txt` means `pip` keeps the wheel already present.
 
 ## The first run downloads models
 
-A full run (not `--skip-nlp`) uses two Hugging Face models: a sentence
-embedding model and a sentiment model, roughly 4 GB together. The first run
-downloads them once into the user's Hugging Face cache directory
-(`~/.cache/huggingface/hub`, or `$HF_HOME/hub` if `HF_HOME` is set). Every
-run after that reads the local cache and needs no network access for the
-models.
+The pipeline uses two Hugging Face models: a sentence embedding model and a
+sentiment model, roughly 4 GB together. The first run downloads them once
+into the user's Hugging Face cache directory (`~/.cache/huggingface/hub`, or
+`$HF_HOME/hub` if `HF_HOME` is set). Every run after that reads the local
+cache and needs no network access for the models.
 
 ## Refresh runbook
 
@@ -107,18 +106,16 @@ End-to-end sequence for refreshing the exports with a new data export:
    CSVs and, if the report changed meaningfully, the `.pbix` file — see [The
    `.pbix` is a tracked binary](#the-pbix-is-a-tracked-binary).
 
-## The three run modes
+## The two run modes
 
 ```powershell
 .venv\Scripts\python.exe run_pipeline.py             # full run
-.venv\Scripts\python.exe run_pipeline.py --skip-nlp   # non-NLP tables only
 .venv\Scripts\python.exe run_pipeline.py --check      # preflight only, no work
 ```
 
 | Mode | What it does | Measured duration |
 | --- | --- | --- |
-| `run_pipeline.py` | Full pipeline: load, embed, cluster, sentiment, dimension/fact/aggregate tables, PII scan, write. Writes the full set of tables in `exports/`. | ~174 seconds (this run, RTX 3050 Ti, model cache warm). Previously measured at 2m11s on the same GPU and 5m22s on CPU only (also model cache warm); the CPU figure has not been re-measured on this branch. |
-| `--skip-nlp` | Everything except embedding, clustering, and sentiment. No model download, no NLP-dependent tables (`dim_cluster`, `nlp_*`). | ~7 seconds (this run). |
+| `run_pipeline.py` | Full pipeline: load, embed, cluster, sentiment, dimension/fact/aggregate tables, PII scan, write. Writes the full set of tables in `exports/`, including `dim_cluster` and every `nlp_*` table. | ~174 seconds (this run, RTX 3050 Ti, model cache warm). Previously measured at 2m11s on the same GPU and 5m22s on CPU only (also model cache warm); the CPU figure has not been re-measured on this branch. |
 | `--check` | Runs the ten preflight checks and exits. `responses`/`meal` each read only the first 5 rows of the export to confirm the header and columns; nothing is written. | Seconds. |
 
 The run prints numbered, timed stages (e.g. `[5/9] sentiment over N
@@ -139,14 +136,14 @@ lets it continue.
 | Check | What it verifies | Fix when it fails |
 | --- | --- | --- |
 | `python` | Python is 3.11 or newer. | Install Python 3.11+ and recreate the environment: `uv sync` |
-| `packages` | The required packages are importable (`pandas`, `numpy`, `sklearn`, `openpyxl` always; `torch`, `transformers`, `sentence_transformers`, `umap` unless `--skip-nlp`). | `uv sync` (add `--no-group cpu --group gpu` on an NVIDIA machine) |
+| `packages` | The required packages are importable (`pandas`, `numpy`, `sklearn`, `openpyxl`, `torch`, `transformers`, `sentence_transformers`, `umap`). | `uv sync` (add `--no-group cpu --group gpu` on an NVIDIA machine) |
 | `salt` | `SAMI_SALT` resolves (environment or `.env`). | The pseudonymization salt is never committed. Obtain it out-of-band and put `SAMI_SALT=...` in a `.env` file at the repo root (gitignored), or set it in the environment. A different salt yields different `user_id` hashes, so exports will not match the committed ones. |
 | `responses` | `datasets/responses/` has a readable `.xlsx` with every required column present after header detection and column mapping. | If no file: save the responses export into `datasets/responses/`, or pass `--responses PATH`. If a column is missing: the error names the file and the missing column(s) — see `DATA_SOURCES.md`. |
 | `meal` | Same as `responses`, for `datasets/meal/`. | Save the MEAL export into `datasets/meal/`, or pass `--meal PATH`. |
-| `tone labels` | `validation/tone_labels_analyst.csv` exists (skipped, and reported `OK`, under `--skip-nlp`). See [`DATA_SOURCES.md`](DATA_SOURCES.md) for what this file is, its columns, and why it is committed rather than dropped into `datasets/`. | A full run reads this file to build the `nlp_tone_confusion` table. Restore the file, or run with `--skip-nlp`. |
-| `device` | Whether CUDA is usable (skipped, and reported `OK`, under `--skip-nlp`). | CPU-only is a `WARN`, not a `FAIL` — the run proceeds, only slower. On an NVIDIA machine, install the CUDA build: `uv sync --no-group cpu --group gpu` |
-| `models` | The two Hugging Face models are cached, or the network can reach `huggingface.co` to download them (skipped, and reported `OK`, under `--skip-nlp`). | Connect to the network for the first run, or copy a populated cache to the Hugging Face cache directory, or run with `--skip-nlp`. |
-| `disk` | Enough free disk space for the model cache (or a smaller minimum under `--skip-nlp`). | Free up space (the model cache is the bulk of it). |
+| `tone labels` | `validation/tone_labels_analyst.csv` exists. See [`DATA_SOURCES.md`](DATA_SOURCES.md) for what this file is, its columns, and why it is committed rather than dropped into `datasets/`. | A full run reads this file to build the `nlp_tone_confusion` table. Restore the file. |
+| `device` | Whether CUDA is usable. | CPU-only is a `WARN`, not a `FAIL` — the run proceeds, only slower. On an NVIDIA machine, install the CUDA build: `uv sync --no-group cpu --group gpu` |
+| `models` | The two Hugging Face models are cached, or the network can reach `huggingface.co` to download them. | Connect to the network for the first run, or copy a populated cache to the Hugging Face cache directory. |
+| `disk` | Enough free disk space for the model cache. | Free up space (the model cache is the bulk of it). |
 | `output` | The output directory exists and is writable. | `mkdir -p <dir>`, or pass `--out` to another path. Or check permissions. |
 
 Verbatim output captured on this branch, on this machine (GPU present, data

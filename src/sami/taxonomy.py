@@ -85,7 +85,7 @@ def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
 
 
 # ---- candidate emergent intents (NB3 §3) ----
-# Needs the 7 official categories have no slot for. These are the vocabulary the
+# Needs the discovered clusters do not separate out. These are the vocabulary the
 # NB3 coverage-gap section may assign to a cluster.
 CANDIDATE_INTENT_SLUGS: list[str] = [
     "transport_logistics",

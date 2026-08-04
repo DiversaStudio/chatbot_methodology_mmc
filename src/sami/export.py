@@ -617,11 +617,13 @@ def write_all(out_dir, tables: dict) -> pd.DataFrame:
 def _warn_stale_tables(out: Path, written: set) -> None:
     """Name CSVs in `out` that this run did not write.
 
-    A `--skip-nlp` run does not delete the NLP tables it skips, so the previous
-    run's `dim_cluster` / `nlp_*` files stay on disk. Power BI and the notebooks
-    load them without complaint, silently joining an older — and possibly
-    smaller — cohort to today's users. They are not deleted here because a
-    deliberate skip-NLP workflow still wants them; the run says so instead.
+    Every table the pipeline builds is written every run, so an orphan CSV in
+    `out` means either a failed or interrupted run left partial output behind,
+    or the file is left over from an older export whose table set has since
+    changed (a renamed or removed table). Power BI and the notebooks load
+    every CSV in the folder without complaint, silently joining stale data
+    to today's cohort. They are not deleted here so the run can flag them
+    instead and let a human decide.
     """
     orphans = sorted(
         p.name for p in out.glob("*.csv")
@@ -629,7 +631,7 @@ def _warn_stale_tables(out: Path, written: set) -> None:
     if orphans:
         warnings.warn(
             f"{len(orphans)} table(s) in {out} were NOT written by this run and "
-            f"may be from an older export: {', '.join(orphans)}. They are absent "
-            "from _manifest.csv. Re-run without --skip-nlp for a coherent "
-            "folder, or delete them.",
+            f"may be from a failed run or an older export: {', '.join(orphans)}. "
+            "They are absent from _manifest.csv. Delete them, or re-run the "
+            "pipeline to confirm they are regenerated.",
             stacklevel=2)

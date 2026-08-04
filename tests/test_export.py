@@ -808,13 +808,14 @@ def test_every_dim_user_column_has_a_cohort_policy(SD):
 
 
 def test_write_all_warns_about_tables_it_did_not_write(tmp_path):
-    """--skip-nlp leaves the previous run's NLP tables on disk; Power BI loads
-    them silently. The run must say so."""
+    """A failed or interrupted run, or files left from an older export, can
+    leave a stale table on disk; Power BI loads it silently. The run must
+    say so."""
     stale = tmp_path / "nlp_umap.csv"
     stale.write_text("user_id,x,y\na,1,2\n", encoding="utf-8")
     with pytest.warns(UserWarning, match="nlp_umap.csv"):
         export.write_all(tmp_path, {"dim_city": pd.DataFrame({"city_canon": ["Bogotá"]})})
-    assert stale.exists(), "the warning must not delete a deliberate skip-NLP artifact"
+    assert stale.exists(), "the warning must not delete an orphan table on its own"
 
 
 def test_write_all_is_quiet_when_the_folder_matches_the_run(tmp_path):
