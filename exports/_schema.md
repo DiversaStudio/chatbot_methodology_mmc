@@ -4,29 +4,40 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 `src/sami/export.py` and written by `run_pipeline.py`. Regenerate with:
 
 ```powershell
-.venv/Scripts/python.exe run_pipeline.py            # full run incl. GPU NLP -> all tables
-.venv/Scripts/python.exe run_pipeline.py --skip-nlp  # fast CPU run -> non-NLP tables only
+.venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "4"`** (bumped from `"3"` by the v1.1.0 dashboard change, which added
-`dim_quadrant`, `dim_cluster[display_order, color_hex]` and `meta_run[report_version]`; `"3"`
-came from the July 2026 v2 export migration — see
+**`schema_version = "5"`** (bumped from `"4"` by the cluster-categorization migration,
+2026-08-03: the chatbot platform's own `Chat_summary` category taxonomy was dropped as the
+pipeline's categorization axis in favour of the discovered clusters. `dim_category` and
+`agg_weekly_category` were removed; `agg_weekly_cluster` was added; `dim_user` and
+`fact_message` dropped `dominant_category` in favour of the always-populated `cluster_id`;
+`dim_cluster` gained `top_terms`, `is_real_cluster` and `name_is_provisional`, and now carries
+a row for the "No conversation text" bucket (`cluster_id = -1`) alongside the real clusters;
+`agg_priority_matrix` is now keyed on `cluster_id` and carries `name` / `top_terms` /
+`color_hex` instead of the category columns; and `parity_check` gained a `cluster_coverage_pct`
+row. `"4"` came from the v1.1.0 dashboard change, which added `dim_quadrant`,
+`dim_cluster[display_order, color_hex]` and `meta_run[report_version]`; `"3"` came from the
+July 2026 v2 export migration — see
 `docs/superpowers/specs/2026-07-28-sami-v2-export-migration-design.md`). The chatbot platform
 was replaced and the registration survey rewritten; every export now carries two
 questionnaire cohorts, `v1` and `v2`, distinguished by `dim_user[instrument_version]`. Which
 variables may be pooled across the cohorts and which must be split is a permanent policy in
 `src/sami/cohort.py`, not a one-off migration note — see the module docstring there and the
-per-table warnings below. New in this schema version: the `agg_registration_funnel` and
+per-table warnings below. New in schema v3: the `agg_registration_funnel` and
 `agg_language` tables; `instrument_version`, `language`, `registration_status`, `attempts`,
 `is_returning`, `safety_alert`, `escalation_status` on `dim_user`; `no_usefulness_reason` and
 `reason_is_valid` on `fact_meal`; and `fact_message[message_id]` changed from a positional
 row index to a content hash (see that table's entry below).
 
-`--skip-nlp` omits `dim_cluster` and every `nlp_*` table, and leaves
-`cluster_id` / `sentiment_label` null in `dim_user` / `fact_message`. **It does not
-DELETE the tables it skips** — a previous run's files stay on disk and load into
-Power BI looking current. The run now warns and names them; `_manifest.csv` lists
-only what that run actually wrote, so it is the authoritative inventory.
+The pipeline writes every table on every run — there is no partial-run flag. An orphan CSV
+in `exports/` (present on disk but absent from `_manifest.csv`) means either a failed or
+interrupted run left partial output behind, or the file is left over from an older export
+whose table set has since changed (a renamed or removed table, as `dim_category` and
+`agg_weekly_category` were in schema v5). `write_all` does not delete such files; it warns
+and names them so a human can decide whether to delete them or re-run the pipeline.
+`_manifest.csv` lists only what the current run actually wrote, so it is the authoritative
+inventory.
 
 **The gold layer is English.** Every survey value that reaches a slicer, axis or
 legend is translated on the way out (`export.to_english_user` /
@@ -66,10 +77,10 @@ not non-response. `Pasto` moved out of `Other` in the v2 migration — see
 **Charts with no dedicated table.** Gender split, age histogram, minors,
 away-duration, and nationality are built in Power BI directly from `dim_user`.
 Nationality **must** be sliced by `instrument_version` — see the warning under
-`dim_user` below. All sentiment-by-category, negative-by-category, and
+`dim_user` below. All sentiment-by-cluster, negative-by-cluster, and
 3-class-tone charts are built directly from `dim_user` / `fact_message` (which
-carry `dominant_category`, `city_canon`, `sentiment_label`) — no separate
-`nlp_sentiment_dist` / `nlp_negative_by_category` table ships (see
+carry `cluster_id`, `city_canon`, `sentiment_label`) — no separate
+`nlp_sentiment_dist` / `nlp_negative_by_cluster` table ships (see
 "Discrepancies vs. the design spec" below).
 
 `meta_run` carries `tone_gate_passed` and `sentiment_quotable` as boolean
@@ -102,7 +113,6 @@ of their earliest record — the survey they actually answered.
 | `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2** |
 | `away_duration_canon`, `away_duration_order` | time away from origin; never null — see non-response below. **v1-only**: the question (Q9) was retired in v2, so this series is frozen at whatever v1 already carries |
 | `city_duration_canon`, `city_duration_order` | time in current city; never null — see non-response below |
-| `dominant_category` | user's most-frequent message category |
 | `destination_country` | stated onward destination |
 | `n_questions` | messages sent, from the responses sheet |
 | `n_msgs_user` | messages sent, recomputed from `SD.messages` |
@@ -110,7 +120,7 @@ of their earliest record — the survey they actually answered.
 | `first_seen` | earliest message timestamp for the user (drives "New users this period") |
 | `is_repeat_asker` | boolean, `n_questions ≥ p90` — same definition as `reconciliation.repeat_askers_pct` |
 | `intends_to_stay` | boolean; no onward destination stated, or destination is Colombia |
-| `cluster_id` | archetype id; null when `--skip-nlp` |
+| `cluster_id` | the user's discovered cluster (the pipeline's categorization axis — see `dim_cluster` below). **Never null**: users with no conversation text are assigned `cluster_id = -1`, the "No conversation text" bucket, rather than left blank |
 | `language` | interface language selected (`es` / `en`, no `fr` observed). **New in schema v3, v2-only** — the language selector did not exist in v1 |
 | `registration_status` | raw pass-through of the platform's `Registration Status` field (`Completed` / `Abandoned` / `In Progress`, …). **New in schema v3, v2-only** |
 | `attempts` | number of registration attempts. **New in schema v3, v2-only** |
@@ -150,16 +160,16 @@ Source: `SD.messages`, joined to sentiment + archetype.
 |---|---|
 | `message_id` | **content hash, not a row index — changed in schema v3.** Previously the stable row position of `SD.messages`; a bigger export re-sorts the message spine, which used to shift every id. Now derived from message content (`export.message_key`), so a re-sort cannot silently reassign an id to a different message. This orphaned the pre-migration `validation/tone_gold_labels.csv` (keyed on the old positional ids); it has since been re-keyed onto the content-hash `message_id` by matching on message text (`validation.align_gold`), dropping rows whose text is not unique in the corpus |
 | `user_id`, `ts` | |
-| `city_canon`, `dominant_category` | |
+| `city_canon` | |
 | `seq`, `n_msgs_user` | position in / length of the user's message sequence |
-| `sentiment_label` | null when `--skip-nlp` |
-| `cluster_id` | user's archetype; null when `--skip-nlp` |
+| `sentiment_label` | **never null** — the pipeline always runs the sentiment model |
+| `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
 
 **Text-free by design.** `fact_message` carries **no** message text (dashboard spec §7 — "no message text in the model"). Verbatim quotes live in `nlp_voices`; word-cloud terms in `nlp_cluster_terms`; neither needs raw text.
 
-Feeds: NB2 §1 category share, §2 volume/category time series; NB3
-negative-by-category, sentiment distribution, voices; the Power-BI-native
-sentiment-by-category charts.
+Feeds: NB2 §1 cluster share, §2 volume/cluster time series; NB3
+negative-by-cluster, sentiment distribution, voices; the Power-BI-native
+sentiment-by-cluster charts.
 
 ### `fact_meal` — 1 row per MEAL survey respondent (115 rows; user grain)
 Source: `SD.meal`, deduplicated to the most recent response per user. The
@@ -180,43 +190,36 @@ raw survey submissions.
 Feeds: NB2 §5 satisfaction, discovery-channel mix, and the new "why wasn't it
 useful" theme read over the 31 valid responses.
 
-### `dim_category` — 1 row per official category (8 rows)
-Static ES→EN lookup for the 7 taxonomy categories + `unclassified`.
+### `dim_cluster` — 1 row per cluster, including the "no text" bucket (7 rows as of the 2026-08-03 run)
 
-| column | notes |
-|---|---|
-| `category_key`, `category_es` | same value (category slug) |
-| `category_en` | display label the notebooks use |
-| `color_hex` | fixed category color (`theme.CAT`), pipeline-driven — set the Power BI palette from this |
-| `display_order` | 0–7 canonical order; `unclassified` = 7 (grey `#b7b7b7`) |
+Source: `clusters.archetype_profiles` plus one synthetic row for `cluster_id = -1`, the
+"No conversation text" bucket (users who registered but never wrote a message, so there is
+nothing to cluster). This is the pipeline's single categorization axis — it replaced the
+platform's own `Chat_summary` taxonomy (`dim_category`, retired in schema v5) on 2026-08-03,
+because that taxonomy was the bot summarising itself and its coverage was degrading as the
+v2 platform moved to free prose.
 
-Feeds: label lookup wherever `dominant_category` is charted.
+**k is chosen at run time, not hardcoded.** `choose_k` selects the cluster count on the
+document corpus by stability (adjusted Rand index across resamples against a bar in
+`clusters.py`); it is a fact of a given run, not a constant. On the 2026-08-03 run it
+selected k = 6 on the 1,198-document v2 corpus (`meta_run[chosen_k] = 6`,
+`meta_run[stability_ari] = 0.836`, `meta_run[k_soft_cap] = 7`). Every export carries the
+value it actually used in `meta_run`; do not assume the count in this document still
+matches — check `chosen_k` first.
 
-**The `unclassified` key displays as "Suggestion" (21.8% of users).** The
-platform's own categorisation is presented as a *suggestion*, not ground truth
-(checkpoint 2026-07-28), and this bucket holds everything the taxonomy cannot
-place: users who registered but never chatted (20.9% of records carry no summary
-at all) plus the v2 timestamped-prose summaries, which carry no category label.
-From the July 2026 platform change onward every new summary is prose, so this
-bucket grows by design — QA gate `P9_summary_format` therefore checks only
-*label-shaped* summaries (0.4% unmappable), and `P7_unclassified_share` measures
-against summaries held rather than all records (2.1%). The key stays
-`unclassified` so joins and every existing chart keep working; only the display
-label changed.
+Cluster names are resolved by matching each cluster's top c-TF-IDF terms against
+`taxonomy.CLUSTER_NAMES`, a list of `{marker, name}` entries keyed on a distinctive term
+rather than on `cluster_id` — cluster ids are an artefact of one clustering run and
+reshuffle freely on a data refresh, so an id-keyed name map had to be hand-rewritten every
+time that happened. A cluster whose top terms match no curated marker is auto-named from
+its own top term instead of blocking the run, and flagged `name_is_provisional = True` (see
+`taxonomy.resolve_cluster_names`); review its top terms in `nlp_cluster_terms` and add a
+marker to `taxonomy.CLUSTER_NAMES` to name it properly. On the 2026-08-03 run all 6 real
+clusters resolved to a curated name (`meta_run[n_provisional_names] = 0`).
 
-### `dim_cluster` — 1 row per archetype (NLP-only; **6 rows** in the current v2 export)
-Source: `clusters.archetype_profiles`, absent when `--skip-nlp`.
+On the 2026-08-03 run:
 
-**Re-mapped 2026-07-28 for the v2 corpus. There are now SIX archetypes, not four.**
-`choose_k` selects k = 6 on the 1,198-document v2 corpus (stability ARI 0.836 over
-50 resamples, comfortably clear of the 0.6 bar). The old k = 4 mapping was read off
-an 800-document corpus and `taxonomy.assert_archetype_mapping` correctly refused to
-ship it — the old cluster 0 "Urgent humanitarian need" had become an
-entrepreneurship cluster.
-
-Two of the old buckets split, and the splits are the finding:
-
-| id | Archetype | n | Dominant need |
+| id | Cluster | n | Dominant need |
 |---|---|---|---|
 | 4 | Urgent humanitarian needs | 310 | humanitarian assistance (39%) |
 | 2 | Nationality and family papers | 303 | legal & documentation (86%) |
@@ -224,46 +227,46 @@ Two of the old buckets split, and the splits are the finding:
 | 3 | Permits, visas and travel | 164 | legal & documentation (72%) |
 | 5 | Settling in | 106 | humanitarian assistance (37%) |
 | 0 | Building a livelihood | 98 | employment (71%) |
+| -1 | No conversation text | 0 (194 users; no messages to cluster) | — |
 
-The old single documentation bucket separated into **nationality for a
-Colombian-born child** (2) versus **permits and visas for an adult** (3); the old
-humanitarian bucket separated into **acute need at transit points** (4) versus
-**longer-term settlement** (5). Each pair looks alike in a category count and calls
+Two of the "documentation"/"humanitarian" pairs look alike in a category count and call
 for a different response — referral versus programme — so do not collapse them back
 without re-reading `nlp_cluster_terms`.
 
-Cluster ids are deterministic at `random_state=0`. Any refresh that reshuffles them
-fails the assertion again by design; `ARCHETYPE_NAMES` markers are chosen to be
-unique to their cluster and inside the top 12 terms, because NB3 requests
-`top_n=12` while the pipeline requests 40.
-
 | column | notes |
 |---|---|
-| `cluster_id`, `name` | archetype id and human name |
-| `n_users`, `n_messages` | archetype size |
-| `median_age` | |
-| `top_categories` | archetype's most-common message categories |
-| `display_order` | 0 = largest archetype. Power BI sort-by column for `name` |
+| `cluster_id`, `name` | cluster id and human name; `-1` is the "No conversation text" bucket |
+| `top_terms` | comma-joined top c-TF-IDF terms; empty for `-1`, which has no text to derive terms from |
+| `n_users`, `n_messages` | cluster size; empty for `-1` (no message-level rows to count — see `dim_user` for its 194 users) |
+| `median_age` | empty for `-1` |
+| `display_order` | 0 = largest real cluster; `-1` sorts last. Power BI sort-by column for `name` |
 | `color_hex` | identity colour. Consumed by the notebooks; **not** bindable in the dashboard |
+| `is_real_cluster` | `False` only for the `-1` synthetic row; `True` for every clustering-algorithm output |
+| `name_is_provisional` | `True` when the name was auto-assigned because no curated marker matched — see above |
 
 `display_order` / `color_hex` are keyed to **size rank, not `cluster_id`** — the
-largest archetype always takes the primary brand teal. Cluster ids are an artefact
+largest real cluster always takes the primary brand teal. Cluster ids are an artefact
 of one clustering run; binding a colour to an id re-colours the whole dashboard on
 the next re-cluster. Ties break on `cluster_id`, so the assignment is deterministic.
 
-Feeds: NB3 archetype summary cards / legend; dashboard Tab 3 archetype scatter.
+Feeds: NB3 cluster summary cards / legend; dashboard Tab 3 cluster scatter.
 
-*Discrepancy: the design spec listed `share` instead of `n_messages` /
-`median_age` / `top_categories`; the shipped table matches
-`clusters.archetype_profiles`'s actual columns, which are richer.*
+*Discrepancy: the design spec listed `share` and `top_categories` instead of
+`n_messages` / `median_age` / `top_terms` / `is_real_cluster` / `name_is_provisional`;
+the shipped table matches `clusters.archetype_profiles`'s actual columns (plus the
+synthetic `-1` row), which are richer.*
 
 ---
 
 ## Time series (resampled once — not re-derived in DAX)
 
-### `agg_weekly_category` — week × category (90 rows)
-Cols: `week`, `category`, `n`. Top-4 categories + "other", weekly. Feeds NB2 §2
-category lines.
+### `agg_weekly_cluster` — week × cluster (108 rows in the 2026-08-03 run)
+Cols: `week`, `cluster_id`, `n`. One weekly series per **real** cluster (the
+`-1` "No conversation text" bucket, which has no message-level volume, is not
+included, and there is no "other" rollup — every real cluster gets its own
+line). Feeds NB2 §2 cluster-volume time series; map `cluster_id` through
+`dim_cluster[name]` / `[color_hex]` for the legend. Replaces
+`agg_weekly_category` (retired in schema v5).
 
 ### `agg_daily_volume` — 1 row per day (126 rows)
 Cols: `day`, `n`. Daily message counts. Feeds NB2 §2 volume line.
@@ -358,23 +361,24 @@ onboarding/usage funnel. Not to be confused with `agg_registration_funnel`
 above — this is the *usage* funnel (asked a question → got a response → …),
 not the *sign-up* funnel.
 
-### `agg_priority_matrix` — 1 row per category (7 rows)
-Cols: `category`, `category_en`, `color_hex`, `messages`, `users`, `pct_repeat`,
-`mean_rating`, `meal_n`, `rating_is_fallback`, `pct_negative`, `n_axes`,
-`unmet_need`. Feeds NB2 §6 priority matrix (volume × unmet-need × tone).
+### `agg_priority_matrix` — 1 row per real cluster (6 rows in the 2026-08-03 run)
+Cols: `cluster_id`, `messages`, `users`, `pct_repeat`, `mean_rating`, `meal_n`,
+`rating_is_fallback`, `pct_negative`, `n_axes`, `unmet_need`, `name`,
+`top_terms`, `color_hex`. Feeds NB2 §6 priority matrix (volume × unmet-need ×
+tone); bubble annotations use `top_terms`.
 
 > `pct_negative` here is one of the z-scored axes combined into `unmet_need`.
 
-`category_en` / `color_hex` (new in schema v4) are resolved at export time from the
-same `CAT_EN` map `dim_category` is built from, so the bubble labels are the same
-canonical strings as every other category label in the dashboard. They are carried
-on the row rather than looked up because this table has **no relationship** to
-`dim_category` — the dashboard previously recovered the label with a DAX
-`LOOKUPVALUE`, which returns BLANK for an unknown key and so drew an unlabelled
-bubble instead of failing. `build_agg_priority_matrix` now raises `KeyError` on any
-category absent from `CAT_EN`.
+**Keyed on `cluster_id`, not `category` — schema v5.** Retired category columns
+(`category`, `category_en`) are gone; `name` and `top_terms` are carried on the
+row instead of looked up, because this table has **no relationship** to
+`dim_cluster` in the Power BI model — the dashboard previously recovered a
+category label with a DAX `LOOKUPVALUE`, which returns BLANK for an unknown key
+and so drew an unlabelled bubble instead of failing. `build_agg_priority_matrix`
+still raises on any cluster missing from the source data, for the same reason.
 
-`unclassified` / "Suggestion" is excluded from this table, so all 7 rows resolve.
+The `-1` "No conversation text" bucket is excluded from this table (it has no
+message-level volume to plot), so every row resolves to a real, named cluster.
 
 *Discrepancy: the design spec's placeholder column list
 (`category, volume, unmet_score, tone_score`) doesn't match the shipped
@@ -387,66 +391,76 @@ by kind. Feeds NB2 §1 entity chart.
 
 ---
 
-## NLP (GPU; absent when `--skip-nlp`)
+## NLP (GPU-accelerated, CPU-capable)
 
-**Present and current as of 2026-07-28.** These five tables and `dim_cluster` are
-only written on a full (non-`--skip-nlp`) run. The full pipeline now completes on
-the v2 data: archetypes were re-mapped to k = 6 (see the `dim_cluster` note above)
-and `nlp_tone_confusion` was re-matched onto content-hash `message_id`s. Row
-counts below are from the current export.
+**Present and current as of 2026-08-03.** These five tables and `dim_cluster` are
+written on every run — the pipeline has no partial-run mode; it runs on GPU when
+one is present and falls back to CPU otherwise (see [`OPERATIONS.md`](../OPERATIONS.md)
+"CPU and GPU"). `nlp_tone_confusion` is matched onto content-hash `message_id`s.
+Row counts below are from the current export.
 
 ### `nlp_umap` — 1 row per user (1,198 rows)
 Cols: `user_id`, `x`, `y`, `cluster_id`. 2D UMAP projection of user embeddings.
 Feeds NB3 §2 embedding scatter.
 
 ### `nlp_cluster_terms` — 1 row per (cluster, term) (240 rows)
-Cols: `cluster_id`, `rank`, `term`, `weight`. Top c-TF-IDF terms per archetype.
+Cols: `cluster_id`, `rank`, `term`, `weight`. Top c-TF-IDF terms per cluster.
 Feeds NB3 word clouds.
 
 ### `nlp_emergent_themes` — 1 row per theme probe (6 rows)
 Cols: `theme`, `slug`, `n_messages`, `n_users`. Regex-probe hit counts for
-needs the official taxonomy doesn't name (transport, entrepreneurship,
-stuck-in-a-procedure, human handoff, fraud, connectivity). Feeds NB3 §3
-coverage gaps.
+needs the discovered clusters do not separate out (transport, entrepreneurship,
+stuck-in-a-procedure, human handoff, fraud, connectivity). These probes are not
+a classifier — see `taxonomy.CANDIDATE_INTENT_PROBES`. Feeds NB3 §3 coverage
+gaps.
 
 ### `nlp_tone_confusion` — 1 row per (human label, model label) (4 rows)
 Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
 combination of the two label columns. Feeds NB3 §4 confusion matrix.
 
-### `nlp_voices` — 1 row per archetype exemplar (6 rows)
-Cols: `cluster_id`, `name`, `message`. One representative quote per
-archetype. Feeds NB3 §5 qualitative voices.
+### `nlp_voices` — 1 row per cluster exemplar (6 rows)
+Cols: `cluster_id`, `name`, `message`. One representative quote per real
+cluster (the `-1` "No conversation text" bucket has no message to quote).
+Feeds NB3 §5 qualitative voices.
 
 *Discrepancy: the design spec also listed `nlp_negative_by_category` (share
 of negative-sentiment messages per category) and `nlp_sentiment_dist`
 (sentiment label value counts). Neither has a `build_*` function in
 `export.py` or appears in the manifest — both charts are Power-BI-native
-from `fact_message.sentiment_label` × `dominant_category` instead.*
+from `fact_message.sentiment_label` × `cluster_id` instead.*
 
 ---
 
 ## Meta / parity
 
-### `meta_run` — key/value (13 rows on `--skip-nlp`, 18 on a full run)
-The run's identity card. Two columns, `key` and `value`. Keys always
-present: `responses_file`, `meal_file`,
-`responses_rows`, `meal_rows`, `ts_min`, `ts_max`, `salt_present`,
-`generated_at`, `schema_version`, `report_version`, `nlp_included`,
-`tone_gate_passed`, `sentiment_quotable`. A full run additionally writes
-`embed_model`, `sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`.
+### `meta_run` — key/value (20 rows)
+The run's identity card. Two columns, `key` and `value`, one row per key:
+`responses_file`, `meal_file`, `responses_rows`, `meal_rows`, `ts_min`,
+`ts_max`, `salt_present`, `generated_at`, `schema_version`, `report_version`,
+`nlp_included`, `tone_gate_passed`, `sentiment_quotable`, `embed_model`,
+`sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`, `k_soft_cap`,
+`n_provisional_names`. The last six are NLP-derived; since the pipeline has
+no partial-run mode, all 20 keys are always present. `chosen_k` /
+`n_provisional_names` are new in schema v5 — see the `dim_cluster` note above
+for what they mean.
 
-`report_version` (`export.REPORT_VERSION`, currently `"1.1.0"`) is the **dashboard's**
+`report_version` (`export.REPORT_VERSION`, currently `"2.0.0"`) is the **dashboard's**
 version, bumped by hand when the report's visuals or fields change. It is deliberately
 not the package version in `pyproject.toml` — code and report move on different
 cadences. The Tab footer renders it next to `generated_at`.
 
-`schema_version = "4"` (bumped from `"3"` by the v1.1.0 dashboard change — assert it
-on the About page, and update any "Schema Check" measure that still compares
-against `"2"`).
+`schema_version = "5"` (bumped from `"4"` by the cluster-categorization migration — assert
+it on the About page, and update any "Schema Check" measure that still compares
+against `"4"`).
 
-### `parity_check` — 1 row per metric (5 rows)
+### `parity_check` — 1 row per metric (6 rows)
 Cols: `metric`, `exported_value`, `reconciliation_value`, `match`. Proves the
 exported tables reconcile to `SD.reconciliation`: `users`, `messages`,
-`users_with_text`, `meal_responses` (counts), and `repeat_askers_pct` (the
-`dim_user.is_repeat_asker` share vs the reconciliation figure). `run_pipeline.py`
-exits non-zero if any row's `match` is false.
+`users_with_text`, `meal_responses` (counts), `repeat_askers_pct` (the
+`dim_user.is_repeat_asker` share vs the reconciliation figure), and
+`cluster_coverage_pct` — **new in schema v5**, the share of users assigned to
+a *real* cluster (i.e. `cluster_id != -1`) against an 80.0 gate (measured
+86.1 on the 2026-08-03 run). This is a threshold gate, not an equality check:
+`reconciliation_value` holds the gate (80.0), not an independently-recomputed
+figure, and `match` is `True` whenever `exported_value >= reconciliation_value`.
+`run_pipeline.py` exits non-zero if any row's `match` is false.

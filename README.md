@@ -2,7 +2,6 @@
 
 SAMI analytics and dashboard project for the MMC WhatsApp chatbot. The repo contains the Python pipeline, the analysis notebooks, the exported tables that feed Power BI, and the dashboard model itself.
 
-
 #### Home
 
 ![SAMI Analytics Dashboard home screen](powerbi/1.png)

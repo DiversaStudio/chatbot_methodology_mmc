@@ -76,7 +76,6 @@ POLICY: dict[str, Policy] = {
     "department": Policy.POOLABLE,
     "city_duration_canon": Policy.POOLABLE,
     "city_duration_order": Policy.POOLABLE,
-    "dominant_category": Policy.POOLABLE,
     "n_questions": Policy.POOLABLE,
     "n_msgs_user": Policy.POOLABLE,
     "has_text": Policy.POOLABLE,
