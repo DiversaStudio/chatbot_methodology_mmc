@@ -79,7 +79,10 @@ def _nlp_tables(SD, pr):
         "nlp_cluster_terms": export.build_nlp_cluster_terms(terms),
         "nlp_emergent_themes": export.build_nlp_emergent_themes(SD.messages),
         "nlp_tone_confusion": export.build_nlp_tone_confusion(report),
-        "nlp_voices": export.build_nlp_voices(msgs_lab, resolved),
+        "nlp_voices": export.build_nlp_voices(
+            msgs_lab, resolved,
+            terms_by_cluster=dict(zip(dim_cluster["cluster_id"],
+                                      dim_cluster["top_terms"]))),
     }
     nlp_meta = {
         "embed_model": dev["embed_model"], "sentiment_model": dev["sentiment_model"],
