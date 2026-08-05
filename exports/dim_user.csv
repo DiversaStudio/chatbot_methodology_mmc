@@ -87,7 +87,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 0d9f65e2be63,v1,Woman,37.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,0.0,Yes,36-50,Colombia,es,Completed,,,,,,0,False,,2026-07-14 21:33:18.335,False,True,-1
 0de98070fca2,v2,Man,26.0,ok,Ipiales,Nariño,Venezuela,Did not respond,-1.0,< 1 month,0.0,,Yes,,,es,Completed,1.0,,,,5.401916666666667,5,True,2026-07-28 03:59:59.644,2026-07-28 03:59:59.644,False,True,4
 0dedc06a8597,v1,Man,62.0,ok,Cúcuta,Norte de Santander,Venezuela,1–3 months,1.0,1–3 months,1.0,,No,,Colombia,es,Completed,,,,,,3,True,2026-07-15 22:29:43.300,2026-07-15 22:29:43.300,False,True,4
-0e39f120f47d,v1,Man,32.0,ok,Medellín,Antioquia,1,3–12 months,2.0,< 1 month,0.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-06-16 22:25:52.498,2026-06-16 22:25:52.498,False,True,0
+0e39f120f47d,v1,Man,32.0,ok,Medellín,Antioquia,Unknown,3–12 months,2.0,< 1 month,0.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-06-16 22:25:52.498,2026-06-16 22:25:52.498,False,True,0
 0e4de81613cf,v1,Woman,26.0,ok,Bogotá,Bogotá,Venezuela,5+ years,4.0,Did not respond,-1.0,1.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-05-13 22:35:06.477,2026-05-13 22:35:06.477,False,True,0
 0e62967fd27d,v1,Woman,41.0,ok,Soacha,Cundinamarca,Venezuela,5+ years,4.0,1+ year,4.0,2.0,No,36-50,Colombia,es,Completed,,,,,,3,True,2026-06-22 16:54:45.689,2026-06-22 16:54:45.689,False,True,2
 0e7d5903f563,v1,Man,30.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,0.0,No,18-35,Colombia,es,Completed,,,,,,0,False,,2026-05-31 19:32:47.864,False,True,-1
@@ -99,7 +99,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 0fb335dc5958,v1,Woman,49.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,0.0,No,36-50,Colombia,es,Completed,,,,,,5,True,2026-03-26 16:02:33.492,2026-03-26 16:02:33.492,False,True,4
 10362a778226,v1,Woman,28.0,ok,Cúcuta,Norte de Santander,Venezuela,< 1 month,0.0,< 1 month,0.0,7.0,Yes,18-35,Colombia,es,Completed,,,,,,7,True,2026-07-09 00:17:35.957,2026-07-09 00:17:35.957,True,True,4
 10403265a7b9,v1,Man,20.0,ok,Other,,Venezuela,1–5 years,3.0,1+ year,4.0,0.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-05-24 17:37:17.099,2026-05-24 17:37:17.099,False,True,5
-106f48ba07b7,v1,Woman,29.0,ok,Barranquilla,Atlántico,4,5+ years,4.0,1+ year,4.0,1.0,Yes,18-35,Venezuela,es,Completed,,,,,,3,True,2026-04-28 13:39:59.949,2026-04-28 13:39:59.949,False,False,4
+106f48ba07b7,v1,Woman,29.0,ok,Barranquilla,Atlántico,Unknown,5+ years,4.0,1+ year,4.0,1.0,Yes,18-35,Venezuela,es,Completed,,,,,,3,True,2026-04-28 13:39:59.949,2026-04-28 13:39:59.949,False,False,4
 10bbd378898e,v1,Man,33.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,1.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-05-13 16:47:12.330,2026-05-13 16:47:12.330,False,True,3
 111ad7eb4be6,v2,Man,42.0,ok,Soacha,Cundinamarca,Venezuela,Did not respond,-1.0,< 1 month,0.0,,No,,,es,Completed,1.0,,,,3.671666666666667,3,True,2026-07-27 16:43:26.295,2026-07-27 16:43:26.295,False,True,3
 1120ff7989f4,v1,Woman,25.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,,Yes,,Colombia,es,Completed,,,,,,2,True,2026-07-22 22:10:31.401,2026-07-22 22:10:31.401,False,True,3
@@ -567,7 +567,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 6916bbbe9f24,v1,Woman,55.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,,Yes,,Colombia,es,Completed,,,,,,0,False,,2026-07-19 14:54:53.513,False,True,-1
 691f9dbcafab,v1,Woman,42.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,2,True,2026-06-24 15:23:42.807,2026-06-24 15:23:42.807,False,True,4
 691fe5ddb951,v1,Woman,35.0,ok,Necoclí,Antioquia,Venezuela,< 1 month,0.0,< 1 month,0.0,0.0,Yes,18-35,Ecuador,es,Completed,,,,,,0,False,,2026-04-07 12:19:14.907,False,False,-1
-6921ec0847ed,v1,Man,22.0,ok,Medellín,Antioquia,Panamá,< 1 month,0.0,< 1 month,0.0,3.0,No,18-35,Colombia,es,Completed,,,,,,3,True,2026-04-30 17:47:58.641,2026-04-30 17:47:58.641,False,True,2
+6921ec0847ed,v1,Man,22.0,ok,Medellín,Antioquia,Panama,< 1 month,0.0,< 1 month,0.0,3.0,No,18-35,Colombia,es,Completed,,,,,,3,True,2026-04-30 17:47:58.641,2026-04-30 17:47:58.641,False,True,2
 6935b7fc6aef,v1,Woman,29.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-04-29 13:54:32.925,2026-04-29 13:54:32.925,False,True,2
 695a2528e0f0,v1,Woman,30.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-06-02 13:59:44.791,2026-06-02 13:59:44.791,False,True,5
 69fe1235d290,v1,Woman,28.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,< 1 month,0.0,3.0,Yes,18-35,Colombia,es,Completed,,,,,,4,True,2026-05-15 17:42:57.369,2026-05-15 17:42:57.369,False,True,4
@@ -763,7 +763,7 @@ user_id,instrument_version,gender_clean,age_num,age_flag,city_canon,department,n
 90a9c5ed7580,v1,Woman,37.0,ok,Santa Marta,Magdalena,Venezuela,1–5 years,3.0,Did not respond,-1.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,1,True,2026-06-12 22:49:00.315,2026-06-12 22:49:00.315,False,True,1
 90b569f486eb,v1,Man,32.0,ok,Ipiales,Nariño,Venezuela,1–5 years,3.0,< 1 month,0.0,1.0,Yes,18-35,Venezuela,es,Completed,,,,,,2,True,2026-05-04 21:16:49.832,2026-05-04 21:16:49.832,False,False,5
 90eb8eb3336a,v1,Woman,42.0,ok,Other,,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,5,True,2026-05-25 19:49:12.865,2026-05-25 19:49:12.865,False,True,4
-90f9b9d9f534,v1,Man,41.0,ok,Other,,Haití,5+ years,4.0,< 1 month,0.0,0.0,No,36-50,Peru,es,Completed,,,,,,0,False,,2026-04-07 12:37:08.294,False,False,-1
+90f9b9d9f534,v1,Man,41.0,ok,Other,,Haiti,5+ years,4.0,< 1 month,0.0,0.0,No,36-50,Peru,es,Completed,,,,,,0,False,,2026-04-07 12:37:08.294,False,False,-1
 91098e83c5d9,v1,Other or prefer not to say,24.0,ok,Cali,Valle del Cauca,Venezuela,5+ years,4.0,7–12 months,3.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-05-08 19:38:43.341,2026-05-08 19:38:43.341,False,True,5
 91aba0850082,v1,Woman,27.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,1.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-05-29 15:17:20.168,2026-05-29 15:17:20.168,False,True,2
 91e3a0609285,v1,Woman,31.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,0,False,,2026-07-14 21:33:49.719,False,True,-1
@@ -855,7 +855,7 @@ a2818f285f14,v1,Woman,38.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ y
 a290cd939a2a,v1,Woman,34.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1–3 months,1.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-07-15 03:11:46.708,2026-07-15 03:11:46.708,False,True,4
 a2c0b868550c,v1,Woman,29.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-07-10 16:01:13.473,2026-07-10 16:01:13.473,False,True,2
 a2dc998af660,v1,Other or prefer not to say,12.0,unreliable_sub18,Soacha,Cundinamarca,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,Yes,0-17,Colombia,es,Completed,,,,,,1,True,2026-05-13 19:16:23.122,2026-05-13 19:16:23.122,False,True,1
-a2e7a4a72fef,v1,Woman,29.0,ok,Medellín,Antioquia,3,< 1 month,0.0,< 1 month,0.0,1.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-04-13 13:13:54.415,2026-04-13 13:13:54.415,False,True,2
+a2e7a4a72fef,v1,Woman,29.0,ok,Medellín,Antioquia,Unknown,< 1 month,0.0,< 1 month,0.0,1.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-04-13 13:13:54.415,2026-04-13 13:13:54.415,False,True,2
 a2e8cb3c1302,v1,Man,67.0,ok,Medellín,Antioquia,Haiti,5+ years,4.0,1+ year,4.0,0.0,Yes,50 and above,Colombia,es,Completed,,,,,,0,False,,2026-05-28 23:14:03.231,False,True,-1
 a3230ca2cb01,v1,Man,58.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,< 1 month,0.0,1.0,No,50 and above,Colombia,es,Completed,,,,,,2,True,2026-06-05 13:00:49.132,2026-06-05 13:00:49.132,False,True,2
 a362578e8741,v1,Woman,47.0,ok,Other,,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,6,True,2026-06-17 00:48:57.285,2026-06-17 00:48:57.285,False,True,0
@@ -1057,7 +1057,7 @@ c779e342fd14,v1,Woman,37.0,ok,Cúcuta,Norte de Santander,Venezuela,1–3 months,
 c794cc690e6b,v1,Woman,24.0,ok,Cúcuta,Norte de Santander,Venezuela,3–12 months,2.0,1–3 months,1.0,,Yes,,Colombia,es,Completed,,,,,,2,True,2026-07-17 12:58:13.788,2026-07-17 12:58:13.788,False,True,3
 c7ac43e9ee49,v1,Woman,23.0,ok,Barranquilla,Atlántico,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-06-13 14:08:06.434,2026-06-13 14:08:06.434,False,True,3
 c802a23c8e42,v1,Woman,26.0,ok,Santa Marta,Magdalena,Venezuela,1–5 years,3.0,1+ year,4.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,6,True,2026-06-13 00:27:18.935,2026-06-13 00:27:18.935,False,True,0
-c821037c2495,v1,Woman,37.0,ok,Barranquilla,Atlántico,Soy Colombovenezolana,1–5 years,3.0,1+ year,4.0,1.0,No,36-50,Colombia,es,Completed,,,,,,1,True,2026-06-13 19:08:47.781,2026-06-13 19:08:47.781,False,True,4
+c821037c2495,v1,Woman,37.0,ok,Barranquilla,Atlántico,Unknown,1–5 years,3.0,1+ year,4.0,1.0,No,36-50,Colombia,es,Completed,,,,,,1,True,2026-06-13 19:08:47.781,2026-06-13 19:08:47.781,False,True,4
 c873b5d50419,v1,Woman,39.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1–3 months,1.0,0.0,Yes,36-50,Colombia,es,Completed,,,,,,3,True,2026-06-05 15:49:59.205,2026-06-05 15:49:59.205,False,True,5
 c87ec7e92f39,v1,Man,45.0,ok,Medellín,Antioquia,Colombia,5+ years,4.0,1–3 months,1.0,1.0,No,36-50,Colombia,es,Completed,,,,,,8,True,2026-06-02 23:42:38.792,2026-06-02 23:42:38.792,False,True,3
 c91427640882,v1,Woman,43.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,0.0,Yes,36-50,,es,Completed,,,,,,4,True,2026-06-25 19:06:08.216,2026-06-25 19:06:08.216,False,True,2
@@ -1185,7 +1185,7 @@ def53b6a796b,v1,Woman,20.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ y
 df07b2341410,v1,Woman,35.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,3.0,Yes,18-35,Colombia,es,Completed,,,,,,4,True,2026-05-29 21:31:02.184,2026-05-29 21:31:02.184,False,True,3
 df79cf3d1d84,v1,Man,30.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-03-26 22:55:18.715,2026-03-26 22:55:18.715,False,True,1
 df97388b8b59,v1,Woman,22.0,ok,Barranquilla,Atlántico,Venezuela,1–5 years,3.0,1+ year,4.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-06-13 13:35:09.320,2026-06-13 13:35:09.320,False,True,2
-df9baf4ae9b4,v1,Man,46.0,ok,Cúcuta,Norte de Santander,República Dominicana,5+ years,4.0,Did not respond,-1.0,0.0,Yes,36-50,Colombia,es,Completed,,,,,,3,True,2026-07-23 18:43:27.764,2026-07-23 18:43:27.764,False,True,2
+df9baf4ae9b4,v1,Man,46.0,ok,Cúcuta,Norte de Santander,Dominican Republic,5+ years,4.0,Did not respond,-1.0,0.0,Yes,36-50,Colombia,es,Completed,,,,,,3,True,2026-07-23 18:43:27.764,2026-07-23 18:43:27.764,False,True,2
 dfed16440fa7,v1,Woman,40.0,ok,Riohacha,La Guajira,Venezuela,5+ years,4.0,1+ year,4.0,6.0,Yes,36-50,Colombia,es,Completed,,,,,,11,True,2026-05-28 21:24:04.373,2026-05-28 21:24:04.373,True,True,4
 e0631c168fc6,v1,Woman,28.0,ok,Riohacha,La Guajira,Venezuela,3–12 months,2.0,4–6 months,2.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,3,True,2026-06-26 16:33:20.981,2026-06-26 16:33:20.981,False,True,3
 e06423c70b3e,v1,Man,22.0,ok,Medellín,Antioquia,Venezuela,3–12 months,2.0,4–6 months,2.0,4.0,Yes,18-35,Colombia,es,Completed,,,,,,8,True,2026-05-28 22:30:07.559,2026-05-28 22:30:07.559,True,True,4
@@ -1202,7 +1202,7 @@ e1e54a1ff1f5,v1,Woman,30.0,ok,Other,,Venezuela,1–5 years,3.0,4–6 months,2.0,
 e1e56ec111f7,v1,Woman,38.0,ok,Ipiales,Nariño,Venezuela,< 1 month,0.0,< 1 month,0.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,10,True,2026-05-03 04:28:33.388,2026-05-03 04:28:33.388,False,True,4
 e1f13dfde3bc,v1,Woman,42.0,ok,Bogotá,Bogotá,Venezuela,1–5 years,3.0,1+ year,4.0,2.0,Yes,36-50,Colombia,es,Completed,,,,,,6,True,2026-05-13 13:51:42.720,2026-05-13 13:51:42.720,False,True,0
 e23546b81515,v1,Woman,33.0,ok,Other,,Venezuela,5+ years,4.0,4–6 months,2.0,2.0,Yes,18-35,Colombia,es,Completed,,,,,,2,True,2026-06-13 16:26:28.267,2026-06-13 16:26:28.267,False,True,1
-e253e90e463e,v1,Man,7.0,unreliable_sub18,Other,,Panamá,1–5 years,3.0,1+ year,4.0,0.0,No,0-17,Colombia,es,Completed,,,,,,2,True,2026-06-16 22:35:59.613,2026-06-16 22:35:59.613,False,True,2
+e253e90e463e,v1,Man,7.0,unreliable_sub18,Other,,Panama,1–5 years,3.0,1+ year,4.0,0.0,No,0-17,Colombia,es,Completed,,,,,,2,True,2026-06-16 22:35:59.613,2026-06-16 22:35:59.613,False,True,2
 e25d61d034aa,v1,Man,25.0,ok,Barranquilla,Atlántico,Venezuela,5+ years,4.0,Did not respond,-1.0,3.0,Yes,18-35,Colombia,es,Completed,,,,,,6,True,2026-06-13 15:10:13.302,2026-06-13 15:10:13.302,False,True,1
 e2bde1255941,v1,Woman,29.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,1.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-07-15 13:43:59.421,2026-07-15 13:43:59.421,False,True,4
 e2c9eb5825cb,v1,Woman,47.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,2.0,Yes,36-50,Colombia,es,Completed,,,,,,7,True,2026-05-30 13:16:07.443,2026-05-30 13:16:07.443,False,True,2
@@ -1338,7 +1338,7 @@ f6195c2e45a8,v1,Woman,29.0,ok,Bogotá,Bogotá,Venezuela,1–3 months,1.0,1+ year
 f64c99d75b45,v1,Man,37.0,ok,Cúcuta,Norte de Santander,Venezuela,1–5 years,3.0,1+ year,4.0,0.0,Yes,36-50,Colombia,es,Completed,,,,,,0,False,,2026-07-23 15:54:39.819,False,True,-1
 f64d330feb5a,v1,Woman,41.0,ok,Medellín,Antioquia,Venezuela,5+ years,4.0,1+ year,4.0,1.0,Yes,36-50,Colombia,es,Completed,,,,,,4,True,2026-05-28 22:30:29.861,2026-05-28 22:30:29.861,False,True,0
 f655c3640a9c,v1,Woman,25.0,ok,Maicao,La Guajira,Venezuela,3–12 months,2.0,7–12 months,3.0,0.0,No,18-35,Colombia,es,Completed,,,,,,1,True,2026-05-08 17:27:20.393,2026-05-08 17:27:20.393,False,True,0
-f696796581e3,v1,Man,27.0,ok,Cúcuta,Norte de Santander,Noruega,5+ years,4.0,1+ year,4.0,0.0,No,18-35,Argentina,es,Completed,,,,,,1,True,2026-05-28 17:08:46.130,2026-05-28 17:08:46.130,False,False,4
+f696796581e3,v1,Man,27.0,ok,Cúcuta,Norte de Santander,Norway,5+ years,4.0,1+ year,4.0,0.0,No,18-35,Argentina,es,Completed,,,,,,1,True,2026-05-28 17:08:46.130,2026-05-28 17:08:46.130,False,False,4
 f69be2a55113,v1,Woman,22.0,ok,Medellín,Antioquia,Venezuela,1–5 years,3.0,1+ year,4.0,1.0,Yes,18-35,Venezuela,es,Completed,,,,,,6,True,2026-05-30 13:18:09.269,2026-05-30 13:18:09.269,False,False,4
 f6f7def545ce,v1,Woman,19.0,ok,Cúcuta,Norte de Santander,Venezuela,5+ years,4.0,1+ year,4.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,0,False,,2026-05-22 15:13:29.691,False,True,-1
 f6ffa029142b,v1,Woman,28.0,ok,Barranquilla,Atlántico,Venezuela,5+ years,4.0,1+ year,4.0,0.0,Yes,18-35,Colombia,es,Completed,,,,,,1,True,2026-05-05 21:25:02.168,2026-05-05 21:25:02.168,False,True,3
