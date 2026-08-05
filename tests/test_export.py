@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export, cohort, config, theme
+from sami import load_sami, export, cohort, config, theme, taxonomy
 
 
 @pytest.fixture(scope="module")
@@ -1057,3 +1057,19 @@ def test_dim_cluster_carries_description_never_null():
     assert d.loc[d["cluster_id"] == 0, "description"].iloc[0] == "Prose about cluster 0."
     # The synthetic no-text row gets an empty description, not a null.
     assert d.loc[d["cluster_id"] == export.NO_CLUSTER_ID, "description"].iloc[0] == ""
+
+
+def test_dim_cluster_description_survives_real_resolve_cluster_names():
+    """End-to-end: a curated marker's prose reaches dim_cluster via the real
+    resolve_cluster_names, not a hand-built stand-in -- catches key-name drift
+    between the two functions that per-function tests would miss."""
+    terms = {0: pd.Series({"terminal": 1.0, "albergue": 0.9})}
+    resolved = taxonomy.resolve_cluster_names(terms)
+    prof = pd.DataFrame(
+        {"n_users": [40], "n_messages": [90], "median_age": [31],
+         "top_terms": ["terminal, albergue"]},
+        index=pd.Index([0], name="archetype"))
+    d = export.build_dim_cluster(prof, resolved)
+    expected = next(e["description"] for e in taxonomy.CLUSTER_NAMES
+                    if e["marker"] == "terminal")
+    assert d.loc[d["cluster_id"] == 0, "description"].iloc[0] == expected

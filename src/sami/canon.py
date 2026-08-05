@@ -99,13 +99,16 @@ UNKNOWN_NATIONALITY = "Desconocida"
 # headroom for e.g. "trinidad and tobago" without admitting free-text answers.
 _MAX_NATIONALITY_WORDS = 3
 
-# Free-text survey answers announce themselves with sentence words a country
-# name never contains ("Soy Colombovenezolana" -> folded tokens "soy",
-# "colombovenezolana"). Country names that are two or three words - "costa
-# rica", "republica dominicana", "estados unidos", "trinidad and tobago" -
-# contain none of these, so the guard is safe to apply on top of the word-count
-# check rather than instead of it.
-_NON_COUNTRY_TOKENS = frozenset({"soy", "yo", "mi", "me", "era", "de", "la", "el", "y"})
+# Free-text survey answers announce themselves with first-person / verb words a
+# country name never contains ("Soy Colombovenezolana" -> folded tokens "soy",
+# "colombovenezolana"). Deliberately NOT articles/prepositions ("de", "la",
+# "el", "y") -- those appear inside real country names ("Costa de Marfil",
+# "República de Corea", "Trinidad y Tobago") and would reject them. Country
+# names that are two or three words - "costa rica", "republica dominicana",
+# "estados unidos", "trinidad and tobago" - contain none of these sentence
+# markers, so the guard is safe to apply on top of the word-count check rather
+# than instead of it.
+_NON_COUNTRY_TOKENS = frozenset({"soy", "yo", "mi", "me", "era"})
 
 
 def is_plausible_nationality(key: str) -> bool:
@@ -122,11 +125,13 @@ def is_plausible_nationality(key: str) -> bool:
     first-person/function word (free-text sentences that happen to be short,
     like "Soy Colombovenezolana"). Everything else passes.
     """
+    key = fold(key)
     if not key or not any(ch.isalpha() for ch in key):
         return False
-    if len(key.split()) > _MAX_NATIONALITY_WORDS:
+    words = key.split()
+    if len(words) > _MAX_NATIONALITY_WORDS:
         return False
-    return not (set(key.split()) & _NON_COUNTRY_TOKENS)
+    return not (set(words) & _NON_COUNTRY_TOKENS)
 
 
 def clean_nationality(raw, other) -> str:

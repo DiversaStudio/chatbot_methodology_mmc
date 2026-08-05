@@ -102,6 +102,7 @@ def test_cluster_names_entries_all_carry_a_description():
     for entry in taxonomy.CLUSTER_NAMES:
         assert "description" in entry, entry["name"]
         assert isinstance(entry["description"], str)
+        assert entry["description"].strip(), entry["name"]
 
 
 def test_resolve_cluster_names_passes_description_through():
@@ -115,6 +116,7 @@ def test_resolve_cluster_names_passes_description_through():
 def test_resolve_cluster_names_auto_named_gets_empty_description():
     """An auto-named cluster has no curated prose, and says so with ''."""
     terms = {0: pd.Series({"zzzznomatch": 1.0})}
-    out = taxonomy.resolve_cluster_names(terms)
+    with pytest.warns(UserWarning, match="provisional"):
+        out = taxonomy.resolve_cluster_names(terms)
     assert out[0]["provisional"] is True
     assert out[0]["description"] == ""
