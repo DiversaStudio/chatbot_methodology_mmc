@@ -152,24 +152,42 @@ CLUSTER_NAMES: list[dict[str, str]] = [
 ]
 
 
-def resolve_cluster_names(terms: dict[int, "pd.Series"],
-                          n_auto_terms: int = 3) -> dict[int, dict]:
-    """Name every cluster in `terms`, auto-naming the ones no marker matches.
+# Subcategory names, keyed by MARKER TERM exactly as CLUSTER_NAMES is.
+#
+# EMPTY ON PURPOSE. The child clusters are produced by a second clustering pass
+# that has never run against real data, so there is nothing to author markers
+# from yet -- inventing them would be guessing. The first real run auto-names
+# every child, flags it `name_is_provisional`, and warns with the list. Read
+# those children's terms in `nlp_subcluster_terms` and add entries here.
+#
+# A marker MUST appear in the child's SIBLING-EXCLUSIVE terms
+# (`subclusters.exclusive_terms`), not merely its raw top terms: siblings of one
+# parent share most of their vocabulary, and a marker on a shared term would be
+# claimed by whichever child is visited first.
+SUBCLUSTER_NAMES: list[dict[str, str]] = []
 
-    `terms` is what `clusters.ctfidf_terms` returns: {cluster_id -> Series of
-    term -> weight, descending}. Returns {cluster_id -> {"name", "marker",
-    "description", "provisional"}}.
 
-    Each registry entry is claimed at most once, and clusters are visited in
-    ascending id order, so the result is deterministic when two clusters happen
-    to share a marker: the lower id wins it and the other is auto-named.
+def resolve_names(terms: dict[int, "pd.Series"], registry: list[dict],
+                  n_auto_terms: int = 3, kind: str = "cluster") -> dict[int, dict]:
+    """Name every cluster in `terms` from `registry`, auto-naming the rest.
 
-    This function NEVER raises. A cluster it cannot place gets a name built from
+    `terms` is what `clusters.ctfidf_terms` returns: {id -> Series of term ->
+    weight, descending}. Returns {id -> {"name", "marker", "description",
+    "provisional"}}.
+
+    Each registry entry is claimed at most once, and ids are visited in
+    ascending order, so the result is deterministic when two clusters share a
+    marker: the lower id wins it and the other is auto-named.
+
+    `kind` only shapes the warning text, so a reader is told which registry to
+    edit -- CLUSTER_NAMES or SUBCLUSTER_NAMES.
+
+    This function NEVER raises. Something it cannot place gets a name built from
     its own top terms, `provisional=True`, and a warning. That is deliberate: an
-    unreviewed cluster name is a thing to flag on the dashboard, not a reason to
-    refuse to produce the export at all.
+    unreviewed name is a thing to flag on the dashboard, not a reason to refuse
+    to produce the export at all.
     """
-    unclaimed = list(CLUSTER_NAMES)
+    unclaimed = list(registry)
     out: dict[int, dict] = {}
     provisional: list[int] = []
 
@@ -184,8 +202,9 @@ def resolve_cluster_names(terms: dict[int, "pd.Series"],
                              "provisional": False}
             continue
         head = top[:n_auto_terms]
+        label = "Cluster" if kind == "cluster" else "Subcluster"
         out[int(cid)] = {
-            "name": f"Cluster {int(cid)} · {', '.join(head)}",
+            "name": f"{label} {int(cid)} · {', '.join(head)}",
             # The top term stands in for a curated marker so downstream consumers
             # (e.g. export.build_nlp_voices) can still pick a representative quote.
             "marker": head[0] if head else "",
@@ -195,11 +214,19 @@ def resolve_cluster_names(terms: dict[int, "pd.Series"],
         provisional.append(int(cid))
 
     if provisional:
+        reg_name = "CLUSTER_NAMES" if kind == "cluster" else "SUBCLUSTER_NAMES"
         warnings.warn(
-            f"{len(provisional)} cluster(s) matched no marker in CLUSTER_NAMES and "
+            f"{len(provisional)} {kind}(s) matched no marker in {reg_name} and "
             f"were given provisional auto-names: {provisional}. They are flagged "
-            "`name_is_provisional` in dim_cluster. Read their top terms and add an "
-            "entry to taxonomy.CLUSTER_NAMES to name them properly.",
+            f"`name_is_provisional` in the export. Read their top terms and add "
+            f"an entry to taxonomy.{reg_name} to name them properly.",
             stacklevel=2)
     return out
+
+
+def resolve_cluster_names(terms: dict[int, "pd.Series"],
+                          n_auto_terms: int = 3) -> dict[int, dict]:
+    """Name every cluster from CLUSTER_NAMES. See `resolve_names`."""
+    return resolve_names(terms, CLUSTER_NAMES, n_auto_terms=n_auto_terms,
+                         kind="cluster")
 
