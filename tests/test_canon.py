@@ -48,9 +48,34 @@ def test_nationality_canon_known_and_fallback():
     assert canon.nationality_canon("venezolana") == "Venezuela"
     assert canon.nationality_canon("United States") == "United States"
     assert canon.nationality_canon("Estados Unidos") == "United States"
-    # unknown value is title-cased through, never dropped silently
-    assert canon.nationality_canon("Brasil") == "Brasil"
+    # An unlisted but plausible country still passes through untouched.
+    assert canon.nationality_canon("Uruguay") == "Uruguay"
     assert canon.nationality_canon(None) == "Desconocida"
+
+
+def test_nationality_canon_folds_accent_and_language_variants():
+    """The 2026-08-03 export carried these as separate rows. They are one country."""
+    assert canon.nationality_canon("Haiti") == "Haiti"
+    assert canon.nationality_canon("Haití") == "Haiti"
+    assert canon.nationality_canon("Panamá") == "Panama"
+    assert canon.nationality_canon("Noruega") == "Norway"
+    assert canon.nationality_canon("República Dominicana") == "Dominican Republic"
+    assert canon.nationality_canon("Brasil") == "Brazil"
+
+
+def test_nationality_canon_rejects_non_country_input():
+    """Real values from the 2026-08-03 export that must not reach a slicer."""
+    for junk in ("1", "3", "4", "  ", "-", "Soy Colombovenezolana"):
+        assert canon.nationality_canon(junk) == "Desconocida", junk
+
+
+def test_is_plausible_nationality():
+    assert canon.is_plausible_nationality("uruguay")
+    assert canon.is_plausible_nationality("costa rica")
+    assert canon.is_plausible_nationality("republica dominicana")
+    assert not canon.is_plausible_nationality("1")
+    assert not canon.is_plausible_nationality("")
+    assert not canon.is_plausible_nationality("soy colombovenezolana")
 
 
 def test_clean_nationality_uses_other_fallback():
