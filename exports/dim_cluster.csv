@@ -1,8 +1,8 @@
-cluster_id,name,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_cluster,name_is_provisional
-4,Urgent humanitarian needs,"terminal, humanitaria, ipiales, cali, danés, bucaramanga",310,1854,33.0,0,#009ba4,True,False
-2,Nationality and family papers,"colombiana, pasaporte, colombiano, venezuela, nacionalidad, permiso",303,1292,32.0,1,#671e42,True,False
-1,Stuck mid-procedure,"biométrico, tutor, migración, trámite, rumv, perdió",217,743,31.0,2,#62c8ce,True,False
-3,"Permits, visas and travel","permiso, visa, salvoconducto, visitante, pasaporte, conducto",164,394,33.0,3,#a3557a,True,False
-5,Settling in,"humanitaria, humanitarias, cali, ipiales, ayudas, casa",106,172,32.0,4,#000031,True,False
-0,Building a livelihood,"emprendimiento, emprendimientos, beneficios, negocio, emprendedores, empleabilidad",98,208,35.0,5,#c78fa4,True,False
--1,No conversation text,,,,,6,#b7b7b7,False,False
+cluster_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_cluster,name_is_provisional
+4,Urgent humanitarian needs,"Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent.","terminal, humanitaria, ipiales, cali, danés, bucaramanga",310,1854,33.0,0,#009ba4,True,False
+2,Nationality and family papers,"Colombian nationality for a child born here: birth registration, apostilles, parents' documents.","colombiana, pasaporte, colombiano, venezuela, nacionalidad, permiso",303,1292,32.0,1,#671e42,True,False
+1,Stuck mid-procedure,"Already inside the RUMV/PPT pipeline and blocked: biometrics, appointments, guardianship for minors, collection.","biométrico, tutor, migración, trámite, rumv, perdió",217,743,31.0,2,#62c8ce,True,False
+3,"Permits, visas and travel","Regularising as an adult — PPT, visitor permits, salvoconductos, cédula de extranjería, extensions and onward travel.","permiso, visa, salvoconducto, visitante, pasaporte, conducto",164,394,33.0,3,#a3557a,True,False
+5,Settling in,"Housing, education, transport and regularisation — building a life here rather than meeting an emergency.","humanitaria, humanitarias, cali, ipiales, ayudas, casa",106,172,32.0,4,#000031,True,False
+0,Building a livelihood,"Work, training and enterprise support — planning ahead, not in crisis.","emprendimiento, emprendimientos, beneficios, negocio, emprendedores, empleabilidad",98,208,35.0,5,#c78fa4,True,False
+-1,No conversation text,,,,,,6,#b7b7b7,False,False
