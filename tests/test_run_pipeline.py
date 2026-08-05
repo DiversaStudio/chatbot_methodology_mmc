@@ -11,3 +11,17 @@ def test_run_pipeline_has_no_skip_nlp_argument():
     text = src.read_text(encoding="utf-8")
     assert "--skip-nlp" not in text
     assert "skip_nlp" not in text
+
+
+def test_nlp_meta_carries_the_subcluster_keys():
+    """The five meta_run keys schema v6 promises. Guards against a wiring change
+    that drops one silently — meta_run is the run's identity card and a missing
+    key is invisible until someone asks the dashboard a question it can't answer.
+    """
+    import inspect
+    import run_pipeline
+
+    src = inspect.getsource(run_pipeline._nlp_tables)
+    for key in ("n_subclusters", "n_parents_split", "n_provisional_subnames",
+                "subcluster_min_users", "subcluster_stability_ari"):
+        assert f'"{key}"' in src, f"{key} missing from nlp_meta"
