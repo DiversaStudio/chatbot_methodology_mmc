@@ -61,6 +61,10 @@ def test_nationality_canon_folds_accent_and_language_variants():
     assert canon.nationality_canon("Noruega") == "Norway"
     assert canon.nationality_canon("República Dominicana") == "Dominican Republic"
     assert canon.nationality_canon("Brasil") == "Brazil"
+    # Ordering sentinel: the map lookup must run before the plausibility guard.
+    # "el salvador" is in NATIONALITY_CANON; a reordering regression would only
+    # surface in production since the guard no longer rejects it either way.
+    assert canon.nationality_canon("El Salvador") == "El Salvador"
 
 
 def test_nationality_canon_rejects_non_country_input():

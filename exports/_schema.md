@@ -43,6 +43,10 @@ inventory.
 legend is translated on the way out (`export.to_english_user` /
 `to_english_meal`, vocabularies in `canon.py`): gender, `minors` (Yes/No), both
 duration scales, the `Otra`/`Desconocida` catch-alls, and the three MEAL fields.
+`Desconocida` (nationality) now carries two distinct meanings: real non-response
+(blank/NaN) and rejected free text (numeric codes like `"1"`, sentences like
+`"Soy Colombovenezolana"`) that `canon.is_plausible_nationality` routes to the
+same bucket rather than letting it reach the slicer as its own value.
 Translation is **in place** — the column keeps its name, the `*_order` columns
 still carry the sort, and `rating_num` is computed before the labels change.
 Gender is additionally canonicalized into a closed set of four: `transgenero`,
@@ -110,7 +114,7 @@ of their earliest record — the survey they actually answered.
 | `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Other or prefer not to say (empty for unfinished registrations), `minors` is Yes / No — its own `Prefer not to say` is a different question and is untouched by the gender merge |
 | `registered_at` | earliest response record for the user (new in schema v4). **Never null.** Distinct from `first_seen`, which is the first *message* and is null for the 194 users who registered without writing — a "new users" count must filter on `registered_at`, or it drops those people and disagrees with a plain user count for an invisible reason |
 | `city_canon`, `department` | current-city geo |
-| `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2** |
+| `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2**. Junk survey values (numeric codes, free-text sentences like `"Soy Colombovenezolana"`) fold to `Desconocida` alongside real non-response — see the gold-layer note above. Some spellings changed between runs (e.g. `Brasil`/`Haití` → `Brazil`/`Haiti`); a report built against an older export may not match on this column |
 | `away_duration_canon`, `away_duration_order` | time away from origin; never null — see non-response below. **v1-only**: the question (Q9) was retired in v2, so this series is frozen at whatever v1 already carries |
 | `city_duration_canon`, `city_duration_order` | time in current city; never null — see non-response below |
 | `destination_country` | stated onward destination |
