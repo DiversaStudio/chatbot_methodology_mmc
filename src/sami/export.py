@@ -481,8 +481,14 @@ def build_dim_subcluster(sub_lab, messages, resolved, terms, dim_cluster,
     sort key in the same table, so a name on `fact_message` cannot be ordered by
     a `display_order` here. Without it every subcategory legend alphabetises.
 
-    Colour is a tint of the PARENT's colour by size rank, and `display_order` is
-    the parent's order times ten plus the child index, so children sort directly
+    Colour and `display_order` position within a parent are keyed by SIZE RANK
+    (n_users, descending), never by `subcluster_id` -- the id is composite
+    (`cluster_id * 10 + child_index`) and run-scoped, so sorting by it would
+    only coincidentally match size rank, and silently stop matching the moment
+    a future run's child numbering changes. Ties break on ascending
+    `subcluster_id` for a deterministic result, the same tie-break
+    `build_dim_cluster` uses on `cluster_id`. `display_order` is the parent's
+    order times ten plus that size-rank position, so children sort directly
     beneath their own parent in a flat legend.
     """
     n_users = sub_lab.value_counts()
@@ -494,8 +500,9 @@ def build_dim_subcluster(sub_lab, messages, resolved, terms, dim_cluster,
 
     rows = []
     for cid in sorted(c for c in meta):
-        children = sorted(s for s in n_users.index
-                          if s >= 0 and s // 10 == cid)
+        children = sorted(
+            (s for s in n_users.index if s >= 0 and s // 10 == cid),
+            key=lambda s: (-n_users.get(s, 0), s))
         palette = theme.subcluster_colors(parent_color[cid], len(children))
         for idx, sid in enumerate(children):
             rows.append({
