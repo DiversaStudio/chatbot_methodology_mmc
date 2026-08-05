@@ -146,3 +146,24 @@ def cluster_coverage(dim_user: pd.DataFrame) -> float:
         return 0.0
     cid = pd.to_numeric(dim_user["cluster_id"], errors="coerce")
     return float((cid.notna() & (cid != -1)).mean())
+
+
+def min_subcluster_size(dim_subcluster: pd.DataFrame) -> int:
+    """Smallest user count among REAL, SPLIT subcategories.
+
+    The unsplit-parent rows and the no-text bucket are excluded: they are not
+    subcategories the floor is about, and an unsplit parent of 98 users would
+    otherwise report a "child" the gate has no claim on.
+
+    Returns `subclusters.SUBCLUSTER_MIN_USERS` when nothing split, so a run that
+    produced no subcategories passes vacuously rather than failing on an empty
+    minimum. Like `cluster_coverage` this is not a `run_checks` entry -- it can
+    only be computed after the clustering has run.
+    """
+    from . import subclusters
+
+    real = dim_subcluster[(dim_subcluster["subcluster_id"] >= 0)
+                          & dim_subcluster["is_split"].astype(bool)]
+    if real.empty:
+        return subclusters.SUBCLUSTER_MIN_USERS
+    return int(real["n_users"].min())

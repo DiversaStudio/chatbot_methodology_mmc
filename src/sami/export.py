@@ -691,7 +691,7 @@ REPORT_VERSION = "2.0.0"
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "5") -> pd.DataFrame:
+                   schema_version: str = "6") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
@@ -709,7 +709,8 @@ _PARITY_MAP = {
 }
 
 
-def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.DataFrame:
+def build_parity_check(reconciliation, dim_user, fact_message, fact_meal,
+                       dim_subcluster) -> pd.DataFrame:
     recon = reconciliation.set_index("metric")["value"].to_dict()
     exported = {
         "users": dim_user["user_id"].nunique(),
@@ -736,6 +737,15 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal) -> pd.
     rows.append({"metric": "cluster_coverage_pct", "exported_value": cov,
                  "reconciliation_value": round(100 * qa.CLUSTER_COVERAGE_THRESHOLD, 1),
                  "match": cov >= 100 * qa.CLUSTER_COVERAGE_THRESHOLD})
+    # Subcategory floor. Like cluster_coverage_pct this is a THRESHOLD gate, not
+    # an equality check: reconciliation_value holds the floor, not an
+    # independently recomputed figure. The floor is a disclosure control, so a
+    # failure here is a privacy failure, not only a statistical one.
+    smallest = qa.min_subcluster_size(dim_subcluster)
+    rows.append({"metric": "subcluster_min_users",
+                 "exported_value": smallest,
+                 "reconciliation_value": subclusters.SUBCLUSTER_MIN_USERS,
+                 "match": smallest >= subclusters.SUBCLUSTER_MIN_USERS})
     return pd.DataFrame(rows)
 
 
