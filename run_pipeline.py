@@ -21,22 +21,25 @@ import argparse
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
-                  export, preflight, progress, config, schema, datasets, theme)
+                  export, preflight, progress, config, schema, datasets, theme,
+                  subclusters)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
-# write) + 5 NLP-only.
-_STAGES_BASE, _STAGES_NLP = 4, 5
+# write) + 6 NLP-only.
+_STAGES_BASE, _STAGES_NLP = 4, 6
 
 
 def _nlp_tables(SD, pr):
     """Run the NLP once and build every NLP-dependent table. Returns
-    (tables_dict, nlp_meta_dict, sentiment_frame, lab_series, dim_cluster_frame)."""
+    (tables_dict, nlp_meta_dict, sentiment_frame, lab_series, dim_cluster_frame,
+    sub_lab_series, sub_names_dict)."""
     docs = nlp.user_documents(SD.messages)
     with pr.stage(f"embedding {len(docs)} user documents"):
         X = nlp.embed_documents(docs["doc"].tolist())
@@ -53,6 +56,18 @@ def _nlp_tables(SD, pr):
         terms = clusters.ctfidf_terms(docs["doc"].tolist(), labels, top_n=40)
         resolved = taxonomy.resolve_cluster_names(terms)
         XY = clusters.project_2d(X, method="umap", random_state=RANDOM_STATE)
+
+    with pr.stage("sub-clustering inside each cluster"):
+        sub_lab, sub_meta = subclusters.subcluster_all(
+            X, lab, docs["user_id"].values, random_state=RANDOM_STATE)
+        sub_docs = docs.assign(sub=docs["user_id"].map(sub_lab.to_dict()))
+        sub_terms_raw = clusters.ctfidf_terms(
+            sub_docs["doc"].tolist(), sub_docs["sub"].values, top_n=40)
+        sub_terms = subclusters.exclusive_terms(sub_terms_raw)
+        resolved_sub = taxonomy.resolve_names(
+            sub_terms, taxonomy.SUBCLUSTER_NAMES, kind="subcluster")
+        sub_names = {sid: v["name"] for sid, v in resolved_sub.items()}
+        sub_names[subclusters.NO_SUBCLUSTER_ID] = subclusters.NO_SUBCLUSTER_NAME
 
     # On CPU this is by far the longest stage — per-message inference over the
     # full spine, where embedding is only one pass over ~800 user documents.
@@ -73,10 +88,14 @@ def _nlp_tables(SD, pr):
         dev = nlp.device_report()
 
     dim_cluster = export.build_dim_cluster(prof, resolved)
+    dim_subcluster = export.build_dim_subcluster(
+        sub_lab, SD.messages, resolved_sub, sub_terms, dim_cluster, sub_meta)
     tables = {
         "dim_cluster": dim_cluster,
+        "dim_subcluster": dim_subcluster,
         "nlp_umap": export.build_nlp_umap(XY, labels, docs["user_id"].values),
         "nlp_cluster_terms": export.build_nlp_cluster_terms(terms),
+        "nlp_subcluster_terms": export.build_nlp_subcluster_terms(sub_terms),
         "nlp_emergent_themes": export.build_nlp_emergent_themes(SD.messages),
         "nlp_tone_confusion": export.build_nlp_tone_confusion(report),
         "nlp_voices": export.build_nlp_voices(
@@ -84,6 +103,7 @@ def _nlp_tables(SD, pr):
             terms_by_cluster=dict(zip(dim_cluster["cluster_id"],
                                       dim_cluster["top_terms"]))),
     }
+    split_aris = [m["stability_ari"] for m in sub_meta.values() if m["is_split"]]
     nlp_meta = {
         "embed_model": dev["embed_model"], "sentiment_model": dev["sentiment_model"],
         "chosen_k": K, "stability_ari": round(stab["mean_ari"], 3),
@@ -92,8 +112,19 @@ def _nlp_tables(SD, pr):
         "nlp_included": True,
         "k_soft_cap": theme.K_SOFT_CAP,
         "n_provisional_names": sum(1 for v in resolved.values() if v["provisional"]),
+        # Subcategories. `subcluster_stability_ari` is the mean over SPLIT
+        # parents only and is exported precisely because children are less
+        # stable than parents -- a poor value here is the signal to revisit the
+        # discovered-children decision, not a number to hide.
+        "n_subclusters": int((dim_subcluster["subcluster_id"] >= 0).sum()),
+        "n_parents_split": sum(1 for m in sub_meta.values() if m["is_split"]),
+        "n_provisional_subnames": sum(1 for v in resolved_sub.values()
+                                      if v["provisional"]),
+        "subcluster_min_users": subclusters.SUBCLUSTER_MIN_USERS,
+        "subcluster_stability_ari": (round(float(np.mean(split_aris)), 3)
+                                     if split_aris else None),
     }
-    return tables, nlp_meta, sent, lab, dim_cluster
+    return tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names
 
 
 def main(argv=None) -> int:
@@ -138,7 +169,7 @@ def main(argv=None) -> int:
             print(f"  {role + ':':<11}{chosen}", file=sys.stderr)
         SD = load_sami(responses_path=args.responses, meal_path=args.meal)
 
-    nlp_tables, nlp_meta, sent, lab, dim_cluster = _nlp_tables(SD, pr)
+    nlp_tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names = _nlp_tables(SD, pr)
 
     with pr.stage("building dimension + fact tables"):
         # Every message inherits its author's cluster. This is the join that
@@ -148,8 +179,10 @@ def main(argv=None) -> int:
         real_msgs = SD.messages[SD.messages["cluster_id"] != export.NO_CLUSTER_ID]
         neg_by_cluster = metrics.negative_by_cluster(real_msgs, sent)
 
-        dim_user = export.build_dim_user(SD.responses, SD.messages, lab=lab)
-        fact_message = export.build_fact_message(SD.messages, sentiment=sent, lab=lab)
+        dim_user = export.build_dim_user(SD.responses, SD.messages, lab=lab,
+                                         sub_lab=sub_lab, sub_names=sub_names)
+        fact_message = export.build_fact_message(SD.messages, sentiment=sent, lab=lab,
+                                                 sub_lab=sub_lab, sub_names=sub_names)
         fact_meal = export.build_fact_meal(SD.meal)
 
     with pr.stage("aggregate tables"):
@@ -171,7 +204,8 @@ def main(argv=None) -> int:
                 neg_by_cluster=neg_by_cluster),
             "meta_run": export.build_meta_run(SD.run_meta, nlp_meta=nlp_meta),
             "parity_check": export.build_parity_check(
-                SD.reconciliation, dim_user, fact_message, fact_meal),
+                SD.reconciliation, dim_user, fact_message, fact_meal,
+                nlp_tables["dim_subcluster"]),
         }
         tables.update(nlp_tables)
 
