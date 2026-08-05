@@ -85,6 +85,19 @@ POLICY: dict[str, Policy] = {
     # it is recorded.
     "registered_at": Policy.POOLABLE,
     "is_repeat_asker": Policy.POOLABLE,
+    # Not a survey answer — derived from conversation text, which both
+    # instrument versions collect identically. The v1/v2 rewrite changed the
+    # registration questionnaire, not the chat, so "same question and options
+    # in both" holds trivially here.
+    # The remaining worry — that the two cohorts' TEXT-BEARING populations
+    # differ in composition, the way nationality_canon does — was checked, not
+    # assumed: a crosstab of cluster_id by instrument_version over the 1,198
+    # has_text users (v1: 1,142, v2: 56) in the 2026-08-05 export shows no
+    # association (chi2 = 3.86, dof = 5, p = 0.57, Cramer's V = 0.057).
+    # Honest limit: v2 contributes only 56 users with text, so this test has
+    # little power to detect a small difference. If the v2 with-text cohort
+    # grows substantially, re-run that crosstab before continuing to lean on
+    # it.
     "cluster_id": Policy.POOLABLE,
     "subcluster_id": Policy.POOLABLE,
     "subcluster_name": Policy.POOLABLE,
