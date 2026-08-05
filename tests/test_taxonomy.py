@@ -95,3 +95,26 @@ def test_candidate_intent_probes_compile_and_use_known_slugs():
         "entrepreneurship", "procedure_troubleshooting", "fraud_protection"])
     for pat in tx.CANDIDATE_INTENT_PROBES.values():
         _re.compile(pat)
+
+
+def test_cluster_names_entries_all_carry_a_description():
+    """Every curated name has prose; spec 3's archetype panel reads this."""
+    for entry in taxonomy.CLUSTER_NAMES:
+        assert "description" in entry, entry["name"]
+        assert isinstance(entry["description"], str)
+
+
+def test_resolve_cluster_names_passes_description_through():
+    terms = {0: pd.Series({"terminal": 1.0, "albergue": 0.9})}
+    out = taxonomy.resolve_cluster_names(terms)
+    assert out[0]["name"] == "Urgent humanitarian needs"
+    assert out[0]["description"]           # non-empty
+    assert out[0]["provisional"] is False
+
+
+def test_resolve_cluster_names_auto_named_gets_empty_description():
+    """An auto-named cluster has no curated prose, and says so with ''."""
+    terms = {0: pd.Series({"zzzznomatch": 1.0})}
+    out = taxonomy.resolve_cluster_names(terms)
+    assert out[0]["provisional"] is True
+    assert out[0]["description"] == ""
