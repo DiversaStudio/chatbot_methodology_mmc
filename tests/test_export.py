@@ -1076,12 +1076,28 @@ def test_dim_cluster_description_survives_real_resolve_cluster_names():
 
 
 def _sub_fixture():
-    """A two-parent world: parent 0 split in two, parent 1 unsplit."""
+    """A two-parent world: parent 0 split in two, parent 1 unsplit.
+
+    Parent 0's children are deliberately built so ascending subcluster_id and
+    descending size DISAGREE: child id 0 ("a" only, 1 user) has the LOWER id
+    but FEWER users, while child id 1 ("b","c","d","e", 4 users) has the
+    HIGHER id but MORE users. A colour/order implementation that sorts by raw
+    id (id-order) rather than by n_users (size-rank) would put id 0 first;
+    the correct, size-rank implementation puts id 1 first. Collapsing this
+    back to a fixture where id-order and size-order coincide would silently
+    disarm that check.
+
+    The `-10` no-conversation-text bucket also carries real users ("h", "i")
+    rather than being trivially empty, so its counts test actual lookups
+    rather than the `.get(..., 0)` default.
+    """
     sub_lab = pd.Series(
-        {"a": 0, "b": 0, "c": 0, "d": 1, "e": 1, "f": 10, "g": 10},
+        {"a": 0, "b": 1, "c": 1, "d": 1, "e": 1, "f": 10, "g": 10,
+         "h": subclusters.NO_SUBCLUSTER_ID, "i": subclusters.NO_SUBCLUSTER_ID},
         dtype="int64")
     messages = pd.DataFrame({
-        "user_id": ["a", "a", "b", "c", "d", "e", "f", "g", "g"],
+        "user_id": ["a", "a", "b", "c", "d", "e", "e",
+                    "f", "g", "g", "h", "i", "i"],
     })
     resolved = {
         0: {"name": "Birth registration", "marker": "registro", "provisional": False},
@@ -1122,11 +1138,16 @@ def test_dim_subcluster_schema_and_no_text_row():
 
 def test_dim_subcluster_counts_users_and_messages():
     d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
-    assert d.loc[0, "n_users"] == 3          # a, b, c
-    assert d.loc[1, "n_users"] == 2          # d, e
-    assert d.loc[10, "n_users"] == 2         # f, g
-    assert d.loc[0, "n_messages"] == 4       # a a b c
-    assert d.loc[10, "n_messages"] == 3      # f g g
+    assert d.loc[0, "n_users"] == 1                                  # a
+    assert d.loc[1, "n_users"] == 4                                  # b, c, d, e
+    assert d.loc[10, "n_users"] == 2                                 # f, g
+    assert d.loc[0, "n_messages"] == 2                               # a a
+    assert d.loc[1, "n_messages"] == 5                               # b c d e e
+    assert d.loc[10, "n_messages"] == 3                              # f g g
+    # the no-text bucket is populated with real users, not the .get(...,0)
+    # default -- a sign error or wrong-key lookup here would still be caught.
+    assert d.loc[subclusters.NO_SUBCLUSTER_ID, "n_users"] == 2       # h, i
+    assert d.loc[subclusters.NO_SUBCLUSTER_ID, "n_messages"] == 3    # h i i
 
 
 def test_dim_subcluster_names_are_unique_within_a_parent():
@@ -1138,9 +1159,14 @@ def test_dim_subcluster_names_are_unique_within_a_parent():
 
 def test_dim_subcluster_colors_are_tints_of_the_parent():
     d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
-    # parent 0 is #009ba4; its largest child keeps the parent hue exactly
-    assert d.loc[0, "color_hex"] == "#009ba4"
-    assert d.loc[1, "color_hex"] != "#009ba4"
+    # parent 0 is #009ba4. Its LARGER child is subcluster 1 (4 users) even
+    # though 1 > 0 as a raw id -- id-order and size-order disagree by
+    # construction (see _sub_fixture's docstring). The size-rank-correct
+    # implementation gives the larger child (id 1) the parent hue exactly;
+    # an id-keyed implementation would wrongly give it to id 0 instead.
+    assert d.loc[1, "color_hex"] == "#009ba4"
+    assert d.loc[0, "color_hex"] != "#009ba4"
+    # parent 1 has a single child (unsplit): trivially keeps the parent hue.
     assert d.loc[10, "color_hex"] == "#671e42"
 
 
