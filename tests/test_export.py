@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "5"
+    assert kv["schema_version"] == "6"
 
 
 def test_meta_run_carries_report_version():
@@ -86,7 +86,8 @@ def test_parity_check_includes_repeat_askers(SD):
     fmsg = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
                               sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     fmeal = export.build_fact_meal(SD.meal)
-    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
+    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal,
+                                  _empty_dim_subcluster())
     assert "repeat_askers_pct" in set(p["metric"])
     # cluster_coverage_pct is expected to fail here: _empty_lab() intentionally
     # labels no one, so every user falls back to NO_CLUSTER_ID.
@@ -397,7 +398,8 @@ def test_parity_check_all_match(SD):
     fmsg = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
                               sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     fmeal = export.build_fact_meal(SD.meal)
-    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
+    p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal,
+                                  _empty_dim_subcluster())
     assert set(p.columns) == {"metric", "exported_value", "reconciliation_value", "match"}
     # cluster_coverage_pct is expected to fail here: _empty_lab() intentionally
     # labels no one, so every user falls back to NO_CLUSTER_ID.
@@ -1063,7 +1065,8 @@ def test_parity_check_reports_cluster_coverage():
                              "has_text": [True, False], "is_repeat_asker": [True, False]})
     fact_message = pd.DataFrame({"message_id": ["m1"]})
     fact_meal = pd.DataFrame({"user_id": ["u1"]})
-    p = export.build_parity_check(recon, dim_user, fact_message, fact_meal)
+    p = export.build_parity_check(recon, dim_user, fact_message, fact_meal,
+                                  _empty_dim_subcluster())
     row = p[p["metric"] == "cluster_coverage_pct"].iloc[0]
     assert row["exported_value"] == pytest.approx(50.0)
     assert bool(row["match"]) is False   # 50% is below the 80% threshold
@@ -1086,6 +1089,49 @@ def test_dim_cluster_carries_description_never_null():
     assert d.loc[d["cluster_id"] == 0, "description"].iloc[0] == "Prose about cluster 0."
     # The synthetic no-text row gets an empty description, not a null.
     assert d.loc[d["cluster_id"] == export.NO_CLUSTER_ID, "description"].iloc[0] == ""
+
+
+def test_parity_check_carries_the_subcluster_gate(SD):
+    dim_user = export.build_dim_user(
+        SD.responses, SD.messages, _empty_lab(),
+        sub_lab=_empty_sub_lab(),
+        sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fact_message = export.build_fact_message(
+        SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+        sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fact_meal = export.build_fact_meal(SD.meal)
+    dim_sub = pd.DataFrame({"subcluster_id": [0, 1], "n_users": [90, 45],
+                            "is_split": [True, True]})
+
+    p = export.build_parity_check(SD.reconciliation, dim_user, fact_message,
+                                  fact_meal, dim_sub)
+    row = p[p["metric"] == "subcluster_min_users"].iloc[0]
+    assert row["exported_value"] == 45
+    assert row["reconciliation_value"] == subclusters.SUBCLUSTER_MIN_USERS
+    assert bool(row["match"]) is True
+
+
+def test_parity_check_fails_a_too_small_subcluster(SD):
+    dim_user = export.build_dim_user(
+        SD.responses, SD.messages, _empty_lab(),
+        sub_lab=_empty_sub_lab(),
+        sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fact_message = export.build_fact_message(
+        SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+        sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fact_meal = export.build_fact_meal(SD.meal)
+    dim_sub = pd.DataFrame({"subcluster_id": [0, 1], "n_users": [90, 4],
+                            "is_split": [True, True]})
+
+    p = export.build_parity_check(SD.reconciliation, dim_user, fact_message,
+                                  fact_meal, dim_sub)
+    assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
+
+
+def test_meta_run_reports_schema_v6():
+    m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
+    val = m.set_index("key")["value"]
+    assert val["schema_version"] == "6"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1231,6 +1277,14 @@ def _empty_sub_lab() -> pd.Series:
     """No subcluster map — every user falls back to the no-text bucket. Mirrors
     `_empty_lab` for the tests that exercise unrelated columns."""
     return pd.Series(dtype="int64")
+
+
+def _empty_dim_subcluster() -> pd.DataFrame:
+    """No subcategories at all — nothing split. `qa.min_subcluster_size` passes
+    this vacuously, for the parity/meta tests that exercise unrelated columns."""
+    return pd.DataFrame({"subcluster_id": pd.Series(dtype="int64"),
+                         "n_users": pd.Series(dtype="int64"),
+                         "is_split": pd.Series(dtype="bool")})
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])

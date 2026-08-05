@@ -256,3 +256,26 @@ def test_cluster_coverage_treats_null_as_uncovered():
 def test_cluster_coverage_threshold_is_below_todays_value():
     """86% today; the bar leaves drift room without tolerating a silent collapse."""
     assert qa.CLUSTER_COVERAGE_THRESHOLD == 0.80
+
+
+def test_min_subcluster_size_reads_the_smallest_split_child():
+    import pandas as pd
+    from sami import qa
+
+    d = pd.DataFrame({
+        "subcluster_id": [0, 1, 10, -10],
+        "n_users": [90, 31, 200, 194],
+        "is_split": [True, True, False, False],
+    })
+    # only the split children count; the unsplit parent and the no-text bucket
+    # are not subcategories the gate is about
+    assert qa.min_subcluster_size(d) == 31
+
+
+def test_min_subcluster_size_passes_vacuously_when_nothing_split():
+    import pandas as pd
+    from sami import qa, subclusters
+
+    d = pd.DataFrame({"subcluster_id": [0, -10], "n_users": [5, 194],
+                      "is_split": [False, False]})
+    assert qa.min_subcluster_size(d) == subclusters.SUBCLUSTER_MIN_USERS
