@@ -143,10 +143,12 @@ def build_dim_city() -> pd.DataFrame:
 
 
 def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
-                   lab: pd.Series) -> pd.DataFrame:
+                   lab: pd.Series, *, sub_lab: pd.Series,
+                   sub_names: dict) -> pd.DataFrame:
     """One row per user. `lab` (Series indexed by user_id -> cluster_id) fills
     `cluster_id`; users absent from it — those with no message text to cluster —
-    get NO_CLUSTER_ID."""
+    get NO_CLUSTER_ID. `sub_lab` does the same one level down, falling back to
+    NO_SUBCLUSTER_ID, and `sub_names` resolves the id to its display name."""
     r = responses.sort_values("ts", kind="stable")
     # Derived before the groupby so 'first' picks the version of the user's
     # earliest record — a user who appears in both cohorts is counted as v1,
@@ -190,6 +192,10 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     agg["intends_to_stay"] = dest.map(_stay).astype(bool)
     agg["cluster_id"] = (agg.index.to_series().map(lab.to_dict())
                          .fillna(NO_CLUSTER_ID).astype(int))
+    agg["subcluster_id"] = (agg.index.to_series().map(sub_lab.to_dict())
+                            .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
+    agg["subcluster_name"] = agg["subcluster_id"].map(sub_names).fillna(
+        subclusters.NO_SUBCLUSTER_NAME)
     return to_english_user(agg.reset_index())
 
 
@@ -198,7 +204,8 @@ _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
 
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
-                       *, lab: pd.Series) -> pd.DataFrame:
+                       *, lab: pd.Series, sub_lab: pd.Series,
+                       sub_names: dict) -> pd.DataFrame:
     f = messages.copy()
     f["message_id"] = [message_key(u, s, m) for u, s, m
                        in zip(f["user_id"], f["seq"], f["message"])]
@@ -206,6 +213,10 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)
     f["cluster_id"] = f["user_id"].map(lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
+    f["subcluster_id"] = (f["user_id"].map(sub_lab.to_dict())
+                          .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
+    f["subcluster_name"] = f["subcluster_id"].map(sub_names).fillna(
+        subclusters.NO_SUBCLUSTER_NAME)
     _translate(f, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     return f
 

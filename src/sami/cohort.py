@@ -86,6 +86,8 @@ POLICY: dict[str, Policy] = {
     "registered_at": Policy.POOLABLE,
     "is_repeat_asker": Policy.POOLABLE,
     "cluster_id": Policy.POOLABLE,
+    "subcluster_id": Policy.POOLABLE,
+    "subcluster_name": Policy.POOLABLE,
     # Session time is timed by the PLATFORM, not asked by either questionnaire,
     # so the registration cohort does not change how it is measured — and the
     # only timestamps the loader trusts are the v2-platform ISO ones, which means
