@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import pytest
-from sami import load_sami, export, cohort, config, theme, taxonomy
+from sami import load_sami, export, cohort, config, theme, taxonomy, subclusters
 
 
 @pytest.fixture(scope="module")
@@ -1073,3 +1073,100 @@ def test_dim_cluster_description_survives_real_resolve_cluster_names():
     expected = next(e["description"] for e in taxonomy.CLUSTER_NAMES
                     if e["marker"] == "terminal")
     assert d.loc[d["cluster_id"] == 0, "description"].iloc[0] == expected
+
+
+def _sub_fixture():
+    """A two-parent world: parent 0 split in two, parent 1 unsplit."""
+    sub_lab = pd.Series(
+        {"a": 0, "b": 0, "c": 0, "d": 1, "e": 1, "f": 10, "g": 10},
+        dtype="int64")
+    messages = pd.DataFrame({
+        "user_id": ["a", "a", "b", "c", "d", "e", "f", "g", "g"],
+    })
+    resolved = {
+        0: {"name": "Birth registration", "marker": "registro", "provisional": False},
+        1: {"name": "Apostilles", "marker": "apostilla", "provisional": False},
+        10: {"name": "Subcluster 10 · empleo", "marker": "empleo", "provisional": True},
+    }
+    terms = {
+        0: pd.Series({"registro": 0.9, "civil": 0.4}),
+        1: pd.Series({"apostilla": 0.7}),
+        10: pd.Series({"empleo": 0.6}),
+    }
+    dim_cluster = pd.DataFrame({
+        "cluster_id": [0, 1, -1],
+        "name": ["Nationality and family papers", "Building a livelihood",
+                 export.NO_CLUSTER_NAME],
+        "display_order": [0, 1, 2],
+        "color_hex": ["#009ba4", "#671e42", theme.NO_TEXT_COLOR],
+    })
+    meta = {0: {"n_users": 5, "k": 2, "stability_ari": 0.71, "is_split": True},
+            1: {"n_users": 2, "k": None, "stability_ari": float("nan"),
+                "is_split": False}}
+    return sub_lab, messages, resolved, terms, dim_cluster, meta
+
+
+def test_dim_subcluster_schema_and_no_text_row():
+    d = export.build_dim_subcluster(*_sub_fixture())
+    assert list(d.columns) == [
+        "subcluster_id", "cluster_id", "subcluster_name", "top_terms",
+        "n_users", "n_messages", "display_order", "color_hex", "is_split",
+        "name_is_provisional"]
+    assert d["subcluster_id"].is_unique
+    # the no-text bucket is present and sorts last
+    assert subclusters.NO_SUBCLUSTER_ID in set(d["subcluster_id"])
+    last = d.sort_values("display_order").iloc[-1]
+    assert last["subcluster_id"] == subclusters.NO_SUBCLUSTER_ID
+    assert bool(last["is_split"]) is False
+
+
+def test_dim_subcluster_counts_users_and_messages():
+    d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
+    assert d.loc[0, "n_users"] == 3          # a, b, c
+    assert d.loc[1, "n_users"] == 2          # d, e
+    assert d.loc[10, "n_users"] == 2         # f, g
+    assert d.loc[0, "n_messages"] == 4       # a a b c
+    assert d.loc[10, "n_messages"] == 3      # f g g
+
+
+def test_dim_subcluster_names_are_unique_within_a_parent():
+    d = export.build_dim_subcluster(*_sub_fixture())
+    real = d[d["subcluster_id"] >= 0]
+    for _, g in real.groupby("cluster_id"):
+        assert g["subcluster_name"].is_unique
+
+
+def test_dim_subcluster_colors_are_tints_of_the_parent():
+    d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
+    # parent 0 is #009ba4; its largest child keeps the parent hue exactly
+    assert d.loc[0, "color_hex"] == "#009ba4"
+    assert d.loc[1, "color_hex"] != "#009ba4"
+    assert d.loc[10, "color_hex"] == "#671e42"
+
+
+def test_dim_subcluster_display_order_groups_children_under_their_parent():
+    d = export.build_dim_subcluster(*_sub_fixture()).sort_values("display_order")
+    real = d[d["subcluster_id"] >= 0]
+    # every child of parent 0 sorts before every child of parent 1
+    assert list(real["cluster_id"]) == sorted(real["cluster_id"])
+
+
+def test_dim_subcluster_carries_the_provisional_flag():
+    d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
+    assert bool(d.loc[10, "name_is_provisional"]) is True
+    assert bool(d.loc[0, "name_is_provisional"]) is False
+
+
+def test_dim_subcluster_marks_unsplit_parents():
+    d = export.build_dim_subcluster(*_sub_fixture()).set_index("subcluster_id")
+    assert bool(d.loc[10, "is_split"]) is False
+    assert bool(d.loc[0, "is_split"]) is True
+
+
+def test_nlp_subcluster_terms_schema():
+    _, _, _, terms, _, _ = _sub_fixture()
+    t = export.build_nlp_subcluster_terms(terms)
+    assert list(t.columns) == ["subcluster_id", "rank", "term", "weight"]
+    assert len(t) == 4
+    assert set(t["subcluster_id"]) == {0, 1, 10}
+    assert t[t["subcluster_id"] == 0]["rank"].tolist() == [0, 1]

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import metrics, taxonomy, qa, canon, theme, cohort
+from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters
 
 # The categorisation bucket for users with no message text. Clustering needs a
 # document, so the ~194 users who registered and never wrote anything cannot be
@@ -468,6 +468,69 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
     return d[[c for c in cols if c in d.columns]]
 
 
+def build_dim_subcluster(sub_lab, messages, resolved, terms, dim_cluster,
+                         meta) -> pd.DataFrame:
+    """The subcategory lookup: one row per child, plus the no-text bucket.
+
+    `sub_lab` is `subclusters.subcluster_all`'s Series (user_id ->
+    subcluster_id), `resolved` and `terms` are keyed by subcluster_id, `meta` by
+    cluster_id.
+
+    The name is carried here AS WELL AS on the fact tables. That duplication is
+    deliberate: Power BI's sort-by-column requires the sorted column and its
+    sort key in the same table, so a name on `fact_message` cannot be ordered by
+    a `display_order` here. Without it every subcategory legend alphabetises.
+
+    Colour is a tint of the PARENT's colour by size rank, and `display_order` is
+    the parent's order times ten plus the child index, so children sort directly
+    beneath their own parent in a flat legend.
+    """
+    n_users = sub_lab.value_counts()
+    msg_sub = messages["user_id"].map(sub_lab.to_dict())
+    n_messages = msg_sub.value_counts()
+
+    parent_order = dict(zip(dim_cluster["cluster_id"], dim_cluster["display_order"]))
+    parent_color = dict(zip(dim_cluster["cluster_id"], dim_cluster["color_hex"]))
+
+    rows = []
+    for cid in sorted(c for c in meta):
+        children = sorted(s for s in n_users.index
+                          if s >= 0 and s // 10 == cid)
+        palette = theme.subcluster_colors(parent_color[cid], len(children))
+        for idx, sid in enumerate(children):
+            rows.append({
+                "subcluster_id": int(sid),
+                "cluster_id": int(cid),
+                "subcluster_name": resolved[sid]["name"],
+                "top_terms": ", ".join(list(terms[sid].index)[:6]) if sid in terms else "",
+                "n_users": int(n_users.get(sid, 0)),
+                "n_messages": int(n_messages.get(sid, 0)),
+                "display_order": int(parent_order[cid]) * 10 + idx,
+                "color_hex": palette[idx],
+                "is_split": bool(meta[cid]["is_split"]),
+                "name_is_provisional": bool(resolved[sid]["provisional"]),
+            })
+
+    # The no-text bucket, appended last so it sorts to the end of every legend
+    # and slicer, mirroring dim_cluster's -1 row.
+    rows.append({
+        "subcluster_id": subclusters.NO_SUBCLUSTER_ID,
+        "cluster_id": NO_CLUSTER_ID,
+        "subcluster_name": subclusters.NO_SUBCLUSTER_NAME,
+        "top_terms": "",
+        "n_users": int(n_users.get(subclusters.NO_SUBCLUSTER_ID, 0)),
+        "n_messages": int(n_messages.get(subclusters.NO_SUBCLUSTER_ID, 0)),
+        "display_order": (max(parent_order.values()) + 1) * 10,
+        "color_hex": theme.NO_TEXT_COLOR,
+        "is_split": False,
+        "name_is_provisional": False,
+    })
+    return pd.DataFrame(rows, columns=[
+        "subcluster_id", "cluster_id", "subcluster_name", "top_terms",
+        "n_users", "n_messages", "display_order", "color_hex", "is_split",
+        "name_is_provisional"])
+
+
 # The four cells of the priority matrix, as a table so Power BI can draw a real
 # legend bound to data instead of four hand-placed shapes with hand-typed hexes.
 # Static by construction: the quadrants are a fixed reading of the two axes, not
@@ -497,11 +560,25 @@ def build_nlp_umap(XY, labels, user_ids) -> pd.DataFrame:
                          "cluster_id": list(labels)})
 
 
-def build_nlp_cluster_terms(terms: dict) -> pd.DataFrame:
-    rows = [{"cluster_id": cid, "rank": rank, "term": term, "weight": float(w)}
+def _terms_frame(terms: dict, key: str) -> pd.DataFrame:
+    rows = [{key: cid, "rank": rank, "term": term, "weight": float(w)}
             for cid, s in terms.items()
             for rank, (term, w) in enumerate(s.items())]
-    return pd.DataFrame(rows, columns=["cluster_id", "rank", "term", "weight"])
+    return pd.DataFrame(rows, columns=[key, "rank", "term", "weight"])
+
+
+def build_nlp_cluster_terms(terms: dict) -> pd.DataFrame:
+    return _terms_frame(terms, "cluster_id")
+
+
+def build_nlp_subcluster_terms(terms: dict) -> pd.DataFrame:
+    """Top SIBLING-EXCLUSIVE terms per subcategory.
+
+    A separate table rather than a re-graining of `nlp_cluster_terms`: the
+    dashboard's "Main Needs" word cloud is bound to that table at parent grain
+    and must keep working.
+    """
+    return _terms_frame(terms, "subcluster_id")
 
 
 def build_nlp_emergent_themes(messages: pd.DataFrame) -> pd.DataFrame:
