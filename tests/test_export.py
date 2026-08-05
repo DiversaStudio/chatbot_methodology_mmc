@@ -904,8 +904,9 @@ def prof():
 def test_dim_cluster_schema_and_no_category_wording(prof, resolved):
     d = export.build_dim_cluster(prof, resolved)
     assert list(d.columns) == [
-        "cluster_id", "name", "top_terms", "n_users", "n_messages", "median_age",
-        "display_order", "color_hex", "is_real_cluster", "name_is_provisional"]
+        "cluster_id", "name", "description", "top_terms", "n_users", "n_messages",
+        "median_age", "display_order", "color_hex", "is_real_cluster",
+        "name_is_provisional"]
     assert not any("categor" in c for c in d.columns)
     assert d["cluster_id"].is_unique
 
@@ -1037,3 +1038,22 @@ def test_parity_check_reports_cluster_coverage():
     row = p[p["metric"] == "cluster_coverage_pct"].iloc[0]
     assert row["exported_value"] == pytest.approx(50.0)
     assert bool(row["match"]) is False   # 50% is below the 80% threshold
+
+
+def test_dim_cluster_carries_description_never_null():
+    prof = pd.DataFrame(
+        {"n_users": [40, 20], "n_messages": [90, 30], "median_age": [31, 28],
+         "top_terms": ["terminal, albergue", "zzzznomatch"]},
+        index=pd.Index([0, 1], name="archetype"))
+    resolved = {
+        0: {"name": "Urgent humanitarian needs", "marker": "terminal",
+            "provisional": False, "description": "Prose about cluster 0."},
+        1: {"name": "Zzzznomatch", "marker": "zzzznomatch",
+            "provisional": True, "description": ""},
+    }
+    d = export.build_dim_cluster(prof, resolved)
+    assert "description" in d.columns
+    assert d["description"].isna().sum() == 0
+    assert d.loc[d["cluster_id"] == 0, "description"].iloc[0] == "Prose about cluster 0."
+    # The synthetic no-text row gets an empty description, not a null.
+    assert d.loc[d["cluster_id"] == export.NO_CLUSTER_ID, "description"].iloc[0] == ""

@@ -236,6 +236,7 @@ without re-reading `nlp_cluster_terms`.
 | column | notes |
 |---|---|
 | `cluster_id`, `name` | cluster id and human name; `-1` is the "No conversation text" bucket |
+| `description` | Curated prose explaining the archetype, owned by Diversa. Empty string when the cluster auto-named — the dashboard panel renders without prose rather than inventing it. Never null. |
 | `top_terms` | comma-joined top c-TF-IDF terms; empty for `-1`, which has no text to derive terms from |
 | `n_users`, `n_messages` | cluster size; empty for `-1` (no message-level rows to count — see `dim_user` for its 194 users) |
 | `median_age` | empty for `-1` |

@@ -127,24 +127,28 @@ CANDIDATE_INTENT_PROBES: dict[str, str] = {
 # (2026-07-28). A cluster whose marker no longer appears is auto-named and
 # flagged provisional rather than blocking the run; review the terms and add or
 # amend an entry here when that happens.
+#
+# `description` is curated prose for the dashboard's archetype panel (spec 3
+# §9). It is owned by Diversa, not derived from the data. A cluster that
+# auto-names gets "" — the panel renders without prose rather than inventing it.
 CLUSTER_NAMES: list[dict[str, str]] = [
     {"marker": "terminal", "name": "Urgent humanitarian needs",
-     "blurb": "Food, shelter, disability and transport support — often at a bus "
+     "description": "Food, shelter, disability and transport support — often at a bus "
               "terminal or border town, often stated as urgent."},
     {"marker": "nacionalidad", "name": "Nationality and family papers",
-     "blurb": "Colombian nationality for a child born here: birth registration, "
+     "description": "Colombian nationality for a child born here: birth registration, "
               "apostilles, parents' documents."},
     {"marker": "rumv", "name": "Stuck mid-procedure",
-     "blurb": "Already inside the RUMV/PPT pipeline and blocked: biometrics, "
+     "description": "Already inside the RUMV/PPT pipeline and blocked: biometrics, "
               "appointments, guardianship for minors, collection."},
     {"marker": "visitante", "name": "Permits, visas and travel",
-     "blurb": "Regularising as an adult — PPT, visitor permits, salvoconductos, "
+     "description": "Regularising as an adult — PPT, visitor permits, salvoconductos, "
               "cédula de extranjería, extensions and onward travel."},
     {"marker": "regulación", "name": "Settling in",
-     "blurb": "Housing, education, transport and regularisation — building a life "
+     "description": "Housing, education, transport and regularisation — building a life "
               "here rather than meeting an emergency."},
     {"marker": "emprendimiento", "name": "Building a livelihood",
-     "blurb": "Work, training and enterprise support — planning ahead, not in crisis."},
+     "description": "Work, training and enterprise support — planning ahead, not in crisis."},
 ]
 
 
@@ -154,7 +158,7 @@ def resolve_cluster_names(terms: dict[int, "pd.Series"],
 
     `terms` is what `clusters.ctfidf_terms` returns: {cluster_id -> Series of
     term -> weight, descending}. Returns {cluster_id -> {"name", "marker",
-    "provisional"}}.
+    "description", "provisional"}}.
 
     Each registry entry is claimed at most once, and clusters are visited in
     ascending id order, so the result is deterministic when two clusters happen
@@ -176,6 +180,7 @@ def resolve_cluster_names(terms: dict[int, "pd.Series"],
         if entry is not None:
             unclaimed.remove(entry)
             out[int(cid)] = {"name": entry["name"], "marker": entry["marker"],
+                             "description": entry.get("description", ""),
                              "provisional": False}
             continue
         head = top[:n_auto_terms]
@@ -184,6 +189,7 @@ def resolve_cluster_names(terms: dict[int, "pd.Series"],
             # The top term stands in for a curated marker so downstream consumers
             # (e.g. export.build_nlp_voices) can still pick a representative quote.
             "marker": head[0] if head else "",
+            "description": "",
             "provisional": True,
         }
         provisional.append(int(cid))

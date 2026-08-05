@@ -427,7 +427,7 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
     """The dashboard's one categorisation dimension.
 
     `resolved` is `taxonomy.resolve_cluster_names`' output:
-    {cluster_id: {"name", "marker", "provisional"}}.
+    {cluster_id: {"name", "marker", "description", "provisional"}}.
 
     Colour and sort by SIZE RANK, not cluster_id. Cluster ids are assigned by
     the clustering run and carry no meaning across runs, so binding a colour to
@@ -439,6 +439,8 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
     d["name"] = d["cluster_id"].map(lambda c: resolved[c]["name"])
     d["name_is_provisional"] = d["cluster_id"].map(
         lambda c: bool(resolved[c]["provisional"]))
+    d["description"] = d["cluster_id"].map(
+        lambda c: resolved[c].get("description", ""))
     d["is_real_cluster"] = True
     if "top_terms" not in d.columns:
         d["top_terms"] = ""
@@ -457,11 +459,12 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
         "n_users": pd.NA, "n_messages": pd.NA, "median_age": pd.NA,
         "display_order": len(order), "color_hex": theme.NO_TEXT_COLOR,
         "is_real_cluster": False, "name_is_provisional": False,
+        "description": "",
     }])], ignore_index=True)
 
-    cols = ["cluster_id", "name", "top_terms", "n_users", "n_messages",
-            "median_age", "display_order", "color_hex", "is_real_cluster",
-            "name_is_provisional"]
+    cols = ["cluster_id", "name", "description", "top_terms", "n_users",
+            "n_messages", "median_age", "display_order", "color_hex",
+            "is_real_cluster", "name_is_provisional"]
     return d[[c for c in cols if c in d.columns]]
 
 
