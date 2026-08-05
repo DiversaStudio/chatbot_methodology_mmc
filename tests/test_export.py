@@ -46,7 +46,8 @@ def test_city_coords_cover_all_departmented_cities():
 
 
 def test_dim_user_new_flags(SD):
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     for c in ["first_seen", "is_repeat_asker", "intends_to_stay"]:
         assert c in d.columns
     assert d["is_repeat_asker"].dtype == bool
@@ -58,7 +59,8 @@ def test_dim_user_new_flags(SD):
 
 
 def test_fact_message_no_text(SD):
-    f = export.build_fact_message(SD.messages, lab=_empty_lab())
+    f = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert "message" not in f.columns
     for c in ["message_id", "user_id", "ts", "cluster_id"]:
         assert c in f.columns
@@ -79,8 +81,10 @@ def test_meta_run_carries_report_version():
 
 
 def test_parity_check_includes_repeat_askers(SD):
-    du = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
-    fmsg = export.build_fact_message(SD.messages, lab=_empty_lab())
+    du = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fmsg = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     fmeal = export.build_fact_meal(SD.meal)
     p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
     assert "repeat_askers_pct" in set(p["metric"])
@@ -91,7 +95,8 @@ def test_parity_check_includes_repeat_askers(SD):
 
 
 def test_dim_user_one_row_per_user(SD):
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert d["user_id"].is_unique
     assert d["user_id"].nunique() == SD.responses["user_id"].nunique()
     for col in ["user_id", "gender_clean", "age_num", "department",
@@ -117,7 +122,8 @@ def _no_spanish(frame, cols):
 def test_dim_user_registered_at_is_never_null(SD):
     """The whole point of this column: a new-user count built on `first_seen`
     silently drops everyone who registered and never sent a message."""
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert d["registered_at"].notna().all()
     assert d["first_seen"].isna().any()             # the gap this column closes
     # registration cannot postdate the user's first message
@@ -126,7 +132,8 @@ def test_dim_user_registered_at_is_never_null(SD):
 
 
 def test_dim_user_display_values_are_english(SD):
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
                     "city_duration_canon", "city_canon", "nationality_canon"])
     from sami import canon
@@ -139,7 +146,8 @@ def test_dim_user_display_values_are_english(SD):
 
 
 def test_duration_scales_name_their_non_response_bucket(SD):
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     for label_col, order_col in (("away_duration_canon", "away_duration_order"),
                                  ("city_duration_canon", "city_duration_order")):
         # no unlabelled bar on the axis, and no null in the sort-by column
@@ -165,11 +173,13 @@ def test_fact_meal_english_labels_keep_rating_num(SD):
 
 def test_dim_user_no_pii(SD):
     from sami import qa
-    assert qa.pii_scan(export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())) == []
+    assert qa.pii_scan(export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})) == []
 
 
 def test_fact_message_grain_and_join(SD):
-    f = export.build_fact_message(SD.messages, lab=_empty_lab())
+    f = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert len(f) == len(SD.messages)
     assert f["message_id"].is_unique
     assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()  # 16-char hex hash
@@ -180,7 +190,8 @@ def test_fact_message_grain_and_join(SD):
 def test_fact_message_sentiment_join(SD):
     # synthetic sentiment aligned to the messages index
     sent = pd.DataFrame({"label": ["negative"] * len(SD.messages)}, index=SD.messages.index)
-    f = export.build_fact_message(SD.messages, sentiment=sent, lab=_empty_lab())
+    f = export.build_fact_message(SD.messages, sentiment=sent, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert (f["sentiment_label"] == "negative").all()
 
 
@@ -381,8 +392,10 @@ def test_meta_run_flags():
 
 
 def test_parity_check_all_match(SD):
-    du = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
-    fmsg = export.build_fact_message(SD.messages, lab=_empty_lab())
+    du = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    fmsg = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     fmeal = export.build_fact_meal(SD.meal)
     p = export.build_parity_check(SD.reconciliation, du, fmsg, fmeal)
     assert set(p.columns) == {"metric", "exported_value", "reconciliation_value", "match"}
@@ -440,14 +453,16 @@ def test_message_id_is_stable_when_other_users_are_added():
     The spine is sorted by (user_id, ts), so one new user re-numbered every
     row — silently re-pointing anything keyed on it."""
     base = _spine()
-    before = export.build_fact_message(base, lab=_empty_lab())
+    before = export.build_fact_message(base, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     grown = pd.concat([
         pd.DataFrame({
             "user_id": ["u0"], "ts": pd.to_datetime(["2026-03-01"]),
             "message": ["mensaje nuevo"], "seq": [0], "n_msgs_user": [1],
             "city_canon": ["Bogotá"],
         }), base]).reset_index(drop=True)
-    after = export.build_fact_message(grown, lab=_empty_lab())
+    after = export.build_fact_message(grown, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
 
     got = after.set_index("user_id").loc["u2", "message_id"]
     want = before.set_index("user_id").loc["u2", "message_id"]
@@ -455,7 +470,8 @@ def test_message_id_is_stable_when_other_users_are_added():
 
 
 def test_message_id_is_unique_per_row():
-    f = export.build_fact_message(_spine(), lab=_empty_lab())
+    f = export.build_fact_message(_spine(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert f["message_id"].is_unique
 
 
@@ -465,12 +481,14 @@ def test_message_id_differs_for_identical_text_from_different_users():
         "message": ["gracias", "gracias"], "seq": [0, 0], "n_msgs_user": [1, 1],
         "city_canon": ["Medellín"] * 2,
     })
-    f = export.build_fact_message(df, lab=_empty_lab())
+    f = export.build_fact_message(df, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert f["message_id"].nunique() == 2
 
 
 def test_message_id_contains_no_pii():
-    f = export.build_fact_message(_spine(), lab=_empty_lab())
+    f = export.build_fact_message(_spine(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert f["message_id"].str.match(r"^[0-9a-f]{16}$").all()
 
 
@@ -485,7 +503,8 @@ def test_message_id_changes_on_backfilled_earlier_message():
         "n_msgs_user": [2, 2],
         "city_canon": ["Medellín", "Medellín"],
     })
-    before = export.build_fact_message(base_messages, lab=_empty_lab())
+    before = export.build_fact_message(base_messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     # Save message_id for the second row (seq=1, "tercera") before backfill
     tercera_before_seq = 1
     tercera_id_before = before[before["seq"] == tercera_before_seq].iloc[0]["message_id"]
@@ -506,7 +525,8 @@ def test_message_id_changes_on_backfilled_earlier_message():
     # Recompute seq (mimicking load.load_messages behavior)
     backfilled["seq"] = backfilled.groupby("user_id").cumcount()
 
-    after = export.build_fact_message(backfilled, lab=_empty_lab())
+    after = export.build_fact_message(backfilled, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
 
     # The "tercera" message was seq=1 before, now it's seq=2 after backfill.
     # Since message_key uses seq, the id must change.
@@ -545,12 +565,14 @@ def _messages_two_users():
 
 
 def test_dim_user_carries_instrument_version():
-    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab())
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert dict(zip(d["user_id"], d["instrument_version"])) == {"u1": "v1", "u2": "v2"}
 
 
 def test_dim_user_carries_the_new_v2_fields():
-    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab())
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     for col in ("language", "registration_status", "attempts", "is_returning",
                 "safety_alert", "escalation_status"):
         assert col in d.columns, f"{col} missing from dim_user"
@@ -559,7 +581,8 @@ def test_dim_user_carries_the_new_v2_fields():
 
 def test_every_dim_user_column_has_a_cohort_policy():
     """The guard is only a guard if it cannot fall behind the schema."""
-    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab())
+    d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     for col in d.columns:
         cohort.policy_for(col)   # raises CohortError if unclassified
 
@@ -789,7 +812,8 @@ def test_agg_language_reconciles_with_dim_user_per_cohort():
         "n_msgs_user": [1, 1, 1],
     })
 
-    du = export.build_dim_user(df, messages, lab=_empty_lab())
+    du = export.build_dim_user(df, messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     lg = export.build_agg_language(df)
 
     # dim_user: u1 -> v1, u2/u3 -> v2
@@ -833,7 +857,8 @@ def test_agg_language_counts_multilingual_users_per_language():
         "n_msgs_user": [1],
     })
 
-    du = export.build_dim_user(df, messages, lab=_empty_lab())
+    du = export.build_dim_user(df, messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     lg = export.build_agg_language(df)
 
     # dim_user: 1 user (u1) in v2 cohort
@@ -854,7 +879,8 @@ def test_every_dim_user_column_has_a_cohort_policy(SD):
     be long after the column shipped. `session_minutes` was added and missed
     exactly this way. Fail here instead, where the fix is one line.
     """
-    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab())
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     missing = []
     for col in d.columns:
         try:
@@ -962,7 +988,8 @@ def test_dim_user_labels_textless_users_minus_one():
     messages = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-06-01"]),
                              "n_msgs_user": [1], "message": ["hola"], "seq": [0]})
     lab = pd.Series([0], index=["u1"], name="archetype")
-    du = export.build_dim_user(responses, messages, lab=lab)
+    du = export.build_dim_user(responses, messages, lab=lab, sub_lab=_empty_sub_lab(),
+                               sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     got = dict(zip(du["user_id"], du["cluster_id"]))
     assert got["u1"] == 0
     assert got["u2"] == export.NO_CLUSTER_ID
@@ -975,7 +1002,9 @@ def test_fact_message_has_no_category_column():
         "city_canon": ["Bogotá"], "seq": [0], "n_msgs_user": [1],
         "message": ["hola"]})
     lab = pd.Series([0], index=["u1"], name="archetype")
-    f = export.build_fact_message(messages, sentiment=None, lab=lab)
+    f = export.build_fact_message(messages, sentiment=None, lab=lab,
+                                  sub_lab=_empty_sub_lab(),
+                                  sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     assert "dominant_category" not in f.columns
     assert f["cluster_id"].tolist() == [0]
 
@@ -1196,3 +1225,37 @@ def test_nlp_subcluster_terms_schema():
     assert len(t) == 4
     assert set(t["subcluster_id"]) == {0, 1, 10}
     assert t[t["subcluster_id"] == 0]["rank"].tolist() == [0, 1]
+
+
+def _empty_sub_lab() -> pd.Series:
+    """No subcluster map — every user falls back to the no-text bucket. Mirrors
+    `_empty_lab` for the tests that exercise unrelated columns."""
+    return pd.Series(dtype="int64")
+
+
+@pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
+def test_subcluster_columns_are_never_null(SD, builder):
+    sub_lab = pd.Series(dtype="int64")
+    names = {subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME}
+    if builder == "dim_user":
+        f = export.build_dim_user(SD.responses, SD.messages, _empty_lab(),
+                                  sub_lab=sub_lab, sub_names=names)
+    else:
+        f = export.build_fact_message(SD.messages, lab=_empty_lab(),
+                                      sub_lab=sub_lab, sub_names=names)
+    assert f["subcluster_id"].notna().all()
+    assert f["subcluster_name"].notna().all()
+    assert set(f["subcluster_id"]) == {subclusters.NO_SUBCLUSTER_ID}
+    assert set(f["subcluster_name"]) == {subclusters.NO_SUBCLUSTER_NAME}
+
+
+def test_dim_user_maps_known_subclusters(SD):
+    uid = SD.responses["user_id"].iloc[0]
+    sub_lab = pd.Series({uid: 31}, dtype="int64")
+    names = {31: "Biometrics appointments",
+             subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME}
+    d = export.build_dim_user(SD.responses, SD.messages, _empty_lab(),
+                              sub_lab=sub_lab, sub_names=names)
+    row = d[d["user_id"] == uid].iloc[0]
+    assert row["subcluster_id"] == 31
+    assert row["subcluster_name"] == "Biometrics appointments"
