@@ -47,6 +47,35 @@ def test_parent_splits_when_every_child_clears_the_floor():
     assert sizes.min() >= subclusters.SUBCLUSTER_MIN_USERS
 
 
+def test_ties_are_broken_toward_the_largest_qualifying_k():
+    # Two well-separated 80-user blobs (n=160). k=2 cleanly recovers the true
+    # blobs (mean_ari=1.0). But k=3 ALSO clears both gates: splitting one blob
+    # in two still leaves both fragments over the 30-user floor (33 and 47 of
+    # [80, 47, 33]), and the split is stable enough (mean_ari=0.826 >= the 0.6
+    # bar). So this fixture has two genuinely qualifying k, not one -- exactly
+    # the scenario that exposed the largest-k vs highest-ARI conflict during
+    # development (highest-ARI would pick k=2, since 1.0 > 0.826; the plan's
+    # rule -- mirroring clusters.choose_k's `return int(max(passing))` -- picks
+    # the LARGEST qualifying k instead, i.e. k=3). This test exists to pin
+    # largest-k against a future regression back to highest-ARI: deleting it
+    # removes the only guard against that. Do not "simplify" this fixture to
+    # one where only one k qualifies -- that proves nothing about the
+    # tie-break rule, which is exactly what happened once already.
+    X = _blobs([80, 80])
+
+    # Assert the premise: k=2 alone genuinely qualifies (floor + stability),
+    # not just k=3.
+    only_k2, meta_k2 = subclusters.split_parent(X, k_range=range(2, 3))
+    assert only_k2 is not None
+    assert meta_k2["k"] == 2
+
+    # Assert the conclusion: with both k=2 and k=3 in range, k=3 wins.
+    labels, meta = subclusters.split_parent(X)
+    assert meta["k"] == 3
+    sizes = np.bincount(labels)
+    assert sizes.min() >= subclusters.SUBCLUSTER_MIN_USERS
+
+
 def test_parent_is_not_split_when_a_child_would_be_too_small():
     # 120 users, but the true structure is 115 + 5: no k in range can produce
     # two children that both clear 30 without cutting a real blob in half.
