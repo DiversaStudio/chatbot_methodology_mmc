@@ -173,6 +173,45 @@ def cluster_colors(n):
 
     return CLUSTER_IDENTITY + extra
 
+
+# How far toward white each successive child is mixed. 0.22 over at most four
+# children tops out at 0.66 -- light enough to separate siblings, dark enough
+# that the fourth child is still recognisably its parent's hue.
+SUBCLUSTER_TINT_STEP = 0.22
+
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+
+
+def _rgb_to_hex(rgb) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*(max(0, min(255, int(round(c)))) for c in rgb))
+
+
+def subcluster_colors(parent_hex: str, n: int) -> list[str]:
+    """`n` tints of a parent cluster's colour, one per child by SIZE RANK.
+
+    Index 0 is the parent hex unchanged, so the largest child reads as the
+    parent and the family stays visually together in a drill-down; later
+    children are mixed toward white in fixed steps.
+
+    Tints of one hue, not fresh hues: a subcategory is a subdivision of its
+    parent, and giving a child an unrelated colour would make the drill-down
+    read as six unrelated series rather than two levels of one. That is also why
+    this is capped in practice by `subclusters.SUB_K_RANGE` at four -- past
+    four, tints of one hue stop being separable and the honest answer is fewer
+    children, not more colours.
+    """
+    if n < 1:
+        return []
+    r, g, b = _hex_to_rgb(parent_hex)
+    out = []
+    for i in range(n):
+        f = min(1.0, i * SUBCLUSTER_TINT_STEP)
+        out.append(_rgb_to_hex((c + (255 - c) * f for c in (r, g, b))))
+    return out
+
 # Priority-matrix quadrant shading. Keyed by the two axes of
 # `agg_priority_matrix`: volume (x, messages) and unmet need (y). These are
 # BACKGROUND fills, not series colours -- they are meant to be laid down at 90%
