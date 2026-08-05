@@ -85,3 +85,34 @@ def test_cluster_colors_is_deterministic_across_calls():
         warnings.simplefilter("ignore")
         assert theme.cluster_colors(12) == theme.cluster_colors(12)
         assert theme.cluster_colors(9)[:7] == theme.CLUSTER_IDENTITY
+
+
+def test_subcluster_colors_starts_at_the_parent_hex():
+    from sami import theme
+    out = theme.subcluster_colors("#009ba4", 3)
+    assert out[0] == "#009ba4"
+    assert len(out) == 3
+
+
+def test_subcluster_colors_are_distinct_and_lighten():
+    from sami import theme
+
+    def _lum(h):
+        r, g, b = (int(h[i:i + 2], 16) for i in (1, 3, 5))
+        return 0.299 * r + 0.587 * g + 0.114 * b
+
+    out = theme.subcluster_colors("#671e42", 4)
+    assert len(set(out)) == 4
+    lums = [_lum(c) for c in out]
+    assert lums == sorted(lums), "later children must be lighter, not darker"
+
+
+def test_subcluster_colors_never_returns_the_no_text_grey():
+    from sami import theme
+    for parent in theme.CLUSTER_IDENTITY:
+        assert theme.NO_TEXT_COLOR not in theme.subcluster_colors(parent, 4)
+
+
+def test_subcluster_colors_handles_zero():
+    from sami import theme
+    assert theme.subcluster_colors("#009ba4", 0) == []
