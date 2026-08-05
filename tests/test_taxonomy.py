@@ -120,3 +120,55 @@ def test_resolve_cluster_names_auto_named_gets_empty_description():
         out = taxonomy.resolve_cluster_names(terms)
     assert out[0]["provisional"] is True
     assert out[0]["description"] == ""
+
+
+def test_resolve_names_takes_a_registry():
+    reg = [{"marker": "arriendo", "name": "Housing"}]
+    terms = {0: pd.Series({"arriendo": 0.9, "subsidio": 0.4}),
+             1: pd.Series({"pasaporte": 0.8, "cita": 0.3})}
+    with pytest.warns(UserWarning, match="provisional"):
+        out = taxonomy.resolve_names(terms, reg)
+    assert out[0]["name"] == "Housing"
+    assert out[0]["provisional"] is False
+    assert out[1]["provisional"] is True
+    assert out[1]["marker"] == "pasaporte"
+
+
+def test_resolve_names_claims_each_entry_once():
+    reg = [{"marker": "visa", "name": "Visas"}]
+    terms = {0: pd.Series({"visa": 0.9}), 1: pd.Series({"visa": 0.8})}
+    with pytest.warns(UserWarning, match="provisional"):
+        out = taxonomy.resolve_names(terms, reg)
+    assert out[0]["name"] == "Visas"
+    assert out[1]["provisional"] is True
+
+
+def test_resolve_names_warns_naming_the_kind():
+    terms = {0: pd.Series({"xyz": 0.5})}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        taxonomy.resolve_names(terms, [], kind="subcluster")
+    assert any("SUBCLUSTER_NAMES" in str(x.message) for x in w)
+
+
+def test_resolve_cluster_names_still_works_unchanged():
+    terms = {0: pd.Series({"nacionalidad": 0.9, "registro": 0.2})}
+    out = taxonomy.resolve_cluster_names(terms)
+    assert out[0]["name"] == "Nationality and family papers"
+    assert out[0]["provisional"] is False
+
+
+def test_subcluster_names_registry_exists_and_is_well_formed():
+    assert isinstance(taxonomy.SUBCLUSTER_NAMES, list)
+    for entry in taxonomy.SUBCLUSTER_NAMES:
+        assert set(entry) >= {"marker", "name"}
+
+
+def test_resolve_names_passes_description_through_both_branches():
+    """description must survive resolve_names, not just resolve_cluster_names."""
+    reg = [{"marker": "arriendo", "name": "Housing", "description": "Rent help."}]
+    terms = {0: pd.Series({"arriendo": 0.9}), 1: pd.Series({"pasaporte": 0.8})}
+    with pytest.warns(UserWarning, match="provisional"):
+        out = taxonomy.resolve_names(terms, reg)
+    assert out[0]["description"] == "Rent help."
+    assert out[1]["description"] == ""
