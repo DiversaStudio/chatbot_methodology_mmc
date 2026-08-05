@@ -75,11 +75,58 @@ def clean_city(raw_city, city_other) -> str:
 # only chart text is translated. Keyed on fold() so accents/case never matter.
 NATIONALITY_CANON: dict[str, str] = {
     "venezuela": "Venezuela", "venezolana": "Venezuela", "venezolano": "Venezuela",
-    "ecuador": "Ecuador", "ecuatoriana": "Ecuador",
-    "peru": "Peru", "peruana": "Peru",
-    "colombia": "Colombia", "colombiana": "Colombia",
+    "ecuador": "Ecuador", "ecuatoriana": "Ecuador", "ecuatoriano": "Ecuador",
+    "peru": "Peru", "peruana": "Peru", "peruano": "Peru",
+    "colombia": "Colombia", "colombiana": "Colombia", "colombiano": "Colombia",
     "united states": "United States", "estados unidos": "United States",
+    "cuba": "Cuba", "cubana": "Cuba", "cubano": "Cuba",
+    "panama": "Panama", "panamena": "Panama",
+    "chile": "Chile", "chilena": "Chile",
+    "argentina": "Argentina",
+    "brasil": "Brazil", "brazil": "Brazil", "brasilena": "Brazil",
+    "haiti": "Haiti", "haitiana": "Haiti",
+    "mexico": "Mexico", "mexicana": "Mexico",
+    "nicaragua": "Nicaragua", "costa rica": "Costa Rica",
+    "el salvador": "El Salvador",
+    "republica dominicana": "Dominican Republic",
+    "noruega": "Norway", "norway": "Norway",
+    "bulgaria": "Bulgaria", "india": "India",
 }
+
+UNKNOWN_NATIONALITY = "Desconocida"
+
+# Longest real entry above is "republica dominicana" (2 words). Three allows
+# headroom for e.g. "trinidad and tobago" without admitting free-text answers.
+_MAX_NATIONALITY_WORDS = 3
+
+# Free-text survey answers announce themselves with sentence words a country
+# name never contains ("Soy Colombovenezolana" -> folded tokens "soy",
+# "colombovenezolana"). Country names that are two or three words - "costa
+# rica", "republica dominicana", "estados unidos", "trinidad and tobago" -
+# contain none of these, so the guard is safe to apply on top of the word-count
+# check rather than instead of it.
+_NON_COUNTRY_TOKENS = frozenset({"soy", "yo", "mi", "me", "era", "de", "la", "el", "y"})
+
+
+def is_plausible_nationality(key: str) -> bool:
+    """Could `key` (already fold()ed) be a country name we simply don't list?
+
+    `nationality_canon` passes unlisted values through so a legitimate country
+    missing from the map is not destroyed. Without a guard that also preserves
+    the survey's junk: the 2026-08-03 export carried the literal strings "1",
+    "3", "4" and "Soy Colombovenezolana" as distinct nationalities, which is
+    what makes the column unusable as a report slicer.
+
+    Rejects input with no letters (numeric codes), input too long to be a
+    country name (free-text sentences), and input containing a Spanish
+    first-person/function word (free-text sentences that happen to be short,
+    like "Soy Colombovenezolana"). Everything else passes.
+    """
+    if not key or not any(ch.isalpha() for ch in key):
+        return False
+    if len(key.split()) > _MAX_NATIONALITY_WORDS:
+        return False
+    return not (set(key.split()) & _NON_COUNTRY_TOKENS)
 
 
 def clean_nationality(raw, other) -> str:
@@ -93,11 +140,15 @@ def clean_nationality(raw, other) -> str:
 
 def nationality_canon(name) -> str:
     if name is None or (isinstance(name, float) and pd.isna(name)):
-        return "Desconocida"
+        return UNKNOWN_NATIONALITY
     key = fold(name)
     if key in ("", "nan", "none"):
-        return "Desconocida"
-    return NATIONALITY_CANON.get(key, str(name).strip().title())
+        return UNKNOWN_NATIONALITY
+    if key in NATIONALITY_CANON:
+        return NATIONALITY_CANON[key]
+    if not is_plausible_nationality(key):
+        return UNKNOWN_NATIONALITY
+    return str(name).strip().title()
 
 
 # --- department of the priority cities (for the choropleth) --------------------
