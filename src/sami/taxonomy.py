@@ -174,6 +174,94 @@ def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
     return out
 
 
+# ---- coverage gauge + candidate mining (drift detection) ----
+# The dictionary is hand-maintained, so it rots as users' vocabulary moves. This
+# measures what the dictionary does NOT recognise and hands a human a ranked
+# list of what to consider adding. It NEVER edits the registry itself.
+#
+# Like CANDIDATE_INTENT_PROBES, the output is a FLOOR on what is missing, never
+# a rate: recall is unknown, and no percentage derived from it may be quoted.
+_CANDIDATE_TOKEN = re.compile(r"[a-z]{4,}")
+
+
+def entity_coverage(texts) -> tuple[int, int]:
+    """(messages matching >= 1 entity, messages considered). Nulls are skipped."""
+    n_hit = n_tot = 0
+    for t in texts:
+        if t is None or (isinstance(t, float) and pd.isna(t)):
+            continue
+        n_tot += 1
+        if extract_entities(t):
+            n_hit += 1
+    return n_hit, n_tot
+
+
+def entity_stopterms() -> set[str]:
+    """Folded terms a candidate must never be.
+
+    City and nationality names are the important entries: `medellin` (97 users)
+    would otherwise top the candidates table every single run, and it is
+    dim_city's job, not the dictionary's.
+    """
+    from . import canon
+    from .clusters import SAMI_STOPWORDS
+    from .load import SPANISH_STOPWORDS
+
+    terms = set(IGNORED_TERMS)
+    terms |= {_fold(w) for w in SPANISH_STOPWORDS}
+    terms |= {_fold(w) for w in SAMI_STOPWORDS}
+    terms |= {_fold(v) for v in canon.CITY_CANON.values()}
+    terms |= {_fold(k) for k in canon.CITY_CANON}
+    terms |= {_fold(v) for v in canon.NATIONALITY_CANON.values()}
+    terms |= {_fold(k) for k in canon.NATIONALITY_CANON}
+    # Multiword canon values ("santa marta") also block their parts.
+    for v in list(terms):
+        terms |= set(v.split())
+    return terms
+
+
+def entity_candidates(messages: pd.DataFrame, min_users: int = 15,
+                      top_n: int = 40) -> pd.DataFrame:
+    """Rank unigrams and bigrams from messages that matched NO entity.
+
+    `messages` needs `message_id`, `user_id`, `message`. Ranked by distinct
+    users (not message count — one prolific user must not invent a trend),
+    ties broken alphabetically so the export is byte-stable across runs.
+    """
+    stop = entity_stopterms()
+    per_msg: Counter = Counter()
+    per_user: dict[str, set] = {}
+    example: dict[str, str] = {}
+
+    for mid, uid, text in zip(messages["message_id"], messages["user_id"],
+                              messages["message"]):
+        if text is None or (isinstance(text, float) and pd.isna(text)):
+            continue
+        if extract_entities(text):
+            continue                      # recognised: nothing to learn here
+        folded = _fold(text)
+        words = _CANDIDATE_TOKEN.findall(folded)
+        grams = [w for w in words if w not in stop]
+        grams += [f"{a} {b}" for a, b in zip(words, words[1:])
+                  if a not in stop and b not in stop]
+        for g in grams:
+            per_msg[g] += 1
+            per_user.setdefault(g, set()).add(uid)
+            example.setdefault(g, mid)
+
+    rows = [{"term": g, "n_gram": 1 + g.count(" "), "n_msgs": n,
+             "n_users": len(per_user[g]), "example_message_id": example[g]}
+            for g, n in per_msg.items()
+            if len(per_user[g]) >= min_users
+            and not any(p.search(g) for pats in _COMPILED.values() for p in pats)]
+    out = pd.DataFrame(rows, columns=["term", "n_gram", "n_msgs", "n_users",
+                                      "example_message_id"])
+    if out.empty:
+        return out
+    return (out.sort_values(["n_users", "term"], ascending=[False, True])
+            .head(top_n).reset_index(drop=True))
+
+
 # ---- candidate emergent intents (NB3 §3) ----
 # Needs the discovered clusters do not separate out. These are the vocabulary the
 # NB3 coverage-gap section may assign to a cluster.

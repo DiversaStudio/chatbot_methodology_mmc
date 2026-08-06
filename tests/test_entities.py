@@ -189,3 +189,91 @@ def test_rejected_terms_are_recorded_as_ignore_rows():
     for term in ("tramite", "requisitos", "proceso", "documentos", "papeles",
                  "permiso", "migrantes"):
         assert term in taxonomy.IGNORED_TERMS, term
+
+
+import pandas as pd
+
+
+def _msgs(rows):
+    return pd.DataFrame(rows, columns=["message_id", "user_id", "message"])
+
+
+def test_entity_coverage_counts_matched_over_total():
+    n_hit, n_tot = taxonomy.entity_coverage(
+        ["necesito mi ppt", "hola buenas tardes", None, "quiero un pasaporte"])
+    assert (n_hit, n_tot) == (2, 3)   # None is not a message
+
+
+def test_candidates_rank_by_distinct_users_not_message_count():
+    rows = [(f"m{i}", "u1", "quiero informacion sobre albergue") for i in range(20)]
+    rows += [(f"n{i}", f"u{i}", "necesito una beca") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    assert out.iloc[0]["term"] == "beca"           # 20 users beats 20 messages/1 user
+    assert "albergue" not in set(out["term"])       # 1 user, under the floor
+
+
+def test_candidates_exclude_cities_nationalities_and_ignored_terms():
+    rows = [(f"m{i}", f"u{i}", "en medellin necesito un tramite venezuela")
+            for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    terms = set(out["term"])
+    assert "medellin" not in terms      # dim_city's job
+    assert "venezuela" not in terms     # nationality canon
+    assert "tramite" not in terms       # an ignore row
+
+
+def test_candidates_exclude_terms_the_dictionary_already_matches():
+    # Two separate messages, not one: entity_candidates skips a message
+    # entirely once extract_entities(text) finds anything in it (message-level
+    # filter), so a term the dictionary already matches must not even share a
+    # message with the term under test, or the whole message -- "beca"
+    # included -- would be dropped before either term is counted.
+    rows = [(f"m{i}", f"u{i}", "quiero saber del salvoconducto") for i in range(20)]
+    rows += [(f"n{i}", f"u{i}", "quiero saber de una beca") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    assert "salvoconducto" not in set(out["term"])
+    assert "beca" in set(out["term"])
+
+
+def test_candidates_only_mine_messages_that_matched_nothing():
+    rows = [(f"m{i}", f"u{i}", "necesito mi ppt y una beca") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    assert out.empty      # every message matched PPT, so nothing is mined
+
+
+def test_candidates_carry_an_example_message_id():
+    rows = [(f"m{i}", f"u{i}", "necesito una beca") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    row = out[out["term"] == "beca"].iloc[0]
+    assert row["example_message_id"] == "m0"
+    assert row["n_users"] == 20 and row["n_msgs"] == 20 and row["n_gram"] == 1
+
+
+def test_candidate_bigrams_drop_when_either_token_is_a_stopterm():
+    rows = [(f"m{i}", f"u{i}", "beca universitaria para el tramite") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    terms = set(out["term"])
+    assert "beca universitaria" in terms
+    assert not any("tramite" in t for t in terms)
+
+
+def test_candidates_are_deterministic_under_row_shuffling():
+    rows = [(f"m{i}", f"u{i}", "beca universitaria") for i in range(20)]
+    rows += [(f"n{i}", f"u{i}", "auxilio funerario") for i in range(20)]
+    a = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    b = taxonomy.entity_candidates(_msgs(list(reversed(rows))), min_users=15)
+    assert list(a["term"]) == list(b["term"])
+
+
+def test_candidates_respect_top_n():
+    out = taxonomy.entity_candidates(
+        _msgs([(f"m{i}", f"u{i}", "beca auxilio subsidio2 albergue2 comedor2")
+               for i in range(20)]), min_users=15, top_n=2)
+    assert len(out) == 2
+
+
+def test_coverage_thresholds_are_ordered():
+    from sami import qa
+    assert 0 < qa.ENTITY_COVERAGE_HARD_FLOOR < qa.ENTITY_COVERAGE_WARN < 1
+    assert qa.ENTITY_COVERAGE_WARN == 0.35
+    assert qa.ENTITY_COVERAGE_HARD_FLOOR == 0.20
