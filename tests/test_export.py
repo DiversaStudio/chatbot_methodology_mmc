@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "6"
+    assert kv["schema_version"] == "7"
 
 
 def test_meta_run_carries_report_version():
@@ -1128,10 +1128,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v6():
+def test_meta_run_reports_schema_v7():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "6"
+    assert val["schema_version"] == "7"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1289,6 +1289,66 @@ def _empty_dim_subcluster() -> pd.DataFrame:
     return pd.DataFrame({"subcluster_id": pd.Series(dtype="int64"),
                          "n_users": pd.Series(dtype="int64"),
                          "is_split": pd.Series(dtype="bool")})
+
+
+def _minimal_parity_inputs():
+    """Smallest frames for `build_parity_check` where every pre-existing row
+    matches -- for tests that exercise the entity_coverage_pct row in
+    isolation and don't want unrelated rows failing underfoot."""
+    recon = pd.DataFrame({"metric": ["users", "messages", "users_with_text",
+                                     "meal_responses", "repeat_askers_pct"],
+                          "value": [1, 1, 1, 1, 0.0]})
+    dim_user = pd.DataFrame({"user_id": ["u1"], "cluster_id": [0],
+                             "has_text": [True], "is_repeat_asker": [False]})
+    fact_message = pd.DataFrame({"message_id": ["m1"]})
+    fact_meal = pd.DataFrame({"user_id": ["u1"]})
+    return recon, dim_user, fact_message, fact_meal, _empty_dim_subcluster()
+
+
+def test_build_nlp_entity_candidates_shape():
+    import pandas as pd
+    from sami import export
+    msgs = pd.DataFrame([(f"m{i}", f"u{i}", "necesito una beca") for i in range(20)],
+                        columns=["message_id", "user_id", "message"])
+    out = export.build_nlp_entity_candidates(msgs)
+    assert list(out.columns) == ["term", "n_gram", "n_msgs", "n_users",
+                                 "example_message_id"]
+    assert "beca" in set(out["term"])
+
+
+def test_entity_candidates_export_carries_no_message_text():
+    """Only ids leave the pipeline -- raw message text is never exported."""
+    import pandas as pd
+    from sami import export, qa
+    msgs = pd.DataFrame([(f"m{i}", f"u{i}", "llamenme al 3001234567 por una beca")
+                         for i in range(20)],
+                        columns=["message_id", "user_id", "message"])
+    out = export.build_nlp_entity_candidates(msgs)
+    assert qa.pii_scan(out) == []
+
+
+def test_parity_check_carries_the_entity_coverage_row():
+    from sami import export, qa
+    p = _minimal_parity_inputs()      # existing helper in this file
+    out = export.build_parity_check(*p, entity_coverage_pct=40.3)
+    row = out[out["metric"] == "entity_coverage_pct"].iloc[0]
+    assert row["exported_value"] == 40.3
+    assert row["reconciliation_value"] == round(100 * qa.ENTITY_COVERAGE_HARD_FLOOR, 1)
+    assert bool(row["match"]) is True
+
+
+def test_parity_entity_coverage_fails_below_the_hard_floor():
+    from sami import export
+    p = _minimal_parity_inputs()
+    out = export.build_parity_check(*p, entity_coverage_pct=12.0)
+    row = out[out["metric"] == "entity_coverage_pct"].iloc[0]
+    assert bool(row["match"]) is False
+
+
+def test_meta_run_defaults_to_schema_version_7():
+    from sami import export
+    out = export.build_meta_run({})
+    assert out.set_index("key").loc["schema_version", "value"] == "7"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])

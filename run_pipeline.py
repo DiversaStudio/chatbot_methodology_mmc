@@ -19,6 +19,7 @@ for Power BI to derive from dim_user / fact_message / fact_meal.
 from __future__ import annotations
 import argparse
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -28,12 +29,29 @@ from sklearn.cluster import KMeans
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
                   export, preflight, progress, config, schema, datasets, theme,
-                  subclusters)
+                  subclusters, qa)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
 # write) + 6 NLP-only.
 _STAGES_BASE, _STAGES_NLP = 4, 6
+
+
+def _warn_entity_coverage(coverage: float, n_candidates: int) -> None:
+    """Soft drift gate: loud, and never fatal.
+
+    Same posture as `name_is_provisional` — an unmaintained dictionary is a
+    thing to flag, not a reason to refuse to produce the export.
+    """
+    if coverage >= qa.ENTITY_COVERAGE_WARN:
+        return
+    warnings.warn(
+        f"entity coverage is {coverage*100:.1f}%, below the "
+        f"{qa.ENTITY_COVERAGE_WARN*100:.0f}% drift floor. The dictionary is "
+        f"missing vocabulary users are actually using. Read the top rows of "
+        f"nlp_entity_candidates ({n_candidates} candidate term(s) this run) and "
+        f"add entries to the entity registry ({config.entities_path()}).",
+        stacklevel=2)
 
 
 def _nlp_tables(SD, pr):
@@ -186,6 +204,10 @@ def main(argv=None) -> int:
         fact_meal = export.build_fact_meal(SD.meal)
 
     with pr.stage("aggregate tables"):
+        ent_candidates = export.build_nlp_entity_candidates(SD.messages)
+        n_ent_hit, n_ent_tot = taxonomy.entity_coverage(SD.messages["message"])
+        ent_coverage = (n_ent_hit / n_ent_tot) if n_ent_tot else 0.0
+
         tables = {
             "dim_user": dim_user,
             "fact_message": fact_message,
@@ -196,16 +218,25 @@ def main(argv=None) -> int:
             "agg_registration_funnel": export.build_agg_registration_funnel(SD.responses),
             "agg_language": export.build_agg_language(SD.responses),
             "agg_entities_by_kind": export.build_agg_entities_by_kind(SD.messages),
+            "nlp_entity_candidates": ent_candidates,
             "agg_weekly_cluster": export.build_agg_weekly_cluster(SD.messages),
             "agg_daily_volume": export.build_agg_daily_volume(SD.messages),
             "agg_weekly_rating": export.build_agg_weekly_rating(fact_meal),
             "agg_priority_matrix": export.build_agg_priority_matrix(
                 SD.messages, fact_meal, dim_user, dim_cluster,
                 neg_by_cluster=neg_by_cluster),
-            "meta_run": export.build_meta_run(SD.run_meta, nlp_meta=nlp_meta),
+            "meta_run": export.build_meta_run(
+                SD.run_meta,
+                nlp_meta={**nlp_meta,
+                          "entity_coverage_pct": round(100 * ent_coverage, 1),
+                          "entity_dict_entities": len(taxonomy.ENTITY_PATTERNS),
+                          "entity_dict_patterns": sum(
+                              len(v) for v in taxonomy.ENTITY_PATTERNS.values()),
+                          "entity_candidates_n": len(ent_candidates)}),
             "parity_check": export.build_parity_check(
                 SD.reconciliation, dim_user, fact_message, fact_meal,
-                nlp_tables["dim_subcluster"]),
+                nlp_tables["dim_subcluster"],
+                entity_coverage_pct=round(100 * ent_coverage, 1)),
         }
         tables.update(nlp_tables)
 
@@ -220,6 +251,7 @@ def main(argv=None) -> int:
         print("\nPARITY FAILED — the exported tables disagree with the "
               "reconciliation counts. Do not publish this run.", file=sys.stderr)
         return 1
+    _warn_entity_coverage(ent_coverage, len(ent_candidates))
     print(f"\nwrote {len(tables)} tables to {args.out}/ · total {pr.total_elapsed()}")
     return 0
 

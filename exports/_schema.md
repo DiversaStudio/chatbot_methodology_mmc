@@ -7,7 +7,20 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "6"`** (bumped from `"5"` by the two-level taxonomy — see
+**`schema_version = "7"`** (bumped from `"6"` by the entity-dictionary
+modularisation — see
+`.superpowers/sdd/2026-08-06-entity-dictionary-modularisation/`: entity
+extraction moved from an inline pattern table to a maintained CSV registry
+(`src/sami/entities.csv`), and the pipeline now measures and reports how much
+of the corpus that registry actually recognises. A new table,
+`nlp_entity_candidates`, was added (unrecognised terms for a human to triage);
+`meta_run` gained four keys — `entity_coverage_pct`, `entity_dict_entities`,
+`entity_dict_patterns`, `entity_candidates_n`; and `parity_check` gained an
+`entity_coverage_pct` row gating the hard 20% coverage floor. See
+`nlp_entity_candidates` under "NLP" and the `meta_run` / `parity_check`
+entries below for the full detail.
+
+**`"6"`** (bumped from `"5"` by the two-level taxonomy — see
 `docs/superpowers/specs/2026-08-04-two-level-taxonomy-design.md`: each discovered cluster is
 now, where the data supports it, split into subcategories by a second clustering pass.
 `dim_user` and `fact_message` gained `subcluster_id` / `subcluster_name`; two tables were
@@ -492,6 +505,31 @@ by kind. Feeds NB2 §1 entity chart.
 
 ## NLP (GPU-accelerated, CPU-capable)
 
+### `nlp_entity_candidates` — up to `top_n` rows (new in schema v7)
+Source: `taxonomy.entity_candidates`. Unigrams and bigrams pulled from messages
+that matched **no** entity in the registry (`src/sami/entities.csv`), for a
+human to triage.
+
+| column | notes |
+|---|---|
+| `term` | the candidate token or two-word phrase, folded (lowercased, accents stripped) |
+| `n_gram` | `1` or `2` — unigram or bigram |
+| `n_msgs` | count of messages the term appeared in |
+| `n_users` | count of **distinct users** who used it — the ranking key, so one prolific user cannot invent a trend |
+| `example_message_id` | one `fact_message[message_id]` the term came from, for a human to go read the message in context. **No message text is carried in this table** — `export.write_all` PII-scans every exported frame, and raw user text would fail that scan |
+
+Ranked by `n_users` descending, ties broken alphabetically on `term` so the
+export is byte-stable across runs. Floored at `min_users = 15` distinct users
+(a term fewer people used is noise, not a pattern) and capped at `top_n = 40`
+rows. **This table is a floor on what is missing, never a rate** — recall of
+the current registry is unknown, and no percentage may be derived from a count
+in this table (see `entity_coverage_pct` below for the actual rate).
+
+The fix for a row here is not a code change: add an entry to the entity
+registry, `src/sami/entities.csv` — or, if the term is not worth capturing
+(a stopword that slipped through, a name, noise), an `ignore` row so it stops
+resurfacing every run.
+
 **Present and current as of 2026-08-03.** These five tables and `dim_cluster` are
 written on every run — the pipeline has no partial-run mode; it runs on GPU when
 one is present and falls back to CPU otherwise (see [`OPERATIONS.md`](../OPERATIONS.md)
@@ -578,17 +616,28 @@ from `fact_message.sentiment_label` × `cluster_id` instead.*
 
 ## Meta / parity
 
-### `meta_run` — key/value (25 rows)
+### `meta_run` — key/value (29 rows)
 The run's identity card. Two columns, `key` and `value`, one row per key:
 `responses_file`, `meal_file`, `responses_rows`, `meal_rows`, `ts_min`,
 `ts_max`, `salt_present`, `generated_at`, `schema_version`, `report_version`,
 `nlp_included`, `tone_gate_passed`, `sentiment_quotable`, `embed_model`,
 `sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`, `k_soft_cap`,
 `n_provisional_names`, `n_subclusters`, `n_parents_split`,
-`n_provisional_subnames`, `subcluster_min_users`, `subcluster_stability_ari`.
-The last eleven are NLP-derived; since the pipeline has no partial-run mode,
-all 25 keys are always present. `chosen_k` / `n_provisional_names` are new in
-schema v5 — see the `dim_cluster` note above for what they mean.
+`n_provisional_subnames`, `subcluster_min_users`, `subcluster_stability_ari`,
+`entity_coverage_pct`, `entity_dict_entities`, `entity_dict_patterns`,
+`entity_candidates_n`. The last fifteen are NLP/entity-derived; since the
+pipeline has no partial-run mode, all 29 keys are always present. `chosen_k` /
+`n_provisional_names` are new in schema v5 — see the `dim_cluster` note above
+for what they mean.
+
+**New in schema v7, from the entity-dictionary registry:**
+
+| key | meaning |
+|---|---|
+| `entity_coverage_pct` | share of non-null messages that matched **at least one** entity in `src/sami/entities.csv` (`taxonomy.entity_coverage`), as a percentage. The same figure `parity_check[entity_coverage_pct]` carries — see that table's entry below for the two floors this number is read against |
+| `entity_dict_entities` | count of distinct entities in the registry (`len(taxonomy.ENTITY_PATTERNS)`) |
+| `entity_dict_patterns` | count of regex patterns across all entities (`sum(len(v) for v in taxonomy.ENTITY_PATTERNS.values())`) — an entity can carry more than one pattern (spelling variants, abbreviations), so this is always `>= entity_dict_entities` |
+| `entity_candidates_n` | row count of `nlp_entity_candidates` this run — `0` means no unrecognised term cleared the `min_users = 15` floor, not that every message was recognised |
 
 **New in schema v6, from the subclustering pass** (see `dim_subcluster` above
 for the full detail):
@@ -606,10 +655,10 @@ version, bumped by hand when the report's visuals or fields change. It is delibe
 not the package version in `pyproject.toml` — code and report move on different
 cadences. The Tab footer renders it next to `generated_at`.
 
-`schema_version = "6"` (bumped from `"5"` by the two-level taxonomy — assert it on the
-About page, and update any "Schema Check" measure that still compares against `"5"`).
+`schema_version = "7"` (bumped from `"6"` by the entity-dictionary modularisation — assert
+it on the About page, and update any "Schema Check" measure that still compares against `"6"`).
 
-### `parity_check` — 1 row per metric (7 rows)
+### `parity_check` — 1 row per metric (8 rows)
 Cols: `metric`, `exported_value`, `reconciliation_value`, `match`. Proves the
 exported tables reconcile to `SD.reconciliation`: `users`, `messages`,
 `users_with_text`, `meal_responses` (counts), `repeat_askers_pct` (the
@@ -649,3 +698,25 @@ filters via `cluster_id`, so it carries no disclosure risk this gate doesn't
 already cover one level up. A `True` `subcluster_min_users` means every
 *split* subcategory clears the floor — not that every row in `dim_subcluster`
 does.
+
+**`entity_coverage_pct` — new in schema v7.** Same threshold shape as
+`cluster_coverage_pct` and `subcluster_min_users` above — `reconciliation_value`
+holds a floor, not an independently-recomputed figure, and `match` is
+`exported_value >= reconciliation_value`, not equality. `exported_value` is
+`meta_run[entity_coverage_pct]` (the share of messages matching at least one
+entity in `src/sami/entities.csv`); `reconciliation_value` is
+`100 * qa.ENTITY_COVERAGE_HARD_FLOOR` (**20.0**).
+
+**⚠️ This row gates the HARD 20% floor only. The soft 35% floor is a warning,
+never a parity failure.** `qa.py` carries two separate thresholds on purpose:
+`ENTITY_COVERAGE_HARD_FLOOR` (0.20) is what this parity row checks, and a
+`False` here means `run_pipeline.py` exits non-zero exactly as it does for
+`cluster_coverage_pct` and `subcluster_min_users` — appropriate for "the
+registry failed to load or was mangled," a correctness failure worth blocking
+publication over. `qa.ENTITY_COVERAGE_WARN` (0.35) is the drift signal — the
+dictionary is falling behind the vocabulary users actually use — and is
+surfaced only as a `UserWarning` from `run_pipeline._warn_entity_coverage`,
+in the same spirit as the `name_is_provisional` warnings; it never blocks a
+run and has no row in this table. A run can print the coverage warning and
+still pass parity, and that is by design: read `nlp_entity_candidates` and
+add entries to the registry, do not treat the warning as broken.
