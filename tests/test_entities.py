@@ -257,6 +257,24 @@ def test_candidate_bigrams_drop_when_either_token_is_a_stopterm():
     assert not any("tramite" in t for t in terms)
 
 
+def test_candidate_bigrams_require_real_adjacency_in_the_text():
+    # "bicicleta de reparacion": "de" is a 2-letter connector that gets
+    # dropped by the length filter, but it still sits between "bicicleta"
+    # and "reparacion" in the real text. A bigram "bicicleta reparacion"
+    # would be a phrase that never appears in the corpus.
+    rows = [(f"m{i}", f"u{i}", "bicicleta de reparacion") for i in range(20)]
+    out = taxonomy.entity_candidates(_msgs(rows), min_users=15)
+    terms = set(out["term"])
+    assert "bicicleta" in terms
+    assert "reparacion" in terms
+    assert "bicicleta reparacion" not in terms
+
+    # A genuinely adjacent pair of qualifying words still produces a bigram.
+    rows2 = [(f"n{i}", f"u{i}", "beca universitaria") for i in range(20)]
+    out2 = taxonomy.entity_candidates(_msgs(rows2), min_users=15)
+    assert "beca universitaria" in set(out2["term"])
+
+
 def test_candidates_are_deterministic_under_row_shuffling():
     rows = [(f"m{i}", f"u{i}", "beca universitaria") for i in range(20)]
     rows += [(f"n{i}", f"u{i}", "auxilio funerario") for i in range(20)]

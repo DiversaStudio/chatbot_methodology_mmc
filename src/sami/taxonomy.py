@@ -182,6 +182,11 @@ def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
 # Like CANDIDATE_INTENT_PROBES, the output is a FLOOR on what is missing, never
 # a rate: recall is unknown, and no percentage derived from it may be quoted.
 _CANDIDATE_TOKEN = re.compile(r"[a-z]{4,}")
+# ALL words (any length), used only to test real adjacency for bigrams -- a
+# short connector like "a"/"de"/"el" must still occupy a slot between two
+# longer words so a bigram is never built across a word that was silently
+# dropped by the length filter (see entity_candidates).
+_ALL_WORDS = re.compile(r"[a-z]+")
 
 
 def entity_coverage(texts) -> tuple[int, int]:
@@ -240,10 +245,18 @@ def entity_candidates(messages: pd.DataFrame, min_users: int = 15,
         if extract_entities(text):
             continue                      # recognised: nothing to learn here
         folded = _fold(text)
-        words = _CANDIDATE_TOKEN.findall(folded)
-        grams = [w for w in words if w not in stop]
-        grams += [f"{a} {b}" for a, b in zip(words, words[1:])
-                  if a not in stop and b not in stop]
+        # Adjacency must be judged against the REAL text, not against the
+        # survivors of the length filter -- otherwise a bigram can splice
+        # together two words that a short connector ("ir a", "de", "el"...)
+        # actually sat between, fabricating a phrase absent from the corpus.
+        all_words = _ALL_WORDS.findall(folded)
+
+        def _qualifies(w: str) -> bool:
+            return len(w) >= 4 and w not in stop
+
+        grams = [w for w in all_words if _qualifies(w)]
+        grams += [f"{a} {b}" for a, b in zip(all_words, all_words[1:])
+                  if _qualifies(a) and _qualifies(b)]
         for g in grams:
             per_msg[g] += 1
             per_user.setdefault(g, set()).add(uid)
@@ -253,6 +266,11 @@ def entity_candidates(messages: pd.DataFrame, min_users: int = 15,
              "n_users": len(per_user[g]), "example_message_id": example[g]}
             for g, n in per_msg.items()
             if len(per_user[g]) >= min_users
+            # Belt-and-suspenders: the message-level skip above (extract_entities
+            # matched -> skip the whole message) already guarantees no candidate
+            # here can match a compiled pattern, so this can never exclude
+            # anything today. Kept as defence-in-depth in case a future
+            # refactor stops skipping whole messages; do not delete as dead code.
             and not any(p.search(g) for pats in _COMPILED.values() for p in pats)]
     out = pd.DataFrame(rows, columns=["term", "n_gram", "n_msgs", "n_users",
                                       "example_message_id"])
