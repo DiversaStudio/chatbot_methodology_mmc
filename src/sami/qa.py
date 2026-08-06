@@ -155,6 +155,15 @@ def min_subcluster_size(dim_subcluster: pd.DataFrame) -> int:
     subcategories the floor is about, and an unsplit parent of 98 users would
     otherwise report a "child" the gate has no claim on.
 
+    IMPORTANT — this floor covers SPLIT CHILDREN ONLY. An unsplit parent's
+    single child row inherits whatever minimum size the PARENT pass applies,
+    which today is none: `clusters.choose_k` selects purely on stability, with
+    no floor on `n_users`. So a `parity_check[subcluster_min_users]` pass does
+    not mean every row in `dim_subcluster` clears 30 users -- an unsplit
+    parent can still export a small "subcategory" (it is 1:1 with its own
+    already-exported `dim_cluster` row, so the marginal disclosure is zero,
+    but the gate's coverage claim should not be overread).
+
     Returns `subclusters.SUBCLUSTER_MIN_USERS` when nothing split, so a run that
     produced no subcategories passes vacuously rather than failing on an empty
     minimum. Like `cluster_coverage` this is not a `run_checks` entry -- it can

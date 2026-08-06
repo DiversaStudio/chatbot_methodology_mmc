@@ -2,6 +2,7 @@
 sami package can't see, since the script is never imported as a module.
 """
 import functools
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -223,3 +224,21 @@ def test_nlp_tables_subcluster_wiring(monkeypatch):
                 if shared:
                     violations.append((ids[i], ids[j], shared))
     assert not violations, f"sibling children share terms after exclusive_terms: {violations}"
+
+    # (c) meta_run's subcluster figures are real, executing wiring checks, not
+    # just the source-text regex above. This fixture is known to produce a mix
+    # of split and unsplit parents (some of centers[0..3] split, some don't),
+    # so `split_aris` is guaranteed non-trivial: dropping the `is_split` filter
+    # on run_pipeline.py:106 would let unsplit parents' `stability_ari` (nan by
+    # construction) into the mean, turning `subcluster_stability_ari` into nan.
+    assert isinstance(nlp_meta["subcluster_stability_ari"], float)
+    assert math.isfinite(nlp_meta["subcluster_stability_ari"]), (
+        "subcluster_stability_ari is not a finite float -- an unsplit parent's "
+        "nan stability_ari likely leaked into the mean (run_pipeline.py:106)")
+
+    # `n_subclusters` must equal the real count of subcluster_id >= 0 rows in
+    # the dim_subcluster THIS RUN ACTUALLY BUILT (tables["dim_subcluster"]),
+    # not merely be present. Dropping the `>= 0` mask on run_pipeline.py:119
+    # would fold the -10 sentinel row into the count.
+    dim_subcluster = tables["dim_subcluster"]
+    assert nlp_meta["n_subclusters"] == int((dim_subcluster["subcluster_id"] >= 0).sum())
