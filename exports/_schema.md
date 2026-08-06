@@ -7,7 +7,18 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "5"`** (bumped from `"4"` by the cluster-categorization migration,
+**`schema_version = "6"`** (bumped from `"5"` by the two-level taxonomy — see
+`docs/superpowers/specs/2026-08-04-two-level-taxonomy-design.md`: each discovered cluster is
+now, where the data supports it, split into subcategories by a second clustering pass.
+`dim_user` and `fact_message` gained `subcluster_id` / `subcluster_name`; two tables were
+added, `dim_subcluster` (one row per subcategory, plus the synthetic no-text bucket) and
+`nlp_subcluster_terms` (its sibling-exclusive top terms); `parity_check` gained a
+`subcluster_min_users` row; and `meta_run` gained five keys — `n_subclusters`,
+`n_parents_split`, `n_provisional_subnames`, `subcluster_min_users`,
+`subcluster_stability_ari`. See `dim_subcluster` under "Core star" and
+`nlp_subcluster_terms` under "NLP" below for the full detail.
+
+**`"5"`** (bumped from `"4"` by the cluster-categorization migration,
 2026-08-03: the chatbot platform's own `Chat_summary` category taxonomy was dropped as the
 pipeline's categorization axis in favour of the discovered clusters. `dim_category` and
 `agg_weekly_category` were removed; `agg_weekly_cluster` was added; `dim_user` and
@@ -125,6 +136,7 @@ of their earliest record — the survey they actually answered.
 | `is_repeat_asker` | boolean, `n_questions ≥ p90` — same definition as `reconciliation.repeat_askers_pct` |
 | `intends_to_stay` | boolean; no onward destination stated, or destination is Colombia |
 | `cluster_id` | the user's discovered cluster (the pipeline's categorization axis — see `dim_cluster` below). **Never null**: users with no conversation text are assigned `cluster_id = -1`, the "No conversation text" bucket, rather than left blank |
+| `subcluster_id`, `subcluster_name` | **New in schema v6.** The user's subcategory within `cluster_id` — see `dim_subcluster`. **Never null**: no-text users take `subcluster_id = -10`; a user whose parent didn't split still gets that parent's single child row (`subcluster_id = cluster_id * 10`). `subcluster_id` is composite and run-scoped like `cluster_id` — never key a colour or a report object on it. `subcluster_name` is duplicated here from `dim_subcluster` on purpose, so a Power BI visual sorting on this name by `dim_subcluster[display_order]` doesn't need a cross-table sort-by-column, which Power BI does not support |
 | `language` | interface language selected (`es` / `en`, no `fr` observed). **New in schema v3, v2-only** — the language selector did not exist in v1 |
 | `registration_status` | raw pass-through of the platform's `Registration Status` field (`Completed` / `Abandoned` / `In Progress`, …). **New in schema v3, v2-only** |
 | `attempts` | number of registration attempts. **New in schema v3, v2-only** |
@@ -168,6 +180,7 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `seq`, `n_msgs_user` | position in / length of the user's message sequence |
 | `sentiment_label` | **never null** — the pipeline always runs the sentiment model |
 | `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
+| `subcluster_id`, `subcluster_name` | **New in schema v6.** The message-owning user's subcategory (see `dim_user[subcluster_id]` / `dim_subcluster`); **never null**, same `-10` / composite-id caveats as `dim_user`. `subcluster_name` is duplicated here for the same sort-by-column reason described on `dim_user` |
 
 **Text-free by design.** `fact_message` carries **no** message text (dashboard spec §7 — "no message text in the model"). Verbatim quotes live in `nlp_voices`; word-cloud terms in `nlp_cluster_terms`; neither needs raw text.
 
@@ -260,6 +273,83 @@ Feeds: NB3 cluster summary cards / legend; dashboard Tab 3 cluster scatter.
 `n_messages` / `median_age` / `top_terms` / `is_real_cluster` / `name_is_provisional`;
 the shipped table matches `clusters.archetype_profiles`'s actual columns (plus the
 synthetic `-1` row), which are richer.*
+
+### `dim_subcluster` — 1 row per subcategory, plus the "no text" bucket (new in schema v6)
+
+Source: `subclusters.subcluster_all`, a second clustering pass run once per real cluster on
+that cluster's own user embeddings, plus one synthetic row for `subcluster_id = -10`, the
+"No conversation text" bucket — the same 194 users `dim_cluster[-1]` already accounts for,
+carried one level down so every table keeps the drill-down total.
+
+**A parent is split only when the data supports it.** `subclusters.split_parent` tries every
+k in `SUB_K_RANGE` (2–4, capped because `theme.subcluster_colors` cannot keep more than four
+tints of one hue apart) and keeps a k only if **every** resulting child clears
+`SUBCLUSTER_MIN_USERS` **and** the split is stable (`clusters.stability_ari`); among the
+k that qualify, the largest wins. A parent with no qualifying k is reported **unsplit**
+rather than forced apart — see the warning below on what that means for its row.
+
+**⚠️ `SUBCLUSTER_MIN_USERS = 30` is a disclosure control, not only a statistical floor.**
+The dashboard is gaining nationality, city, gender, children-present and destination
+filters (spec 3); a subcategory of a dozen users crossed with several of those filters
+is potentially re-identifying, and the export is pseudonymised on the understanding that
+no cell gets that small. **Lowering this constant is a privacy decision, Diversa's to make,
+not a tuning knob to improve resolution.** `parity_check[subcluster_min_users]` is what
+makes the floor auditable on every run — see that table's entry below.
+
+**⚠️ Subcategories are less stable than categories, and not by the same yardstick.**
+`clusters.choose_k` (the parent pass) requires the bar to be cleared by a margin of one
+standard deviation (`mean_ari - std_ari >= STABILITY_BAR`); `split_parent` (the child pass)
+gates on the raw stability flag with no margin. So a child can qualify at a stability level
+a parent never would — the two `stability_ari` figures in `meta_run`
+(`stability_ari` for parents, `subcluster_stability_ari` for children) are not measuring
+the same thing and should never be presented side by side as if they were. On the first
+real run (2026-08-05) `stability_ari` (parents) was **0.836** and `subcluster_stability_ari`
+(children, mean over the 5 parents that split) was **0.841** — close on that run, but the
+asymmetric gate means a future run's children can register "stable" on a materially weaker
+signal than its parents. A falling `subcluster_stability_ari` is the cue to re-read whether
+the discovered subcategories still hold, the same way a falling `stability_ari` is for
+clusters.
+
+**⚠️ An unsplit parent still gets exactly one child row.** When no k qualifies, every user
+of that parent is assigned child index 0 (`subclusters.subcluster_id(cluster_id, 0)`), so
+the parent appears in `dim_subcluster` as a single row with `is_split = False` and
+`n_users` equal to the parent's own count — never as zero rows. On the 2026-08-05 run
+"Settling in" (106 users, cluster_id 5) was the one eligible parent that did not split; it
+still has a `dim_subcluster` row (`subcluster_id = 50`, `is_split = False`, `n_users = 106`).
+A "subcategories per category" visual built without accounting for this will silently drop
+those users if it filters on `is_split = True` — filter on `subcluster_id >= 0` instead to
+keep the drill-down total.
+
+On the 2026-08-05 run: 6 parents, 5 split, producing 12 real subcategories (plus the -10
+bucket); the smallest split child had 38 users. **All 12 children resolved
+`name_is_provisional = True`** — `taxonomy.SUBCLUSTER_NAMES` ships empty by design (the
+child clusters had never been produced before this run, so there was nothing to author a
+marker from), so the first v6 run auto-names every child from its own top terms, e.g.
+`Subcluster 20 · conmigo, carta, tenemos`. That is the intended bootstrap, not a bug to
+silence: read each child's terms in `nlp_subcluster_terms` and add a `{marker, name}` entry
+to `taxonomy.SUBCLUSTER_NAMES` to give it a curated name — same mechanism, same file, as
+`taxonomy.CLUSTER_NAMES` one level up.
+
+| column | notes |
+|---|---|
+| `subcluster_id` | **composite, RUN-SCOPED id: `cluster_id * 10 + child_index`** (e.g. parent 2, second-largest child → `21`). `-10` is the synthetic "No conversation text" bucket. Like `cluster_id`, this id is an artefact of one clustering run and reshuffles on every re-cluster — **nothing may key a colour, a name or a report object on it.** Use `display_order` for sort and `color_hex` for colour, exactly as `dim_cluster` requires for `cluster_id` |
+| `cluster_id` | the parent cluster — joins to `dim_cluster[cluster_id]` |
+| `subcluster_name` | human name, curated or provisional (see above). **Duplicated onto `fact_message` and `dim_user` deliberately** — Power BI's "Sort by column" requires the sorted column and its sort key in the same table, so a name on a fact table cannot be sorted by a `display_order` that lives here only. Without the duplication, subcategories would alphabetise in every legend and slicer instead of following size rank. Do not "normalise" the name out of the fact tables |
+| `top_terms` | comma-joined, top 6, **sibling-exclusive** terms — see `nlp_subcluster_terms` below for what that means and why. Empty for the `-10` bucket |
+| `n_users`, `n_messages` | subcategory size. For an unsplit parent's row this equals the parent's own `n_users` / `n_messages` |
+| `display_order` | parent's own `display_order` × 10, plus the child's size-rank position (0 = largest child within that parent) — so children sort directly beneath their own parent in a flat legend. The `-10` row sorts last, mirroring `dim_cluster[-1]` |
+| `color_hex` | a tint of the **parent's** colour (`theme.subcluster_colors`), not a fresh hue — the largest child takes the parent's own colour unchanged, so the family reads as one story in a drill-down. Keyed to size rank, never to `subcluster_id`, for the same reason `dim_cluster[color_hex]` is keyed to size rank and not `cluster_id` |
+| `is_split` | `False` for the one row an unsplit parent gets, and for the `-10` bucket; `True` for every row belonging to a parent that did split |
+| `name_is_provisional` | `True` when the name was auto-assigned because no marker in `taxonomy.SUBCLUSTER_NAMES` matched — see above |
+
+**Real row vs. sentinel row is one invariant, encoded twice — keep them in sync.**
+`dim_subcluster` distinguishes real subcategories from the synthetic `-10` bucket by
+`subcluster_id >= 0`, and `run_pipeline`'s `meta_run[n_subclusters]` counts rows with that
+same mask (`(dim_subcluster["subcluster_id"] >= 0).sum()`). If either encoding ever changes,
+change the other with it, or the two numbers drift apart silently.
+
+Feeds: the spec 3 dashboard drill-down (category → subcategory); not yet wired into any
+`.pbix` — that is spec 3's job, not this migration's.
 
 ---
 
@@ -412,6 +502,28 @@ Feeds NB3 §2 embedding scatter.
 Cols: `cluster_id`, `rank`, `term`, `weight`. Top c-TF-IDF terms per cluster.
 Feeds NB3 word clouds.
 
+### `nlp_subcluster_terms` — 1 row per (subcluster, term) (new in schema v6)
+Cols: `subcluster_id`, `rank`, `term`, `weight`. Top terms per subcategory, from
+`subclusters.exclusive_terms`.
+
+**These are not the same kind of thing as `nlp_cluster_terms`'s terms — read
+this before comparing the two tables.** A parent cluster's children share most
+of their vocabulary (they were one document pool a moment ago), so a plain
+c-TF-IDF term list would have every child of one parent ranking nearly
+identical terms, and a curated marker would resolve to whichever child is
+visited first. `exclusive_terms` drops any term that more than one sibling
+ranks, keeping only what is distinctive to a child **relative to its own
+siblings** — not what is distinctive to it in the whole corpus, which is what
+`nlp_cluster_terms` measures. A child left with nothing exclusive keeps its
+full (shared) term list rather than exporting empty, so the naming and
+fallback-quote machinery still has something to work with. A separate table
+rather than a re-graining of `nlp_cluster_terms`, because the dashboard's
+"Main Needs" word cloud is bound to that table at parent grain and must keep
+working unchanged.
+
+Feeds: `taxonomy.SUBCLUSTER_NAMES` curation (read a child's terms here before
+adding a marker) and, once spec 3 wires it up, a subcategory-level word cloud.
+
 ### `nlp_emergent_themes` — 1 row per theme probe (6 rows)
 Cols: `theme`, `slug`, `n_messages`, `n_users`. Regex-probe hit counts for
 needs the discovered clusters do not separate out (transport, entrepreneurship,
@@ -462,27 +574,38 @@ from `fact_message.sentiment_label` × `cluster_id` instead.*
 
 ## Meta / parity
 
-### `meta_run` — key/value (20 rows)
+### `meta_run` — key/value (25 rows)
 The run's identity card. Two columns, `key` and `value`, one row per key:
 `responses_file`, `meal_file`, `responses_rows`, `meal_rows`, `ts_min`,
 `ts_max`, `salt_present`, `generated_at`, `schema_version`, `report_version`,
 `nlp_included`, `tone_gate_passed`, `sentiment_quotable`, `embed_model`,
 `sentiment_model`, `chosen_k`, `stability_ari`, `tone_kappa`, `k_soft_cap`,
-`n_provisional_names`. The last six are NLP-derived; since the pipeline has
-no partial-run mode, all 20 keys are always present. `chosen_k` /
-`n_provisional_names` are new in schema v5 — see the `dim_cluster` note above
-for what they mean.
+`n_provisional_names`, `n_subclusters`, `n_parents_split`,
+`n_provisional_subnames`, `subcluster_min_users`, `subcluster_stability_ari`.
+The last eleven are NLP-derived; since the pipeline has no partial-run mode,
+all 25 keys are always present. `chosen_k` / `n_provisional_names` are new in
+schema v5 — see the `dim_cluster` note above for what they mean.
+
+**New in schema v6, from the subclustering pass** (see `dim_subcluster` above
+for the full detail):
+
+| key | meaning |
+|---|---|
+| `n_subclusters` | count of `dim_subcluster` rows with `subcluster_id >= 0` — real subcategories, excluding the `-10` bucket. **12** on the 2026-08-05 run |
+| `n_parents_split` | how many of the 6 parent clusters found a qualifying k and split. **5** on the 2026-08-05 run |
+| `n_provisional_subnames` | how many subcategories auto-named because no marker in `taxonomy.SUBCLUSTER_NAMES` matched. **12** on the 2026-08-05 run — every child, since the registry ships empty (see `dim_subcluster` above) |
+| `subcluster_min_users` | the floor itself, `subclusters.SUBCLUSTER_MIN_USERS` (**30**) — carried here too so a reader of `meta_run` alone (without `parity_check`) still sees the gate |
+| `subcluster_stability_ari` | mean `stability_ari` over **split parents only** (unsplit parents contribute no stability figure — there was no accepted k to measure). **0.841** on the 2026-08-05 run, against the parent pass's `stability_ari` of **0.836** — see the stability-asymmetry warning under `dim_subcluster` before comparing the two |
 
 `report_version` (`export.REPORT_VERSION`, currently `"2.0.0"`) is the **dashboard's**
 version, bumped by hand when the report's visuals or fields change. It is deliberately
 not the package version in `pyproject.toml` — code and report move on different
 cadences. The Tab footer renders it next to `generated_at`.
 
-`schema_version = "5"` (bumped from `"4"` by the cluster-categorization migration — assert
-it on the About page, and update any "Schema Check" measure that still compares
-against `"4"`).
+`schema_version = "6"` (bumped from `"5"` by the two-level taxonomy — assert it on the
+About page, and update any "Schema Check" measure that still compares against `"5"`).
 
-### `parity_check` — 1 row per metric (6 rows)
+### `parity_check` — 1 row per metric (7 rows)
 Cols: `metric`, `exported_value`, `reconciliation_value`, `match`. Proves the
 exported tables reconcile to `SD.reconciliation`: `users`, `messages`,
 `users_with_text`, `meal_responses` (counts), `repeat_askers_pct` (the
@@ -493,3 +616,19 @@ a *real* cluster (i.e. `cluster_id != -1`) against an 80.0 gate (measured
 `reconciliation_value` holds the gate (80.0), not an independently-recomputed
 figure, and `match` is `True` whenever `exported_value >= reconciliation_value`.
 `run_pipeline.py` exits non-zero if any row's `match` is false.
+
+**`subcluster_min_users` — new in schema v6.** Same threshold shape as
+`cluster_coverage_pct` above — `reconciliation_value` holds the floor
+(`subclusters.SUBCLUSTER_MIN_USERS`, **30**), not an independently-recomputed
+figure, and `match` is `exported_value >= reconciliation_value`, not equality.
+`exported_value` is the smallest user count among the run's real, **split**
+subcategories (`qa.min_subcluster_size` — an unsplit parent's single child row
+and the `-10` bucket are excluded, since the floor is a statement about the
+subcategories the split actually produced). On the 2026-08-05 run this read
+**`38 / 30 / True`** — a reader seeing that triple should not conclude the
+smallest subcategory has exactly 38 users *and* the bar is exactly 38; the bar
+is the fixed 30, 38 is just what this run's smallest child happened to have.
+**A `False` here means a disclosure-control failure, not only a statistical
+one** (see the `SUBCLUSTER_MIN_USERS` warning under `dim_subcluster`), and
+`run_pipeline.py` exits non-zero on it exactly as it does for
+`cluster_coverage_pct`.
