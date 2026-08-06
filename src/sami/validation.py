@@ -13,6 +13,85 @@ import pandas as pd
 KAPPA_GATE = 0.7  # doc 02 §6.4: below this, percentages are suppressed
 SAMPLE_COLUMNS = ["message_id", "user_id", "message"]
 
+#: Spec 4. Below this, `agg_coverage_gap` suppresses the rate exactly as
+#: `KAPPA_GATE` suppresses sentiment percentages.
+#:
+#: The gate is on PRECISION, not recall, and the asymmetry is the whole point.
+#: Poor recall means the probe misses real gaps, which makes the rate a FLOOR --
+#: still true, and the card says "at least". Poor precision means the flagged
+#: replies are not gaps at all, which makes the rate WRONG, and no amount of
+#: labelling on the card can rescue a wrong number.
+GAP_PRECISION_GATE = 0.90
+
+
+def _wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson score interval for k successes in n trials.
+
+    Wilson rather than the normal approximation because the counts here are
+    small and often near zero: a probe that misses 2 of 200 sampled replies has
+    a normal-approximation lower bound below 0, which is not a proportion.
+    """
+    if n == 0:
+        return (float("nan"), float("nan"))
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def probe_report(gold: pd.DataFrame, n_unmatched_total: int,
+                 positive: str = "gap", gate: float = GAP_PRECISION_GATE) -> dict:
+    """Precision (exact) and recall (estimated) for a regex probe.
+
+    `gold` carries one row per distinct reply with `stratum` in
+    {"matched", "unmatched"} and `human_label`. The two strata are measured
+    differently and combining them would be wrong:
+
+    - Every matched reply is labelled, so **precision = TP / matched** is a
+      census with no sampling error.
+    - Unmatched replies are a random sample of `n_unmatched_total`, so the
+      misses found in it are scaled up: `FN_est = miss_rate * n_unmatched_total`.
+      **recall = TP / (TP + FN_est)**, and its interval comes from the Wilson
+      interval on `miss_rate` — a HIGH miss rate gives a LOW recall, so the
+      bounds cross over.
+
+    Returns the numbers plus `gate_passed`. `rate_is_floor` is True whenever
+    recall is below 1: the probe is known to miss gaps, so the published rate
+    understates and must be labelled "at least".
+    """
+    lab = gold["human_label"].astype(str).str.strip().str.lower()
+    is_pos = lab == positive
+
+    matched = gold["stratum"] == "matched"
+    n_matched = int(matched.sum())
+    tp = int((matched & is_pos).sum())
+    precision = (tp / n_matched) if n_matched else float("nan")
+
+    unmatched = gold["stratum"] == "unmatched"
+    n_sampled = int(unmatched.sum())
+    misses = int((unmatched & is_pos).sum())
+    miss_rate = (misses / n_sampled) if n_sampled else float("nan")
+    lo_rate, hi_rate = _wilson(misses, n_sampled)
+
+    def _recall(rate: float) -> float:
+        if n_sampled == 0:
+            return float("nan")
+        fn_est = rate * n_unmatched_total
+        return tp / (tp + fn_est) if (tp + fn_est) > 0 else float("nan")
+
+    return {
+        "n_matched": n_matched, "n_sampled": n_sampled,
+        "n_unmatched_total": int(n_unmatched_total),
+        "tp": tp, "fp": n_matched - tp, "misses_in_sample": misses,
+        "precision": precision,
+        "recall": _recall(miss_rate),
+        # High miss rate -> low recall: the interval inverts.
+        "recall_lo": _recall(hi_rate), "recall_hi": _recall(lo_rate),
+        "gate_passed": bool(precision >= gate) if n_matched else False,
+        "rate_is_floor": bool(misses > 0),
+    }
+
 
 class GoldLabelError(Exception):
     """Gold tone labels cannot be aligned to the current message spine."""

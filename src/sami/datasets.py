@@ -19,7 +19,13 @@ from .schema import SchemaError
 
 _ROOT = Path(__file__).resolve().parents[2]
 DATASETS_DIR = _ROOT / "datasets"
-ROLES = ("responses", "meal")
+ROLES = ("responses", "meal", "bot_log")
+
+#: Roles the pipeline runs WITHOUT. `bot_log` feeds one KPI (spec 4); every
+#: other table is built without it, so a clone that has not been given the
+#: production WhatsApp log must still produce a complete export rather than
+#: refusing to start. Preflight reports it as a skip, not a failure.
+OPTIONAL_ROLES = ("bot_log",)
 
 _LOCK_PREFIX = "~$"  # Excel writes these while a workbook is open
 _SUFFIX = ".xlsx"

@@ -29,12 +29,14 @@ from sklearn.cluster import KMeans
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
                   export, preflight, progress, config, schema, datasets, theme,
-                  subclusters, qa)
+                  subclusters, qa, bot_replies)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
-# write) + 6 NLP-only.
-_STAGES_BASE, _STAGES_NLP = 4, 6
+# write) + 6 NLP-only + 1 optional (bot log).
+_STAGES_BASE, _STAGES_NLP = 5, 6
+
+GAP_GOLD_PATH = Path("validation/gap_gold_labels.csv")
 
 
 def _warn_entity_coverage(coverage: float, n_candidates: int) -> None:
@@ -145,6 +147,59 @@ def _nlp_tables(SD, pr):
     return tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names
 
 
+def _bot_tables(path, dim_user) -> tuple[dict, dict]:
+    """The two spec-4 tables and their meta keys. Degrades, never raises.
+
+    Three levels of degradation, and they are deliberately distinguishable in
+    `meta_run` rather than collapsed into one "missing" flag:
+
+    1. **No log file.** Both tables are written EMPTY with their full column
+       headers, `bot_log_present=False`. A clone without the out-of-band
+       production export still produces a complete, loadable set of tables.
+    2. **Log but no gold file.** Counts are exported, the rate is
+       `rate_quotable=False`. The KPI exists and is withheld pending labelling.
+    3. **Both.** The rate ships if precision clears `GAP_PRECISION_GATE`.
+
+    A malformed log is the one thing that still raises: `bot_replies.load_bot_log`
+    throws SchemaError with the fix, and silently degrading a file someone DID
+    provide would hide their mistake.
+    """
+    empty = {"fact_bot_turn": pd.DataFrame(columns=export.FACT_BOT_TURN_COLUMNS),
+             "agg_coverage_gap": pd.DataFrame(columns=export.AGG_COVERAGE_GAP_COLUMNS)}
+    if path is None:
+        return empty, {"bot_log_present": False, "gap_gold_present": False,
+                       "coverage_gap_quotable": False}
+
+    turns = bot_replies.load_bot_log(path, config.get_salt())
+
+    probe = None
+    if GAP_GOLD_PATH.exists():
+        gold = pd.read_csv(GAP_GOLD_PATH, encoding="utf-8")
+        # DISTINCT-REPLY grain, not turn grain. `gold_candidates` deduplicates by
+        # reply_key before sampling, so the sample's population is distinct
+        # replies; scaling the miss rate by a turn count would inflate the
+        # estimated misses by the duplication factor and understate recall.
+        distinct = turns.drop_duplicates("reply_key")
+        probe = validation.probe_report(gold, int((~distinct["gap_flag"]).sum()))
+
+    tables = {
+        "fact_bot_turn": export.build_fact_bot_turn(turns, dim_user),
+        "agg_coverage_gap": export.build_agg_coverage_gap(turns, gap_probe=probe),
+    }
+    meta = {
+        "bot_log_present": True,
+        "bot_log_turns": len(turns),
+        "bot_log_users": int(turns["user_id"].nunique()),
+        "gap_gold_present": probe is not None,
+        "coverage_gap_quotable": bool(probe["gate_passed"]) if probe else False,
+    }
+    if probe:
+        meta.update({"gap_probe_precision": round(probe["precision"], 3),
+                     "gap_probe_recall": round(probe["recall"], 3),
+                     "gap_precision_gate": validation.GAP_PRECISION_GATE})
+    return tables, meta
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="Regenerate the SAMI exports/ gold layer.",
@@ -160,6 +215,11 @@ def main(argv=None) -> int:
     ap.add_argument("--meal", default=None,
                     help="path to the MEAL .xlsx "
                          "(default: newest in datasets/meal/)")
+    ap.add_argument("--bot-log", default=None,
+                    help="path to the WhatsApp production log .xlsx, no header "
+                         "row (default: newest in datasets/bot_log/). OPTIONAL: "
+                         "without it the two coverage-gap tables are empty and "
+                         "every other table is unaffected.")
     args = ap.parse_args(argv)
 
     ctx = preflight.Context(
@@ -203,6 +263,13 @@ def main(argv=None) -> int:
                                                  sub_lab=sub_lab, sub_names=sub_names)
         fact_meal = export.build_fact_meal(SD.meal)
 
+    with pr.stage("bot replies + coverage gap"):
+        bot_log_path = (Path(args.bot_log) if args.bot_log
+                        else datasets.resolve("bot_log"))
+        print(f"  {'bot_log:':<11}{bot_log_path or 'absent (coverage-gap tables empty)'}",
+              file=sys.stderr)
+        bot_tables, bot_meta = _bot_tables(bot_log_path, dim_user)
+
     with pr.stage("aggregate tables"):
         ent_candidates = export.build_nlp_entity_candidates(SD.messages)
         n_ent_hit, n_ent_tot = taxonomy.entity_coverage(SD.messages["message"])
@@ -232,13 +299,15 @@ def main(argv=None) -> int:
                           "entity_dict_entities": len(taxonomy.ENTITY_PATTERNS),
                           "entity_dict_patterns": sum(
                               len(v) for v in taxonomy.ENTITY_PATTERNS.values()),
-                          "entity_candidates_n": len(ent_candidates)}),
+                          "entity_candidates_n": len(ent_candidates),
+                          **bot_meta}),
             "parity_check": export.build_parity_check(
                 SD.reconciliation, dim_user, fact_message, fact_meal,
                 nlp_tables["dim_subcluster"],
                 entity_coverage_pct=round(100 * ent_coverage, 1)),
         }
         tables.update(nlp_tables)
+        tables.update(bot_tables)
 
     with pr.stage("PII scan + write"):
         manifest = export.write_all(args.out, tables)

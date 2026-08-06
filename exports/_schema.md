@@ -7,7 +7,22 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "7"`** (bumped from `"6"` by the entity-dictionary
+**`schema_version = "8"`** (bumped from `"7"` by the Coverage Gap Rate — see
+`docs/superpowers/specs/2026-08-06-coverage-gap-kpi-design.md`: SAMI's own
+replies are ingested from the WhatsApp production log to produce a **measured**
+unmet-need indicator, replacing the tone-based one the stakeholder asked for
+(tone κ = 0.595 still fails its gate). Two tables were added, `fact_bot_turn`
+and `agg_coverage_gap`; `meta_run` gained up to eight keys — `bot_log_present`,
+`bot_log_turns`, `bot_log_users`, `gap_gold_present`, `coverage_gap_quotable`,
+and, when a gold set is present, `gap_probe_precision`, `gap_probe_recall`,
+`gap_precision_gate`. `parity_check` is unchanged. See "Bot replies / coverage
+gap" below.
+
+Both new tables are written **empty but column-complete** when the log is
+absent, so this bump does not require every consumer to have the out-of-band
+file.)
+
+**`"7"`** (bumped from `"6"` by the entity-dictionary
 modularisation — see
 `.superpowers/sdd/2026-08-06-entity-dictionary-modularisation/`: entity
 extraction moved from an inline pattern table to a maintained CSV registry
@@ -500,6 +515,66 @@ output — this file reflects what's actually written.*
 ### `agg_entities_by_kind` — 1 row per (kind, entity) (18 rows)
 Cols: `kind`, `entity`, `n`. Extracted-entity mentions (orgs, documents, etc.)
 by kind. Feeds NB2 §1 entity chart.
+
+---
+
+## Bot replies / coverage gap (new in schema v8)
+
+Both tables come from the WhatsApp **production log**
+(`datasets/bot_log/`), which is a different source from every other table here:
+a different window (2026-07-23 → 08-04, versus a corpus ending 07-28) and a
+different population (216 users, of whom **128 have no survey record at all**).
+
+**Never pool these with the survey tables, and never filter them by a survey
+attribute.** `user_id` joins where a record exists, but a gender or city filter
+does not narrow this population — it replaces it with the survey-matched
+subset, moving the denominator invisibly. Leave `fact_bot_turn` unrelated to
+`dim_user` in the model.
+
+Both tables are written **empty but column-complete** when the log is absent
+(`meta_run[bot_log_present] = False`), so a clone without the out-of-band export
+still produces a loadable set.
+
+### `fact_bot_turn` — 1 row per bot turn (1,021 rows)
+Cols: `turn_id`, `user_id`, `ts`, `has_survey_record`, `gap_flag`,
+`handoff_flag`.
+
+Source: `bot_replies.load_bot_log` + `export.build_fact_bot_turn`.
+
+**Carries no message or reply text, by construction.** `qa.pii_scan` would pass
+that text (there is no phone number in it) while it quotes the user's city,
+family situation and legal status back at them, so the exclusion is structural
+rather than left to the scan. Nothing downstream needs it.
+
+`gap_flag` is `taxonomy.COVERAGE_GAP_PROBE` — the assistant stating it has no
+information. `handoff_flag` is `taxonomy.HUMAN_HANDOFF_PROBE` — routing to a
+person, which is usually SAMI **working as designed**, not a failure.
+`has_survey_record` is a flag, not a filter: dropping the 128 unmatched users
+would silently re-base every number here.
+
+### `agg_coverage_gap` — 1 row per (metric, grain) (4 rows)
+Cols: `metric`, `grain`, `numerator`, `denominator`, `rate_pct`,
+`rate_quotable`, `is_floor`, `precision`, `recall`, `recall_lo`, `recall_hi`,
+`n_labelled`, `window_start`, `window_end`.
+
+The KPI table. `metric` ∈ {`coverage_gap`, `human_handoff`}, `grain` ∈
+{`users`, `turns`}. **User grain is the headline** (55/216 = 25.5%); turn grain
+(112/1,021 = 11.0%) is the supporting line and reads as an 89% success rate if
+quoted alone.
+
+`rate_pct` is **null unless `rate_quotable`**. The gate is
+`validation.GAP_PRECISION_GATE = 0.90` against the precision measured on
+`validation/gap_gold_labels.csv`; the counts stay populated so a reader sees the
+number was withheld rather than never built. `human_handoff` has no gold set, so
+its `rate_quotable` is always FALSE and its `precision` always blank — show it
+as "≥ x%, directional", never as a KPI card.
+
+`is_floor` TRUE means the probe is known to miss real gaps (recall < 1) and the
+figure must be labelled **"at least"**. As of 2026-08-06: precision 0.952
+(census of all 84 flagged replies), recall 0.647 (0.51–0.77), from 284 labels.
+
+Editing `taxonomy.COVERAGE_GAP_PROBE` invalidates all of these numbers.
+`tests/test_bot_replies.py` fails when the probe and the gold set disagree.
 
 ---
 

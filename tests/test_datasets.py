@@ -28,8 +28,19 @@ def _touch(path: Path, mtime: float | None = None) -> Path:
     return path
 
 
-def test_roles_are_responses_and_meal():
-    assert datasets.ROLES == ("responses", "meal")
+def test_roles_cover_the_three_intake_folders():
+    assert datasets.ROLES == ("responses", "meal", "bot_log")
+
+
+def test_bot_log_is_the_only_optional_role():
+    """The pipeline must produce a complete export without the bot log.
+
+    `responses` and `meal` are load-bearing: every table derives from them.
+    `bot_log` feeds two tables and one KPI, and it is an out-of-band production
+    export a clone will usually not have.
+    """
+    assert datasets.OPTIONAL_ROLES == ("bot_log",)
+    assert set(datasets.OPTIONAL_ROLES) < set(datasets.ROLES)
 
 
 def test_empty_folder_resolves_to_none(fake_datasets):

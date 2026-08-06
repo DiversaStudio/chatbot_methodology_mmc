@@ -5,24 +5,33 @@ data from.
 
 ```text
 datasets/
-  responses/    <- the chatbot users / responses export
-  meal/         <- the MEAL survey export
+  responses/    <- the chatbot users / responses export   (required)
+  meal/         <- the MEAL survey export                 (required)
+  bot_log/      <- the WhatsApp production log            (OPTIONAL)
 ```
+
+`bot_log/` is the only optional role. It feeds one indicator — the Coverage Gap
+Rate — and **without it the pipeline still produces a complete export**: the two
+tables it fills (`fact_bot_turn`, `agg_coverage_gap`) are written empty but
+column-complete, and every other table is unaffected. Its format differs from
+the other two: **no header row**, four positional columns (timestamp, WhatsApp
+id, user message, bot reply).
 
 ## Adding a new export
 
 1. Save the responses export into `datasets/responses/`.
 2. Save the MEAL survey export into `datasets/meal/`.
-3. Verify the setup:
+3. Optionally, save the WhatsApp production log into `datasets/bot_log/`.
+4. Verify the setup:
 
    ```powershell
    .venv/Scripts/python.exe run_pipeline.py --check
    ```
 
-   It names the two files it will read and confirms every column it needs is
+   It names the files it will read and confirms every column it needs is
    present. It does no work, so it takes seconds.
 
-4. Run the pipeline:
+5. Run the pipeline:
 
    ```powershell
    .venv/Scripts/python.exe run_pipeline.py
