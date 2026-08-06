@@ -176,3 +176,17 @@ def min_subcluster_size(dim_subcluster: pd.DataFrame) -> int:
     if real.empty:
         return subclusters.SUBCLUSTER_MIN_USERS
     return int(real["n_users"].min())
+
+
+# Share of messages naming at least one dictionary entity. TWO floors, because a
+# parity_check row is not a warning -- run_pipeline exits 1 and refuses to
+# publish when any parity row is False.
+#
+# HARD: below this the registry did not load, or was saved as ANSI so nothing
+# matches. That is a correctness failure and blocking publication is correct.
+# WARN: the drift signal. Measured coverage was 40.3% on the 2026-08-06 corpus
+# (4,663 messages) after the dictionary widening; this sits below it with room
+# for normal composition change. 100% is not reachable and is not the target --
+# greetings, thanks and open-ended asks legitimately name nothing.
+ENTITY_COVERAGE_HARD_FLOOR = 0.20
+ENTITY_COVERAGE_WARN = 0.35
