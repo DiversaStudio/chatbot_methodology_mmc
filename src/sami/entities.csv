@@ -5,11 +5,11 @@ PEP,procedure,\bpep\b,Permiso Especial de Permanencia
 PEP,procedure,permiso especial de permanencia,
 Visa,procedure,\bvisa\b,
 Visa,procedure,\bvisas\b,
-Cédula de extranjería,procedure,cedula de extranjeria,
+Cédula,procedure,cedula de extranjeria,
 Pasaporte,procedure,\bpasaporte\b,
-EPS,procedure,\beps\b,
-EPS,procedure,afiliacion en salud,
-EPS,procedure,seguro de salud,
+Salud/EPS,procedure,\beps\b,
+Salud/EPS,procedure,afiliacion en salud,
+Salud/EPS,procedure,seguro de salud,
 SISBÉN,procedure,\bsisben\b,
 Migración Colombia,institution,migracion colombia,
 Migración Colombia,institution,\bmigracion\b,
@@ -34,3 +34,40 @@ Vivienda/Arriendo,procedure,\bvivienda\b,
 Vivienda/Arriendo,procedure,subsidio de arriendo,
 Ayuda humanitaria,procedure,ayuda humanitaria,
 Ayuda humanitaria,procedure,asistencia humanitaria,
+Cédula,procedure,\bcedula\b,"Conflates extranjeria, ciudadania and the Venezuelan cedula. Owner ruling 2026-08-06: one entity, not three."
+Cédula,procedure,\bcex\b,
+Salud/EPS,procedure,\bsalud\b,"Widened beyond affiliation. Owner ruling 2026-08-06."
+Salud/EPS,procedure,atencion medica,
+Salud/EPS,procedure,cita medica,
+Trabajo/Empleo,procedure,\btrabajar\b,Missing inflection: 50 users said trabajar and matched nothing
+Trabajo/Empleo,procedure,\blaboral\b,
+Salvoconducto,procedure,\bsalvo ?conducto\b,Written both as one word and two
+Regularización,procedure,\bregularizar\w*\b,Owner ruling 2026-08-06: standalone rather than folded into PPT/PEP
+Regularización,procedure,regularizacion,
+Regularización,procedure,\bpermanencia\b,
+Regularización,procedure,estatus (?:migratorio|legal),
+Regularización,procedure,\birregular\b,
+Emprendimiento,procedure,\bemprendimiento\b,
+Emprendimiento,procedure,\bemprender\b,
+Emprendimiento,procedure,negocio propio,
+Emprendimiento,procedure,capital semilla,
+Emprendimiento,procedure,microcredito,
+Emprendimiento,procedure,\bempleabilidad\b,
+Ayuda económica,procedure,ayudas? economica,"Bare 'ayuda' is deliberately NOT a pattern: it is the request verb, not an entity"
+Ayuda económica,procedure,apoyo economico,
+Ayuda económica,procedure,\bsubsidio\b,
+Ayuda económica,procedure,\bbono\b,
+Nacionalidad/Naturalización,procedure,\bnacionalidad\b,
+Nacionalidad/Naturalización,procedure,naturalizacion,
+Nacionalidad/Naturalización,procedure,carta de naturaleza,
+Registro civil/Apostilla,procedure,registro civil,
+Registro civil/Apostilla,procedure,partida de nacimiento,
+Registro civil/Apostilla,procedure,acta de nacimiento,
+Registro civil/Apostilla,procedure,apostill,"Deliberately unanchored: apostilla, apostillado, apostillar"
+tramite,ignore,,"Generic process word, not an entity. Rejected 2026-08-06."
+requisitos,ignore,,"Generic. Rejected 2026-08-06."
+proceso,ignore,,"Generic. Rejected 2026-08-06."
+documentos,ignore,,"Generic. Rejected 2026-08-06."
+papeles,ignore,,"Generic. Rejected 2026-08-06."
+permiso,ignore,,"Too generic alone; the specific permits are their own entities. Rejected 2026-08-06."
+migrantes,ignore,,"Describes the population, not a need. Rejected 2026-08-06."

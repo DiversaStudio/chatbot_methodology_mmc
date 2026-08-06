@@ -133,3 +133,59 @@ def test_every_registry_pattern_is_lowercase_and_compiles():
 def test_both_counted_kinds_are_populated():
     kinds = set(taxonomy.ENTITY_KIND.values())
     assert kinds == set(taxonomy.COUNTED_KINDS)
+
+
+NEW_ENTITIES = {
+    "Salvoconducto", "Regularización", "Emprendimiento", "Ayuda económica",
+    "Nacionalidad/Naturalización", "Registro civil/Apostilla",
+}
+
+# One real phrasing per addition, taken from the corpus mining of 2026-08-06.
+MUST_MATCH = [
+    ("Salvoconducto", "necesito renovar mi salvoconducto"),
+    ("Salvoconducto", "como saco el salvo conducto"),
+    ("Regularización", "quiero regularizar mi situacion"),
+    ("Regularización", "estoy en situacion irregular"),
+    ("Emprendimiento", "ayuda para mi emprendimiento"),
+    ("Ayuda económica", "necesito una ayuda economica"),
+    ("Nacionalidad/Naturalización", "como obtengo la nacionalidad colombiana"),
+    ("Registro civil/Apostilla", "necesito el registro civil de mi hija"),
+    ("Registro civil/Apostilla", "donde apostillo el acta"),
+    ("Cédula", "perdi mi cedula"),
+    ("Salud/EPS", "necesito acceder a salud"),
+    ("Trabajo/Empleo", "quiero trabajar aqui"),
+]
+
+MUST_NOT_MATCH = ["necesito hacer un tramite", "cuales son los requisitos",
+                  "no entiendo el proceso", "tengo mis documentos",
+                  "me faltan papeles", "somos migrantes"]
+
+
+def test_new_entities_are_present_and_are_procedures():
+    assert NEW_ENTITIES <= set(taxonomy.ENTITY_PATTERNS)
+    for e in NEW_ENTITIES:
+        assert taxonomy.ENTITY_KIND[e] == "procedure", e
+
+
+def test_renamed_entities_replaced_the_old_names():
+    assert "Cédula" in taxonomy.ENTITY_PATTERNS
+    assert "Salud/EPS" in taxonomy.ENTITY_PATTERNS
+    assert "Cédula de extranjería" not in taxonomy.ENTITY_PATTERNS
+    assert "EPS" not in taxonomy.ENTITY_PATTERNS
+
+
+def test_every_addition_matches_a_real_phrasing():
+    for entity, text in MUST_MATCH:
+        assert entity in taxonomy.extract_entities(text), f"{entity} missed {text!r}"
+
+
+def test_rejected_terms_match_nothing():
+    for text in MUST_NOT_MATCH:
+        assert taxonomy.extract_entities(text) == set(), text
+
+
+def test_rejected_terms_are_recorded_as_ignore_rows():
+    """A rejection is durable data, so the candidates table stops resurfacing it."""
+    for term in ("tramite", "requisitos", "proceso", "documentos", "papeles",
+                 "permiso", "migrantes"):
+        assert term in taxonomy.IGNORED_TERMS, term
