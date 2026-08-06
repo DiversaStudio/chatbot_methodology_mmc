@@ -242,3 +242,22 @@ def test_nlp_tables_subcluster_wiring(monkeypatch):
     # would fold the -10 sentinel row into the count.
     dim_subcluster = tables["dim_subcluster"]
     assert nlp_meta["n_subclusters"] == int((dim_subcluster["subcluster_id"] >= 0).sum())
+
+
+def test_soft_coverage_floor_warns_and_does_not_raise():
+    import warnings
+    import run_pipeline
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        run_pipeline._warn_entity_coverage(0.21, n_candidates=7)
+    assert any("entity coverage" in str(x.message).lower() for x in w)
+    assert any("entities.csv" in str(x.message) for x in w)
+
+
+def test_no_warning_above_the_soft_floor():
+    import warnings
+    import run_pipeline
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        run_pipeline._warn_entity_coverage(0.60, n_candidates=0)
+    assert not [x for x in w if "entity coverage" in str(x.message).lower()]

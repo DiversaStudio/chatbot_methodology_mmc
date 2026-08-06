@@ -378,6 +378,15 @@ def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["kind", "entity", "n"])
 
 
+def build_nlp_entity_candidates(messages: pd.DataFrame) -> pd.DataFrame:
+    """Terms the dictionary does not recognise, for a human to triage.
+
+    Carries `example_message_id` and never the message text itself: this table
+    is published, and raw user text is not.
+    """
+    return taxonomy.entity_candidates(messages)
+
+
 def build_agg_weekly_cluster(messages: pd.DataFrame) -> pd.DataFrame:
     wk = metrics.weekly_cluster_counts(messages)
     return (wk.reset_index()
@@ -698,7 +707,7 @@ REPORT_VERSION = "2.0.0"
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "6") -> pd.DataFrame:
+                   schema_version: str = "7") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
@@ -717,7 +726,7 @@ _PARITY_MAP = {
 
 
 def build_parity_check(reconciliation, dim_user, fact_message, fact_meal,
-                       dim_subcluster) -> pd.DataFrame:
+                       dim_subcluster, entity_coverage_pct: float = 100.0) -> pd.DataFrame:
     recon = reconciliation.set_index("metric")["value"].to_dict()
     exported = {
         "users": dim_user["user_id"].nunique(),
@@ -753,6 +762,16 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal,
                  "exported_value": smallest,
                  "reconciliation_value": subclusters.SUBCLUSTER_MIN_USERS,
                  "match": smallest >= subclusters.SUBCLUSTER_MIN_USERS})
+    # Entity-dictionary coverage. A THRESHOLD row against the HARD floor only.
+    # The soft drift floor (qa.ENTITY_COVERAGE_WARN) is a warning in
+    # run_pipeline, deliberately NOT here: a parity row that is False stops the
+    # run publishing at all, which is right for "the registry failed to load"
+    # and wrong for "the dictionary is drifting".
+    hard = round(100 * qa.ENTITY_COVERAGE_HARD_FLOOR, 1)
+    rows.append({"metric": "entity_coverage_pct",
+                 "exported_value": round(float(entity_coverage_pct), 1),
+                 "reconciliation_value": hard,
+                 "match": round(float(entity_coverage_pct), 1) >= hard})
     return pd.DataFrame(rows)
 
 
