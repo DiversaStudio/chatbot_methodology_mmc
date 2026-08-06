@@ -350,17 +350,41 @@ CLUSTER_NAMES: list[dict[str, str]] = [
 
 # Subcategory names, keyed by MARKER TERM exactly as CLUSTER_NAMES is.
 #
-# EMPTY ON PURPOSE. The child clusters are produced by a second clustering pass
-# that has never run against real data, so there is nothing to author markers
-# from yet -- inventing them would be guessing. The first real run auto-names
-# every child, flags it `name_is_provisional`, and warns with the list. Read
-# those children's terms in `nlp_subcluster_terms` and add entries here.
+# Authored 2026-08-06 off the first two real runs of the second pass (identical
+# results both times), reading `exports/nlp_subcluster_terms.csv` -- which is
+# already the SIBLING-EXCLUSIVE term list, not the raw top terms.
 #
 # A marker MUST appear in the child's SIBLING-EXCLUSIVE terms
 # (`subclusters.exclusive_terms`), not merely its raw top terms: siblings of one
 # parent share most of their vocabulary, and a marker on a shared term would be
-# claimed by whichever child is visited first.
-SUBCLUSTER_NAMES: list[dict[str, str]] = []
+# claimed by whichever child is visited first. Markers here were also checked to
+# be unique across ALL twelve children, because `resolve_names` visits ids in
+# ascending order and claims each entry once -- a term two children share would
+# be taken by the lower id and the other would auto-name.
+#
+# Grouped by parent, in `subcluster_id` order. There is no `description` field:
+# `build_dim_subcluster` exports no description column, so prose here would be
+# dead data. Parent-level prose lives in `CLUSTER_NAMES[*]["description"]`.
+SUBCLUSTER_NAMES: list[dict[str, str]] = [
+    # -- Building a livelihood --
+    {"marker": "emprendimiento", "name": "Starting a business"},
+    {"marker": "buscando", "name": "Looking for work and training"},
+    # -- Stuck mid-procedure --
+    {"marker": "biométrico", "name": "Biometrics and minors' documents"},
+    {"marker": "jornada", "name": "Brigades and paperwork steps"},
+    # -- Nationality and family papers --
+    {"marker": "ciudadanía", "name": "Family nationality options"},
+    {"marker": "españa", "name": "Regularising status abroad"},
+    {"marker": "apostillado", "name": "Apostilles and birth records"},
+    # -- Permits, visas and travel --
+    {"marker": "canadá", "name": "Visas and travel abroad"},
+    {"marker": "prórroga", "name": "Expiring permits and renewals"},
+    # -- Urgent humanitarian needs --
+    {"marker": "hospital", "name": "Health access and registration"},
+    {"marker": "alimentación", "name": "Food and shelter from organisations"},
+    # -- Settling in (did not split; this child is the whole parent) --
+    {"marker": "danes", "name": "Services and integration"},
+]
 
 
 def resolve_names(terms: dict[int, "pd.Series"], registry: list[dict],

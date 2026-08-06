@@ -1,14 +1,14 @@
 subcluster_id,cluster_id,subcluster_name,top_terms,n_users,n_messages,display_order,color_hex,is_split,name_is_provisional
-0,0,"Subcluster 0 · emprendimiento, emprendimientos, negocio","emprendimiento, emprendimientos, negocio, empleabilidad, emprender, específica",60,148,50,#c78fa4,True,True
-1,0,"Subcluster 1 · buscando, conseguir, buscar","buscando, conseguir, buscar, seguro, segura, económicamente",38,60,51,#d3a8b8,True,True
-10,1,"Subcluster 10 · biométrico, hijos, entregar","biométrico, hijos, entregar, saqué, xfavor, aprobado",148,622,20,#62c8ce,True,True
-11,1,"Subcluster 11 · jornada, adultos, sacarle","jornada, adultos, sacarle, dice, preguntar, procesos",69,121,21,#85d4d9,True,True
-20,2,"Subcluster 20 · conmigo, carta, tenemos","conmigo, carta, tenemos, hija, entonces, sino",134,740,10,#671e42,True,True
-21,2,"Subcluster 21 · españa, regularizar, legalizarme","españa, regularizar, legalizarme, estatus, estadía, irregular",85,203,11,#88506c,True,True
-22,2,"Subcluster 22 · apostillado, acta, mamá","apostillado, acta, mamá, civil, partida, padre",84,349,12,#aa8195,True,True
-30,3,"Subcluster 30 · canadá, visitante, extranjeria","canadá, visitante, extranjeria, pago, quedaron, correo",118,267,30,#a3557a,True,True
-31,3,"Subcluster 31 · tramite, prórroga, salvó","tramite, prórroga, salvó, venció, sede, acnur",46,127,31,#b77a97,True,True
-40,4,"Subcluster 40 · nuevo, registrarme, hospital","nuevo, registrarme, hospital, sisben, urgente, acceso",157,1208,0,#009ba4,True,True
-41,4,"Subcluster 41 · migrantes, alimentación, organización","migrantes, alimentación, organización, mercado, norte, mujer",153,646,1,#38b1b8,True,True
-50,5,"Subcluster 50 · atención, danes, regular","atención, danes, regular, especial, cerca, educación",106,172,40,#000031,False,True
+0,0,Starting a business,"emprendimiento, emprendimientos, negocio, empleabilidad, emprender, específica",60,148,50,#c78fa4,True,False
+1,0,Looking for work and training,"buscando, conseguir, buscar, seguro, segura, económicamente",38,60,51,#d3a8b8,True,False
+10,1,Biometrics and minors' documents,"biométrico, hijos, entregar, saqué, xfavor, aprobado",148,622,20,#62c8ce,True,False
+11,1,Brigades and paperwork steps,"jornada, adultos, sacarle, dice, preguntar, procesos",69,121,21,#85d4d9,True,False
+20,2,Family nationality options,"conmigo, carta, tenemos, hija, entonces, sino",134,740,10,#671e42,True,False
+21,2,Regularising status abroad,"españa, regularizar, legalizarme, estatus, estadía, irregular",85,203,11,#88506c,True,False
+22,2,Apostilles and birth records,"apostillado, acta, mamá, civil, partida, padre",84,349,12,#aa8195,True,False
+30,3,Visas and travel abroad,"canadá, visitante, extranjeria, pago, quedaron, correo",118,267,30,#a3557a,True,False
+31,3,Expiring permits and renewals,"tramite, prórroga, salvó, venció, sede, acnur",46,127,31,#b77a97,True,False
+40,4,Health access and registration,"nuevo, registrarme, hospital, sisben, urgente, acceso",157,1208,0,#009ba4,True,False
+41,4,Food and shelter from organisations,"migrantes, alimentación, organización, mercado, norte, mujer",153,646,1,#38b1b8,True,False
+50,5,Services and integration,"atención, danes, regular, especial, cerca, educación",106,172,40,#000031,False,False
 -10,-1,No conversation text,,,,70,#b7b7b7,False,False
