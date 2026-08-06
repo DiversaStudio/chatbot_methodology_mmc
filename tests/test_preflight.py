@@ -164,3 +164,26 @@ def test_summarize_reports_clean_run():
                preflight.Result("b", preflight.WARN, "slow", "use a gpu")]
     assert "passed" in preflight.summarize(results)
     assert "1 warning" in preflight.summarize(results)
+
+
+def test_check_entities_ok_on_the_real_registry():
+    from sami import preflight
+    r = preflight.check_entities(preflight.Context())
+    assert r.status == preflight.OK
+    assert "entities" in r.detail and "patterns" in r.detail
+
+
+def test_check_entities_fails_on_a_broken_registry(tmp_path, monkeypatch):
+    from sami import config, preflight
+    bad = tmp_path / "entities.csv"
+    bad.write_text("entity,kind,pattern,notes\nFoo,organisation,\\bfoo\\b,\n",
+                   encoding="utf-8")
+    monkeypatch.setattr(config, "ENTITIES_OVERRIDE", bad)
+    r = preflight.check_entities(preflight.Context())
+    assert r.failed
+    assert "organisation" in r.detail or "organisation" in r.fix
+
+
+def test_entities_check_is_registered():
+    from sami import preflight
+    assert preflight.check_entities in preflight.CHECKS

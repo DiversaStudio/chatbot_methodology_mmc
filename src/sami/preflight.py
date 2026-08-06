@@ -142,6 +142,33 @@ def check_tone_labels(ctx: Context) -> Result:
                   "table. Restore the file.")
 
 
+def check_entities(ctx: Context) -> Result:
+    """The institutions/procedures registry parses and validates.
+
+    Cheap and early: a mangled registry otherwise surfaces as a chart that
+    quietly counts nothing, twenty minutes into a run.
+    """
+    path = config.entities_path()
+    try:
+        from . import taxonomy
+        rows = taxonomy.load_entity_registry()
+    except Exception as exc:
+        # Handle EntityRegistryError at import time (reload_entities) or load time
+        if exc.__class__.__name__ == "EntityRegistryError":
+            first, *rest = str(exc).splitlines()
+            return Result("entities", FAIL, first,
+                          "\n        ".join(x.strip() for x in rest) or
+                          f"Fix {path} and re-run --check.")
+        else:
+            # Unexpected error, re-raise
+            raise
+    counted = [r for r in rows if r["kind"] in taxonomy.COUNTED_KINDS]
+    n_entities = len({r["entity"] for r in counted})
+    return Result("entities", OK,
+                  f"{n_entities} entities, {len(counted)} patterns "
+                  f"({path.name})")
+
+
 def check_device(ctx: Context) -> Result:
     try:
         import torch
@@ -220,7 +247,8 @@ def check_output_dir(ctx: Context) -> Result:
 
 CHECKS = (
     check_python, check_packages, check_salt, check_responses, check_meal,
-    check_tone_labels, check_device, check_models, check_disk, check_output_dir,
+    check_tone_labels, check_entities, check_device, check_models, check_disk,
+    check_output_dir,
 )
 
 
