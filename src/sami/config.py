@@ -8,6 +8,24 @@ from . import datasets
 _ROOT = Path(__file__).resolve().parents[2]
 DATASETS_DIR = datasets.DATASETS_DIR
 
+# The institutions/procedures dictionary, in two layers.
+#
+# ENTITIES_DEFAULT ships with the code and is tracked in git, so a clean clone
+# always runs and the dictionary behind any published chart is recoverable from
+# the commit. ENTITIES_OVERRIDE is gitignored: it is where a local edit goes
+# while it is being tried out, and it wins when present.
+#
+# A function, not a constant, for the same reason as responses_path(): which
+# file is effective depends on folder contents that can change between import
+# and use.
+ENTITIES_DEFAULT = Path(__file__).resolve().parent / "entities.csv"
+ENTITIES_OVERRIDE = _ROOT / "config" / "entities.csv"
+
+
+def entities_path() -> Path:
+    """The registry actually in force: the local override if it exists."""
+    return ENTITIES_OVERRIDE if ENTITIES_OVERRIDE.exists() else ENTITIES_DEFAULT
+
 # 0-indexed; the real header is the 3rd row of the export. Kept for qa.py's
 # fixture-tolerant reader. The loaders do NOT rely on it -- they call
 # schema.detect_header_row(), so a re-export with a different number of banner
