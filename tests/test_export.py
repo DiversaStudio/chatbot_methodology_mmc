@@ -1316,6 +1316,27 @@ def test_build_nlp_entity_candidates_shape():
     assert "beca" in set(out["term"])
 
 
+def test_build_nlp_entity_candidates_from_raw_messages_without_message_id():
+    """Regression: run_pipeline.py calls this with SD.messages straight out of
+    load_sami, which has no `message_id` column yet (that's synthesised inside
+    build_fact_message). The builder must derive it itself via the same
+    message_key so example_message_id lines up with fact_message.message_id."""
+    import pandas as pd
+    from sami import export
+    msgs = pd.DataFrame({
+        "user_id": [f"u{i}" for i in range(20)],
+        "seq": [0] * 20,
+        "message": ["necesito una beca"] * 20,
+    })
+    assert "message_id" not in msgs.columns
+    out = export.build_nlp_entity_candidates(msgs)
+    assert list(out.columns) == ["term", "n_gram", "n_msgs", "n_users",
+                                 "example_message_id"]
+    assert "beca" in set(out["term"])
+    expected_id = export.message_key("u0", 0, "necesito una beca")
+    assert (out.loc[out["term"] == "beca", "example_message_id"] == expected_id).all()
+
+
 def test_entity_candidates_export_carries_no_message_text():
     """Only ids leave the pipeline -- raw message text is never exported."""
     import pandas as pd
