@@ -148,20 +148,15 @@ def check_entities(ctx: Context) -> Result:
     Cheap and early: a mangled registry otherwise surfaces as a chart that
     quietly counts nothing, twenty minutes into a run.
     """
+    from . import taxonomy
     path = config.entities_path()
     try:
-        from . import taxonomy
         rows = taxonomy.load_entity_registry()
-    except Exception as exc:
-        # Handle EntityRegistryError at import time (reload_entities) or load time
-        if exc.__class__.__name__ == "EntityRegistryError":
-            first, *rest = str(exc).splitlines()
-            return Result("entities", FAIL, first,
-                          "\n        ".join(x.strip() for x in rest) or
-                          f"Fix {path} and re-run --check.")
-        else:
-            # Unexpected error, re-raise
-            raise
+    except taxonomy.EntityRegistryError as exc:
+        first, *rest = str(exc).splitlines()
+        return Result("entities", FAIL, first,
+                      "\n        ".join(x.strip() for x in rest) or
+                      f"Fix {path} and re-run --check.")
     counted = [r for r in rows if r["kind"] in taxonomy.COUNTED_KINDS]
     n_entities = len({r["entity"] for r in counted})
     return Result("entities", OK,
