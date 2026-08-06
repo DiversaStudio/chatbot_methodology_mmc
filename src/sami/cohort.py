@@ -4,8 +4,17 @@ The chatbot's registration survey was rewritten between v1 and v2. Three kinds
 of change make a naive total wrong, and none of them announce themselves:
 
 - **v1 excluded people.** Q3 terminated the survey for anyone answering
-  "Colombia", so v1 rows contain no Colombians *by construction* — 0 of 1,355.
-  A pooled nationality share measures that exit rule, not the user base.
+  "Colombia", so v1's `Nationality` field contains no Colombians *by
+  construction*. Four v1 rows nonetheless canonicalise to Colombia: they came
+  in through the free-text `Nationality_other` box (3 "Colombia", 1
+  "Colombiana"), routing around the screen. So the honest count is 4 of 1,355
+  against 22 of 104 in v2 — the gap measures the exit rule, not the user base.
+
+  **SPLIT does not mean "use v2 only".** Nationality is populated for every
+  user (1,314 v1 + 78 v2 at user grain); the policy requires the two cohorts be
+  reported *side by side*, not that 1,314 records be discarded. Scoping a
+  nationality visual to v2 alone throws away 94% of the data to avoid a
+  caveat that belongs in a footnote.
 - **Questions were retired.** Q9 (away_duration), Q10 (prev_country),
   Q13 (would_recommend) and Q14 (recommendation_text) are gone in v2. Their
   totals freeze while every other total grows, which reads as collapse.
