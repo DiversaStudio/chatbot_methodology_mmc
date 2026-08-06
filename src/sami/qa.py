@@ -32,7 +32,7 @@ _SHEET = {
 # of 7+ of them and trip the phone-number pattern. Exempting them is safe because
 # we generate them; exempting anything else is not. Keep this list closed —
 # widening it to a prefix match or a dtype rule would blunt the PII gate.
-_HASH_COLUMNS = frozenset({"user_id", "message_id"})
+_HASH_COLUMNS = frozenset({"user_id", "message_id", "turn_id", "reply_key"})
 
 
 def pii_scan(obj) -> list[dict]:

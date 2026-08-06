@@ -306,6 +306,36 @@ CANDIDATE_INTENT_PROBES: dict[str, str] = {
     "connectivity": r"\b(?:recarga|datos m[oó]viles|saldo|internet|wifi)\b",
 }
 
+# ---- bot-reply probes (spec 4) ----
+# Applied to SAMI'S OWN REPLIES, not to user messages, which is what makes the
+# rate they produce a MEASUREMENT rather than an inference: the assistant says
+# it has no information, so nothing has to guess what the user felt.
+#
+# They are still regexes. `COVERAGE_GAP_PROBE` is the one that reaches a KPI
+# card, so it is the one with a hand-labelled gold set behind it
+# (`validation/gap_gold_labels.csv`) and a precision gate in front of it
+# (`validation.GAP_PRECISION_GATE`). Editing this pattern INVALIDATES that
+# measurement -- re-run the labelling pass, do not just re-run the pipeline.
+COVERAGE_GAP_PROBE = (
+    r"no (?:tengo|cuento con|dispongo de|manejo|poseo|encuentro)\s+"
+    r"(?:la\s+|con\s+)?(?:informaci[oó]n|datos|registros|detalles)"
+    r"|no (?:puedo|podr[ií]a) (?:brindarte|darte|proporcionarte|ofrecerte)\s+"
+    r"(?:esa|esta|la|m[aá]s)\s+informaci[oó]n"
+    r"|no (?:tengo|dispongo de) (?:acceso|conocimiento)"
+    r"|no hay informaci[oó]n disponible"
+)
+
+# NOT validated and NOT gated: no gold set covers it, so it is a floor with an
+# unmeasured recall, exported with `rate_quotable=False`. It is also NOT a
+# failure -- routing someone to a caseworker is usually SAMI working as
+# designed. It sits beside the gap rate to stop a reader assuming the gap rate
+# is the whole of "SAMI could not help", and its label must say so.
+HUMAN_HANDOFF_PROBE = (
+    r"asesor|persona del equipo|equipo humano|te conecto"
+    r"|comunicarte con|contactar con|l[ií]nea de atenci[oó]n"
+)
+
+
 # Cluster names, keyed by MARKER TERM rather than by cluster id.
 #
 # Cluster ids are assigned by one clustering run and carry no meaning across

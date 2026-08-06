@@ -716,8 +716,95 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
 REPORT_VERSION = "2.0.0"
 
 
+# ---- bot replies / Coverage Gap Rate (spec 4) ----
+# Column order for both tables, declared so an empty run and a full run write
+# IDENTICAL headers. Power BI binds to columns by name; a table that appears
+# with no columns when the source file is absent breaks every visual on it,
+# which is a much worse failure than an empty table.
+FACT_BOT_TURN_COLUMNS = ["turn_id", "user_id", "ts", "has_survey_record",
+                         "gap_flag", "handoff_flag"]
+AGG_COVERAGE_GAP_COLUMNS = ["metric", "grain", "numerator", "denominator",
+                            "rate_pct", "rate_quotable", "is_floor",
+                            "precision", "recall", "recall_lo", "recall_hi",
+                            "n_labelled", "window_start", "window_end"]
+
+
+def build_fact_bot_turn(turns: pd.DataFrame, dim_user: pd.DataFrame) -> pd.DataFrame:
+    """One row per bot turn, flags only -- NO message or reply text.
+
+    The text is what makes this data useful and also what makes it dangerous:
+    a reply quotes the user's city, family situation and legal status back at
+    them. `qa.pii_scan` would pass it (there is no phone number in it), which is
+    exactly why the exclusion is structural here rather than left to the scan.
+    Nothing downstream needs the text: the KPI is two counts.
+
+    `has_survey_record` is the join flag, not a filter. 128 of the 216 users in
+    this log have no survey row, so a visual that silently inner-joins to
+    `dim_user` would report the rate over 88 users while labelling it 216.
+    """
+    known = set(dim_user["user_id"]) if len(dim_user) else set()
+    out = turns.copy()
+    out["has_survey_record"] = out["user_id"].isin(known)
+    out["ts"] = pd.to_datetime(out["ts"], utc=True, errors="coerce").dt.strftime(
+        "%Y-%m-%d %H:%M:%S")
+    return out.reindex(columns=FACT_BOT_TURN_COLUMNS).reset_index(drop=True)
+
+
+def _rate_row(metric, grain, num, den, window, probe=None) -> dict:
+    """One `agg_coverage_gap` row. `probe=None` means unvalidated."""
+    quotable = bool(probe["gate_passed"]) if probe else False
+    rate = round(100 * num / den, 1) if den else None
+    return {
+        "metric": metric, "grain": grain,
+        "numerator": int(num), "denominator": int(den),
+        # Suppression, not deletion: the counts stay so a reader can see the
+        # measurement exists and was withheld, the same posture the tone gate
+        # takes with sentiment percentages.
+        "rate_pct": rate if quotable else None,
+        "rate_quotable": quotable,
+        "is_floor": bool(probe["rate_is_floor"]) if probe else True,
+        "precision": round(probe["precision"], 3) if probe else None,
+        "recall": round(probe["recall"], 3) if probe else None,
+        "recall_lo": round(probe["recall_lo"], 3) if probe else None,
+        "recall_hi": round(probe["recall_hi"], 3) if probe else None,
+        "n_labelled": (probe["n_matched"] + probe["n_sampled"]) if probe else None,
+        "window_start": window[0], "window_end": window[1],
+    }
+
+
+def build_agg_coverage_gap(turns: pd.DataFrame,
+                           gap_probe: "dict | None" = None) -> pd.DataFrame:
+    """The KPI table: both metrics at both grains, four rows.
+
+    User grain is the headline and turn grain is the supporting line, in that
+    order, because "1 in 6 people asked something SAMI could not answer" is the
+    unmet-need statement and "6.7% of turns" is not -- the turn rate reads as a
+    93% success rate and hides that the failures concentrate in a few people.
+    Both are exported so the dashboard never has to recompute either.
+
+    `gap_probe` is `validation.probe_report`'s dict. Without it (no gold file)
+    the gap rate is exported UNQUOTABLE, not omitted: a missing validation must
+    look like a withheld number, not like a metric nobody thought to build.
+    """
+    if turns.empty:
+        return pd.DataFrame(columns=AGG_COVERAGE_GAP_COLUMNS)
+
+    ts = pd.to_datetime(turns["ts"], utc=True, errors="coerce")
+    window = (ts.min().strftime("%Y-%m-%d"), ts.max().strftime("%Y-%m-%d"))
+    n_users, n_turns = turns["user_id"].nunique(), len(turns)
+
+    rows = []
+    for metric, flag, probe in (("coverage_gap", "gap_flag", gap_probe),
+                                ("human_handoff", "handoff_flag", None)):
+        hit = turns[turns[flag]]
+        rows.append(_rate_row(metric, "users", hit["user_id"].nunique(),
+                              n_users, window, probe))
+        rows.append(_rate_row(metric, "turns", len(hit), n_turns, window, probe))
+    return pd.DataFrame(rows, columns=AGG_COVERAGE_GAP_COLUMNS)
+
+
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "7") -> pd.DataFrame:
+                   schema_version: str = "8") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

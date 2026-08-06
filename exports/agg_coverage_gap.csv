@@ -1,0 +1,5 @@
+metric,grain,numerator,denominator,rate_pct,rate_quotable,is_floor,precision,recall,recall_lo,recall_hi,n_labelled,window_start,window_end
+coverage_gap,users,55,216,25.5,True,True,0.952,0.647,0.506,0.77,284.0,2026-07-23,2026-08-04
+coverage_gap,turns,112,1021,11.0,True,True,0.952,0.647,0.506,0.77,284.0,2026-07-23,2026-08-04
+human_handoff,users,120,216,,False,True,,,,,,2026-07-23,2026-08-04
+human_handoff,turns,240,1021,,False,True,,,,,,2026-07-23,2026-08-04
