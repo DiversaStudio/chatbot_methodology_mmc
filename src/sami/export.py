@@ -383,7 +383,17 @@ def build_nlp_entity_candidates(messages: pd.DataFrame) -> pd.DataFrame:
 
     Carries `example_message_id` and never the message text itself: this table
     is published, and raw user text is not.
+
+    `messages` may come straight from `load_sami` (no `message_id` column
+    yet -- it's synthesised here via `message_key`, same as `build_fact_message`,
+    so `example_message_id` values line up with `fact_message.message_id`) or
+    already carry `message_id` (fixtures, tests).
     """
+    if "message_id" not in messages.columns:
+        messages = messages.copy()
+        messages["message_id"] = [message_key(u, s, m) for u, s, m
+                                  in zip(messages["user_id"], messages["seq"],
+                                         messages["message"])]
     return taxonomy.entity_candidates(messages)
 
 

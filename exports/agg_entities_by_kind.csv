@@ -6,14 +6,20 @@ institution,Registraduría,3
 institution,ICBF,2
 institution,SENA,2
 procedure,PPT,534
-procedure,Trabajo/Empleo,164
+procedure,Trabajo/Empleo,243
+procedure,Salud/EPS,228
+procedure,Salvoconducto,155
+procedure,Regularización,154
+procedure,Cédula,135
 procedure,Visa,128
 procedure,Pasaporte,122
+procedure,Emprendimiento,108
 procedure,Ayuda humanitaria,77
-procedure,EPS,75
+procedure,Ayuda económica,72
+procedure,Nacionalidad/Naturalización,61
 procedure,Refugio/Asilo,57
+procedure,Registro civil/Apostilla,55
 procedure,SISBÉN,40
 procedure,Vivienda/Arriendo,33
 procedure,Educación,32
-procedure,Cédula de extranjería,30
 procedure,PEP,30
