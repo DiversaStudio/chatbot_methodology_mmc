@@ -112,3 +112,24 @@ def test_local_override_wins_when_present(tmp_path, monkeypatch):
     finally:
         monkeypatch.undo()
         taxonomy.reload_entities()
+
+
+def test_registry_file_is_the_one_config_points_at():
+    from sami import config
+    assert config.entities_path().exists()
+    assert taxonomy.load_entity_registry() == taxonomy.ENTITY_REGISTRY
+
+
+def test_every_registry_pattern_is_lowercase_and_compiles():
+    """Patterns match accent-folded lowercase text; an uppercase one is dead."""
+    import re
+    for row in taxonomy.ENTITY_REGISTRY:
+        if not row["pattern"]:
+            continue
+        assert row["pattern"] == row["pattern"].lower(), row
+        re.compile(row["pattern"])
+
+
+def test_both_counted_kinds_are_populated():
+    kinds = set(taxonomy.ENTITY_KIND.values())
+    assert kinds == set(taxonomy.COUNTED_KINDS)
