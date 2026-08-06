@@ -67,7 +67,7 @@ def test_resolve_names_claims_each_registry_entry_once():
 
 def test_extract_entities():
     ents = taxonomy.extract_entities("Necesito ayuda con mi PPT y la afiliación en salud EPS")
-    assert "PPT" in ents and "EPS" in ents
+    assert "PPT" in ents and "Salud/EPS" in ents
 
 
 def test_entity_kind_covers_all_patterns():
