@@ -278,8 +278,12 @@ synthetic `-1` row), which are richer.*
 
 Source: `subclusters.subcluster_all`, a second clustering pass run once per real cluster on
 that cluster's own user embeddings, plus one synthetic row for `subcluster_id = -10`, the
-"No conversation text" bucket — the same 194 users `dim_cluster[-1]` already accounts for,
-carried one level down so every table keeps the drill-down total.
+"No conversation text" bucket — a sentinel that keeps every table's drill-down total intact,
+the same way `dim_cluster[-1]` does one level up. **Its `n_users` / `n_messages` are `NA`, not
+0** — `sub_lab` never actually contains `-10` in production (no-text users have no embedding,
+so they never enter the clustering pass at all); that bucket's real ~194-user membership is
+established downstream, in `dim_user` / `fact_message`'s fallback onto `-10`, not here. Reading
+this row's counts as a confident zero would disagree with `dim_user` about the same people.
 
 **A parent is split only when the data supports it.** `subclusters.split_parent` tries every
 k in `SUB_K_RANGE` (2–4, capped because `theme.subcluster_colors` cannot keep more than four
@@ -336,7 +340,7 @@ to `taxonomy.SUBCLUSTER_NAMES` to give it a curated name — same mechanism, sam
 | `cluster_id` | the parent cluster — joins to `dim_cluster[cluster_id]` |
 | `subcluster_name` | human name, curated or provisional (see above). **Duplicated onto `fact_message` and `dim_user` deliberately** — Power BI's "Sort by column" requires the sorted column and its sort key in the same table, so a name on a fact table cannot be sorted by a `display_order` that lives here only. Without the duplication, subcategories would alphabetise in every legend and slicer instead of following size rank. Do not "normalise" the name out of the fact tables |
 | `top_terms` | comma-joined, top 6, **sibling-exclusive** terms — see `nlp_subcluster_terms` below for what that means and why. Empty for the `-10` bucket |
-| `n_users`, `n_messages` | subcategory size. For an unsplit parent's row this equals the parent's own `n_users` / `n_messages` |
+| `n_users`, `n_messages` | subcategory size. For an unsplit parent's row this equals the parent's own `n_users` / `n_messages`. **`NA` for the `-10` row** — see above; do not read it as 0 |
 | `display_order` | parent's own `display_order` × 10, plus the child's size-rank position (0 = largest child within that parent) — so children sort directly beneath their own parent in a flat legend. The `-10` row sorts last, mirroring `dim_cluster[-1]` |
 | `color_hex` | a tint of the **parent's** colour (`theme.subcluster_colors`), not a fresh hue — the largest child takes the parent's own colour unchanged, so the family reads as one story in a drill-down. Keyed to size rank, never to `subcluster_id`, for the same reason `dim_cluster[color_hex]` is keyed to size rank and not `cluster_id` |
 | `is_split` | `False` for the one row an unsplit parent gets, and for the `-10` bucket; `True` for every row belonging to a parent that did split |
@@ -632,3 +636,16 @@ is the fixed 30, 38 is just what this run's smallest child happened to have.
 one** (see the `SUBCLUSTER_MIN_USERS` warning under `dim_subcluster`), and
 `run_pipeline.py` exits non-zero on it exactly as it does for
 `cluster_coverage_pct`.
+
+**⚠️ This gate's coverage claim stops at split children.** It says nothing
+about the single child row an unsplit parent still gets (see the "unsplit
+parent" warning under `dim_subcluster`) — that row can be smaller than 30,
+and `subcluster_min_users` will not catch it, because it inherits whatever
+floor the *parent* pass applies, which today is none (`clusters.choose_k`
+selects on stability only, with no minimum on `n_users`). This is a
+deliberate scope limit, not an oversight: an unsplit parent's child row is
+1:1 with its own already-exported `dim_cluster` row, sliceable by the same
+filters via `cluster_id`, so it carries no disclosure risk this gate doesn't
+already cover one level up. A `True` `subcluster_min_users` means every
+*split* subcategory clears the floor — not that every row in `dim_subcluster`
+does.

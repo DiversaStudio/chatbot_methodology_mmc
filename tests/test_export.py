@@ -1162,17 +1162,20 @@ def _sub_fixture():
     back to a fixture where id-order and size-order coincide would silently
     disarm that check.
 
-    The `-10` no-conversation-text bucket also carries real users ("h", "i")
-    rather than being trivially empty, so its counts test actual lookups
-    rather than the `.get(..., 0)` default.
+    The `-10` no-conversation-text bucket is deliberately NOT populated in
+    `sub_lab` here: in production `sub_lab` never contains it. `lab` (and hence
+    `subclusters.subcluster_all`'s domain) only covers users who have an
+    embedding, and no-text users never enter the embedding matrix at all — that
+    bucket's real membership only materialises downstream, in
+    `build_dim_user`/`build_fact_message`'s fallback onto `-10`. A fixture that
+    placed users there would assert a state the pipeline cannot produce.
     """
     sub_lab = pd.Series(
-        {"a": 0, "b": 1, "c": 1, "d": 1, "e": 1, "f": 10, "g": 10,
-         "h": subclusters.NO_SUBCLUSTER_ID, "i": subclusters.NO_SUBCLUSTER_ID},
+        {"a": 0, "b": 1, "c": 1, "d": 1, "e": 1, "f": 10, "g": 10},
         dtype="int64")
     messages = pd.DataFrame({
         "user_id": ["a", "a", "b", "c", "d", "e", "e",
-                    "f", "g", "g", "h", "i", "i"],
+                    "f", "g", "g"],
     })
     resolved = {
         0: {"name": "Birth registration", "marker": "registro", "provisional": False},
@@ -1219,10 +1222,11 @@ def test_dim_subcluster_counts_users_and_messages():
     assert d.loc[0, "n_messages"] == 2                               # a a
     assert d.loc[1, "n_messages"] == 5                               # b c d e e
     assert d.loc[10, "n_messages"] == 3                              # f g g
-    # the no-text bucket is populated with real users, not the .get(...,0)
-    # default -- a sign error or wrong-key lookup here would still be caught.
-    assert d.loc[subclusters.NO_SUBCLUSTER_ID, "n_users"] == 2       # h, i
-    assert d.loc[subclusters.NO_SUBCLUSTER_ID, "n_messages"] == 3    # h i i
+    # the no-text bucket's counts are NA, not 0: sub_lab never actually
+    # contains -10 in production (see _sub_fixture's docstring), so reporting
+    # a confident 0 here would misstate the ~194 users dim_user carries on it.
+    assert pd.isna(d.loc[subclusters.NO_SUBCLUSTER_ID, "n_users"])
+    assert pd.isna(d.loc[subclusters.NO_SUBCLUSTER_ID, "n_messages"])
 
 
 def test_dim_subcluster_names_are_unique_within_a_parent():

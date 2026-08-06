@@ -530,14 +530,21 @@ def build_dim_subcluster(sub_lab, messages, resolved, terms, dim_cluster,
             })
 
     # The no-text bucket, appended last so it sorts to the end of every legend
-    # and slicer, mirroring dim_cluster's -1 row.
+    # and slicer, mirroring dim_cluster's -1 row. Its counts are pd.NA, not 0,
+    # for the same reason build_dim_cluster's -1 row uses pd.NA (see there):
+    # `sub_lab` never actually contains NO_SUBCLUSTER_ID in production -- `lab`
+    # (and hence `subcluster_all`'s domain) only covers users who HAVE an
+    # embedding, and no-text users never enter the embedding matrix at all. The
+    # bucket's real membership is established downstream, by build_dim_user /
+    # build_fact_message's fillna onto NO_SUBCLUSTER_ID. Reporting 0 here would
+    # be a confident lie about those ~194 users disagreeing with dim_user.
     rows.append({
         "subcluster_id": subclusters.NO_SUBCLUSTER_ID,
         "cluster_id": NO_CLUSTER_ID,
         "subcluster_name": subclusters.NO_SUBCLUSTER_NAME,
         "top_terms": "",
-        "n_users": int(n_users.get(subclusters.NO_SUBCLUSTER_ID, 0)),
-        "n_messages": int(n_messages.get(subclusters.NO_SUBCLUSTER_ID, 0)),
+        "n_users": pd.NA,
+        "n_messages": pd.NA,
         "display_order": (max(parent_order.values()) + 1) * 10,
         "color_hex": theme.NO_TEXT_COLOR,
         "is_split": False,
