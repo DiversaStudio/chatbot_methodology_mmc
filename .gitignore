@@ -4,6 +4,10 @@
 .superpowers/
 .reports/
 
+# Local entity-dictionary override. The tracked default is src/sami/entities.csv;
+# anything dropped here wins locally and is deliberately not version controlled.
+config/
+
 # Author's local working folder: superseded by datasets/, never referenced by
 # code or documentation, never version controlled.
 data_&_docs/

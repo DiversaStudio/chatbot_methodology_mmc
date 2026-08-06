@@ -9,10 +9,15 @@ docs/superpowers/specs/2026-08-03-cluster-categorization-migration-design.md.
 from __future__ import annotations
 from collections import Counter
 from typing import Iterable
+import csv
+import io
 import re
 import warnings
 import unicodedata
+from pathlib import Path
 import pandas as pd
+
+from . import config
 
 
 def _fold(s: str) -> str:
@@ -22,27 +27,125 @@ def _fold(s: str) -> str:
 
 
 # ---- institutions / procedures dictionary ----
-ENTITY_PATTERNS: dict[str, list[str]] = {
-    "PPT": [r"\bppt\b", r"permiso por proteccion temporal"],
-    "PEP": [r"\bpep\b", r"permiso especial de permanencia"],
-    "Visa": [r"\bvisa\b", r"\bvisas\b"],
-    "Cédula de extranjería": [r"cedula de extranjeria"],
-    "Pasaporte": [r"\bpasaporte\b"],
-    "EPS": [r"\beps\b", r"afiliacion en salud", r"seguro de salud"],
-    "SISBÉN": [r"\bsisben\b"],
-    "Migración Colombia": [r"migracion colombia", r"\bmigracion\b"],
-    "ACNUR": [r"\bacnur\b", r"\bunhcr\b"],
-    "Cancillería": [r"cancilleria"],
-    "Registraduría": [r"registraduria"],
-    "SENA": [r"\bsena\b"],
-    "ICBF": [r"\bicbf\b"],
-    "Refugio/Asilo": [r"\brefugio\b", r"\basilo\b", r"solicitante de refugio"],
-    "Trabajo/Empleo": [r"\bempleo\b", r"\btrabajo\b", r"permiso de trabajo"],
-    "Educación": [r"\beducacion\b", r"\bcolegio\b", r"\bestudios?\b", r"convalidacion"],
-    "Vivienda/Arriendo": [r"\barriendo\b", r"\bvivienda\b", r"subsidio de arriendo"],
-    "Ayuda humanitaria": [r"ayuda humanitaria", r"asistencia humanitaria"],
-}
-_COMPILED = {k: [re.compile(p) for p in pats] for k, pats in ENTITY_PATTERNS.items()}
+# The dictionary lives in a CSV registry (config.entities_path()), NOT here: the
+# shipped src/sami/entities.csv, or a gitignored config/entities.csv when a local
+# override is in place. It is edited by people
+# who do not write Python, and a change to it must be a reviewable diff rather
+# than a code change. `ENTITY_PATTERNS` and `ENTITY_KIND` are DERIVED from that
+# file at import so every existing consumer keeps working unchanged.
+ENTITY_KINDS = ("institution", "procedure", "ignore")
+COUNTED_KINDS = ("institution", "procedure")
+_ENTITY_COLUMNS = ("entity", "kind", "pattern", "notes")
+
+_UTF8_FIX = ("Re-save it as 'CSV UTF-8 (comma delimited)'. Excel on Windows "
+             "writes ANSI by default, which mangles accented entity names and "
+             "silently stops them matching.")
+
+
+class EntityRegistryError(ValueError):
+    """The entity registry is unusable. Always names every problem found."""
+
+
+def read_entity_rows(path) -> list[dict]:
+    """Parse the registry CSV. Raises EntityRegistryError on unreadable input."""
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except FileNotFoundError:
+        raise EntityRegistryError(
+            f"entity registry not found: {path}\n{_UTF8_FIX}") from None
+    except UnicodeDecodeError:
+        raise EntityRegistryError(
+            f"{path} is not UTF-8. {_UTF8_FIX}") from None
+    reader = csv.DictReader(io.StringIO(text))
+    missing = [c for c in _ENTITY_COLUMNS if c not in (reader.fieldnames or [])]
+    if missing:
+        raise EntityRegistryError(
+            f"{path} is missing column(s): {', '.join(missing)}. "
+            f"Expected header: {','.join(_ENTITY_COLUMNS)}")
+    return [{c: (row.get(c) or "").strip() for c in _ENTITY_COLUMNS}
+            for row in reader if any((row.get(c) or "").strip()
+                                     for c in _ENTITY_COLUMNS)]
+
+
+def validate_entity_rows(rows: list[dict]) -> None:
+    """Raise EntityRegistryError naming EVERY problem, not just the first.
+
+    A person fixing this file should get one list, not a dozen re-runs.
+    """
+    problems: list[str] = []
+    kind_of: dict[str, str] = {}
+    seen: set[tuple[str, str]] = set()
+    for i, row in enumerate(rows, start=2):  # +2: header is line 1
+        ent, kind, pat = row["entity"], row["kind"], row["pattern"]
+        if not ent:
+            problems.append(f"line {i}: empty entity name")
+        if kind not in ENTITY_KINDS:
+            problems.append(
+                f"line {i}: kind {kind!r} is not one of {', '.join(ENTITY_KINDS)}")
+        if kind in COUNTED_KINDS and not pat:
+            problems.append(f"line {i}: a {kind} row needs a pattern")
+        if ent and kind in ENTITY_KINDS:
+            if ent in kind_of and kind_of[ent] != kind:
+                problems.append(
+                    f"line {i}: entity {ent!r} carries two kinds "
+                    f"({kind_of[ent]!r} and {kind!r})")
+            kind_of.setdefault(ent, kind)
+        if pat:
+            if (ent, pat) in seen:
+                problems.append(f"line {i}: duplicate (entity, pattern) for {ent!r}")
+            seen.add((ent, pat))
+            try:
+                re.compile(pat)
+            except re.error as exc:
+                problems.append(f"line {i}: {pat!r} is not a valid regex ({exc})")
+            if pat != pat.lower():
+                problems.append(
+                    f"line {i}: pattern {pat!r} has uppercase. Patterns match "
+                    "accent-folded lowercase text and must be lowercase.")
+    if problems:
+        raise EntityRegistryError(
+            "the entity registry has %d problem(s):\n  - %s"
+            % (len(problems), "\n  - ".join(problems)))
+
+
+def load_entity_registry(path=None) -> list[dict]:
+    rows = read_entity_rows(path or config.entities_path())
+    validate_entity_rows(rows)
+    return rows
+
+
+def reload_entities(path=None) -> None:
+    """Rebuild the derived module globals from the registry file.
+
+    Called once at import. Tests call it with a fixture path and MUST call it
+    again with no argument to restore the real registry.
+    """
+    global ENTITY_REGISTRY, ENTITY_PATTERNS, ENTITY_KIND, IGNORED_TERMS, _COMPILED
+    rows = load_entity_registry(path)
+    ENTITY_REGISTRY = rows
+    ENTITY_PATTERNS = {}
+    ENTITY_KIND = {}
+    IGNORED_TERMS = set()
+    for row in rows:
+        if row["kind"] == "ignore":
+            if row["entity"]:
+                IGNORED_TERMS.add(_fold(row["entity"]))
+            if row["pattern"]:
+                IGNORED_TERMS.add(_fold(row["pattern"]))
+            continue
+        ENTITY_PATTERNS.setdefault(row["entity"], []).append(row["pattern"])
+        ENTITY_KIND[row["entity"]] = row["kind"]
+    _COMPILED = {k: [re.compile(p) for p in pats]
+                 for k, pats in ENTITY_PATTERNS.items()}
+
+
+ENTITY_REGISTRY: list[dict] = []
+ENTITY_PATTERNS: dict[str, list[str]] = {}
+ENTITY_KIND: dict[str, str] = {}
+IGNORED_TERMS: set[str] = set()
+_COMPILED: dict[str, list] = {}
+reload_entities()
 
 
 def extract_entities(text: str) -> set[str]:
@@ -61,19 +164,6 @@ def entity_counts(texts: Iterable[str]) -> pd.Series:
 
 
 # ---- institution vs procedure split (NB2 §1 two-panel) ----
-ENTITY_KIND: dict[str, str] = {
-    "PPT": "procedure", "PEP": "procedure", "Visa": "procedure",
-    "Cédula de extranjería": "procedure", "Pasaporte": "procedure",
-    "EPS": "procedure", "SISBÉN": "procedure",
-    "Refugio/Asilo": "procedure", "Trabajo/Empleo": "procedure",
-    "Vivienda/Arriendo": "procedure", "Ayuda humanitaria": "procedure",
-    "Educación": "procedure",
-    "Migración Colombia": "institution", "ACNUR": "institution",
-    "Cancillería": "institution", "Registraduría": "institution",
-    "SENA": "institution", "ICBF": "institution",
-}
-
-
 def entity_counts_by_kind(texts) -> dict[str, pd.Series]:
     """Split entity_counts into an institution Series and a procedure Series."""
     counts = entity_counts(texts)
