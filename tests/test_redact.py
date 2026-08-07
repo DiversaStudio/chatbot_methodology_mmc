@@ -60,17 +60,28 @@ def test_scrub_replaces_a_person_entity_when_ner_finds_one():
         def __call__(self, text):
             return _Doc(self._ents)
 
-    # Xiomara is deliberately NOT in the Layer-2 gazetteer (checked at write
+    # Herminia is deliberately NOT in the Layer-2 gazetteer (checked at write
     # time) so this test still isolates Layer 1: with a gazetteer name here
-    # (e.g. "Andrea") the message would now be dropped by Layer 2 before NER
-    # ever runs, which is correct behaviour but would defeat the point of
-    # this specific test.
-    text = "hable con Xiomara en la oficina"
-    start = text.index("Xiomara")
-    ents = [_Ent("Xiomara", "PER", start, start + len("Xiomara"))]
+    # (e.g. "Andrea", or "Xiomara" as of fix round 3 — it was added to the
+    # gazetteer precisely because a round-1 test had picked it for being
+    # absent) the message would now be dropped by Layer 2 before NER ever
+    # runs, which is correct behaviour but would defeat the point of this
+    # specific test. Whatever name is used here will need to keep being
+    # checked against the gazetteer as it grows.
+    text = "hable con Herminia en la oficina"
+    start = text.index("Herminia")
+    ents = [_Ent("Herminia", "PER", start, start + len("Herminia"))]
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
     assert out == f"hable con {redact.NAME_PLACEHOLDER} en la oficina"
     assert changed is True
+
+
+def test_gazetteer_placeholder_name_stays_out_of_the_gazetteer():
+    # Guards the previous test's premise directly: if "Herminia" ever gets
+    # added to _FIRST_NAMES, that NER-isolation test would silently start
+    # exercising the wrong code path (Layer 2 drop instead of Layer 1
+    # redaction) without failing loudly. This makes the assumption explicit.
+    assert not redact.contains_known_first_name("Herminia")
 
 
 def test_scrub_keeps_locations_and_organisations():
@@ -194,3 +205,31 @@ def test_scrub_passes_clean_text_with_no_known_name_unchanged():
     out, changed = redact.scrub(text, nlp=None)
     assert out == text
     assert changed is False
+
+
+# --- Fix round 3 regressions --------------------------------------------
+
+def test_scrub_drops_a_family_relation_frame_with_a_lowercase_name():
+    # The reviewer's PoC: no self-ID frame, no third-party frame, and (before
+    # this fix) the name wasn't in the gazetteer either.
+    out, changed = redact.scrub("mi hija xiomara esta enferma", nlp=None)
+    assert out is None
+    assert changed is False
+
+
+def test_scrub_does_not_drop_a_family_relation_frame_without_a_name():
+    # "mi hija tiene 5 anos" must NOT drop: "tiene" is a verb, not a name.
+    text = "mi hija tiene 5 anos"
+    out, changed = redact.scrub(text, nlp=None)
+    assert out == text
+    assert changed is False
+
+
+def test_scrub_does_not_drop_common_verbs_after_family_frames():
+    for verb in ["esta", "necesita", "es", "no", "se", "ya", "todavia",
+                 "tambien", "nacio", "cumple", "va", "fue", "quiere",
+                 "sufre", "padece"]:
+        text = f"mi hijo {verb} bien"
+        out, changed = redact.scrub(text, nlp=None)
+        assert out == text, f"unexpectedly dropped on verb {verb!r}"
+        assert changed is False
