@@ -875,7 +875,7 @@ def build_agg_coverage_gap(turns: pd.DataFrame,
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "8") -> pd.DataFrame:
+                   schema_version: str = "9") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
