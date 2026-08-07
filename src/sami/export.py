@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters
+from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters, redact
 
 # The categorisation bucket for users with no message text. Clustering needs a
 # document, so the ~194 users who registered and never wrote anything cannot be
@@ -219,6 +219,77 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
         subclusters.NO_SUBCLUSTER_NAME)
     _translate(f, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     return f
+
+
+SAMPLE_PER_BUCKET = 6
+SAMPLE_LEN_MIN, SAMPLE_LEN_MAX = 60, 190
+FACT_MESSAGE_SAMPLE_COLUMNS = [
+    "message_id", "user_id", "cluster_id", "subcluster_id", "subcluster_name",
+    "sentiment_label", "city_canon", "ts", "char_len", "text_redacted",
+    "redaction_applied",
+]
+
+
+def build_fact_message_sample(messages: pd.DataFrame, fact_message: pd.DataFrame,
+                              *, nlp=None,
+                              per_bucket: int = SAMPLE_PER_BUCKET) -> pd.DataFrame:
+    """Up to `per_bucket` redacted verbatims per (subcluster x tone) bucket.
+
+    Labels come from `fact_message`, not from a second pass over `messages`.
+    Re-deriving cluster/subcluster/tone here would give the two tables their own
+    copies of the same join, and they would drift the first time one changed.
+
+    Selection is deterministic (sorted by message_id, no RNG) so a re-run on the
+    same input reproduces the file byte-for-byte and the manifest sha1 holds.
+
+    Redaction can DROP a candidate (see `redact.scrub`). A drop is refilled from
+    the next candidate in the bucket, so drops cost coverage of the corpus, not
+    rows in the output. A bucket with too few survivors is simply short, and an
+    empty one contributes nothing — the sampler never pads.
+    """
+    src = messages.copy()
+    src["message_id"] = [message_key(u, s, m) for u, s, m
+                         in zip(src["user_id"], src["seq"], src["message"])]
+    df = fact_message.merge(src[["message_id", "message"]], on="message_id",
+                            how="inner")
+
+    df = df[(df["subcluster_id"] >= 0) & (df["cluster_id"] >= 0)]
+    df["char_len"] = df["message"].astype(str).str.len()
+    df = df[df["char_len"].between(SAMPLE_LEN_MIN, SAMPLE_LEN_MAX)]
+    df = df.sort_values("message_id", kind="mergesort")
+
+    # Built explicitly, not via `bucket.to_dict("records")` -- the record dicts
+    # carry extra columns from the merge (message, seq, n_msgs_user) that must
+    # never reach the export, and picking each declared field by name is what
+    # guarantees every output column gets a real value rather than silently
+    # going NaN if a source column were ever renamed or dropped upstream.
+    rows = []
+    for (_sub, _tone), bucket in df.groupby(["subcluster_id", "sentiment_label"],
+                                            sort=True):
+        kept = 0
+        for rec in bucket.to_dict("records"):
+            if kept >= per_bucket:
+                break
+            clean, changed = redact.scrub(rec["message"], nlp=nlp)
+            if clean is None:
+                continue          # dropped; refill from the next candidate
+            rows.append({
+                "message_id": rec["message_id"],
+                "user_id": rec["user_id"],
+                "cluster_id": rec["cluster_id"],
+                "subcluster_id": rec["subcluster_id"],
+                "subcluster_name": rec["subcluster_name"],
+                "sentiment_label": rec["sentiment_label"],
+                "city_canon": rec["city_canon"],
+                "ts": rec["ts"],
+                "char_len": rec["char_len"],
+                "text_redacted": clean,
+                "redaction_applied": changed,
+            })
+            kept += 1
+
+    out = pd.DataFrame(rows, columns=FACT_MESSAGE_SAMPLE_COLUMNS)
+    return out.reset_index(drop=True)
 
 
 # Ratings for which the v2 "¿Por qué la información entregada no fue útil?"

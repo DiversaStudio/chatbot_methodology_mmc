@@ -1398,3 +1398,96 @@ def test_dim_user_maps_known_subclusters(SD):
     row = d[d["user_id"] == uid].iloc[0]
     assert row["subcluster_id"] == 31
     assert row["subcluster_name"] == "Biometrics appointments"
+
+
+def _sample_msgs(n_per=10):
+    """Messages long enough to clear the 60-190 band, 3 subclusters x 3 tones."""
+    rows = []
+    for sub in (0, 1, 10):
+        for tone in ("negative", "neutral", "positive"):
+            for i in range(n_per):
+                rows.append({"user_id": f"u{sub}{tone}{i}", "seq": 1,
+                             "message": f"necesito ayuda con el tramite numero {i} "
+                                        f"para {tone} en la oficina de la ciudad hoy",
+                             "sub": sub, "tone": tone})
+    return pd.DataFrame(rows)
+
+
+def _paired_frames():
+    src = _sample_msgs()
+    fm = pd.DataFrame({
+        "message_id": [export.message_key(u, s, m) for u, s, m
+                       in zip(src["user_id"], src["seq"], src["message"])],
+        "user_id": src["user_id"], "ts": pd.Timestamp("2026-01-01"),
+        "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 1,
+        "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
+        "subcluster_id": src["sub"], "subcluster_name": "n",
+    })
+    return src, fm
+
+
+def test_sample_caps_each_bucket():
+    src, fm = _paired_frames()
+    out = export.build_fact_message_sample(src, fm)
+    counts = out.groupby(["subcluster_id", "sentiment_label"]).size()
+    assert counts.max() <= export.SAMPLE_PER_BUCKET
+
+
+def test_sample_is_deterministic():
+    src, fm = _paired_frames()
+    a = export.build_fact_message_sample(src, fm)
+    b = export.build_fact_message_sample(src, fm)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_sample_excludes_the_no_text_sentinels():
+    src, fm = _paired_frames()
+    fm.loc[fm.index[:20], "subcluster_id"] = subclusters.NO_SUBCLUSTER_ID
+    fm.loc[fm.index[:20], "cluster_id"] = export.NO_CLUSTER_ID
+    out = export.build_fact_message_sample(src, fm)
+    assert (out["subcluster_id"] >= 0).all()
+    assert (out["cluster_id"] >= 0).all()
+
+
+def test_sample_respects_the_length_band():
+    src, fm = _paired_frames()
+    src.loc[0, "message"] = "corto"
+    src.loc[1, "message"] = "x" * 400
+    fm["message_id"] = [export.message_key(u, s, m) for u, s, m
+                        in zip(src["user_id"], src["seq"], src["message"])]
+    out = export.build_fact_message_sample(src, fm)
+    assert out["char_len"].between(export.SAMPLE_LEN_MIN, export.SAMPLE_LEN_MAX).all()
+
+
+def test_sample_drops_a_name_bearing_message_rather_than_redacting_it():
+    src, fm = _paired_frames()
+    poisoned = ("me llamo maria fernanda y necesito ayuda urgente con el "
+                "tramite de mi documento en la oficina")
+    src.loc[0, "message"] = poisoned
+    fm.loc[0, "message_id"] = export.message_key(
+        src.loc[0, "user_id"], src.loc[0, "seq"], poisoned)
+    out = export.build_fact_message_sample(src, fm)
+    assert not out["text_redacted"].str.contains("me llamo").any()
+    assert "maria" not in " ".join(out["text_redacted"]).lower()
+
+
+def test_sample_allows_an_empty_bucket_without_padding():
+    src, fm = _paired_frames()
+    # Remove every positive message; that bucket must simply vanish.
+    keep = fm["sentiment_label"] != "positive"
+    out = export.build_fact_message_sample(src[keep.values], fm[keep])
+    assert "positive" not in set(out["sentiment_label"])
+    assert len(out) > 0
+
+
+def test_sample_has_the_declared_columns():
+    src, fm = _paired_frames()
+    out = export.build_fact_message_sample(src, fm)
+    assert list(out.columns) == export.FACT_MESSAGE_SAMPLE_COLUMNS
+
+
+def test_sample_passes_the_pii_gate():
+    from sami import qa
+    src, fm = _paired_frames()
+    out = export.build_fact_message_sample(src, fm)
+    assert qa.pii_scan(out) == []
