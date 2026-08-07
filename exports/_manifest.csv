@@ -16,7 +16,8 @@ dim_user,1392,"user_id,instrument_version,gender_clean,age_num,age_flag,city_can
 fact_bot_turn,1021,"turn_id,user_id,ts,has_survey_record,gap_flag,handoff_flag",fd1763765dda0946ea5bfe1f5b2956024d341cd8
 fact_meal,115,"user_id,ts,usefulness_rating,rating_num,would_recommend,recommendation_text,discovery_channel,no_usefulness_reason,reason_is_valid",3d1fcc33787fc03f428897016bca167eca4c5fe2
 fact_message,4663,"message_id,user_id,ts,city_canon,seq,n_msgs_user,sentiment_label,cluster_id,subcluster_id,subcluster_name",7ce6ecbe0ed977f8bc0a4702d761461dffe98ea6
-meta_run,37,"key,value",bd487bed4617e449a5c4f8afa7ac6208fdf859e7
+fact_message_sample,138,"message_id,user_id,cluster_id,subcluster_id,subcluster_name,sentiment_label,city_canon,ts,char_len,text_redacted,redaction_applied",cc8130ebfe41ae76d2819de3cceeebc8e6f3a467
+meta_run,37,"key,value",4ff480a1096e12fc70c4b9ad805745350ce4ee85
 nlp_cluster_terms,240,"cluster_id,rank,term,weight",fbb26a042e096a9073eca83f0c4329327a31b7cc
 nlp_emergent_themes,6,"theme,slug,n_messages,n_users",2fce878cd764994b88d153e377f5e653c2a64631
 nlp_entity_candidates,40,"term,n_gram,n_msgs,n_users,example_message_id",10f81cdb36af0c1184468f0a7573a0b1e6c07a12
