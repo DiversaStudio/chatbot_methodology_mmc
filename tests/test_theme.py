@@ -140,3 +140,16 @@ def test_tone_text_colour_contrasts_with_its_fill():
         fill_lum = sum(theme._hex_to_rgb(swatch["fill"])) / 3
         text_lum = sum(theme._hex_to_rgb(swatch["text"])) / 3
         assert abs(fill_lum - text_lum) > 100, label
+
+
+def test_tone_fills_match_the_literal_hexes_in_the_power_bi_guide():
+    # test_tone_fills_are_drawn_from_the_brand_palette only checks membership,
+    # so re-pointing an index (e.g. EARTH[4] -> EARTH[3]) would still pass it
+    # while desyncing from the hardcoded hexes in the Power BI guide, with
+    # every other test here green. Pin the literal values that guide depends
+    # on, so an index change fails loudly here instead of silently there.
+    assert theme.TONE == {
+        "negative": {"fill": "#671e42", "text": "#ffffff"},
+        "neutral":  {"fill": "#eef6f5", "text": "#1a1a1a"},
+        "positive": {"fill": "#009ba4", "text": "#ffffff"},
+    }
