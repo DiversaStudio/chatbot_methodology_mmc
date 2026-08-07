@@ -120,3 +120,47 @@ def sankey_two_level(links, *, color_map, ax=None,
     if right_label:
         ax.text(1.0, 1.05, right_label, ha="right", fontsize=10, weight="bold")
     return ax
+
+
+EXAMPLE_COLUMNS = ["sentiment_label", "subcluster_name", "city_canon",
+                   "text_redacted"]
+
+
+def filter_examples(sample, *, tone=None, cluster=None, subcluster=None, n=15):
+    """Slice the example sample. Every filter is optional and they compose."""
+    df = sample
+    if tone is not None:
+        df = df[df["sentiment_label"] == tone]
+    if cluster is not None:
+        df = df[df["cluster_id"] == cluster]
+    if subcluster is not None:
+        df = df[df["subcluster_id"] == subcluster]
+    return df.head(n).reset_index(drop=True)
+
+
+def style_examples(df):
+    """Tone-coloured table. ONLY the tone column is filled -- the message column
+    carries the prose and stays plain so it remains readable.
+
+    Requires `sentiment_label`: that column is the entire point of this view,
+    so a frame missing it fails loudly and by name rather than surfacing a
+    bare pandas KeyError once `.style.map(subset=...)` hits it.
+    """
+    from . import theme
+
+    if "sentiment_label" not in df.columns:
+        raise KeyError(
+            "style_examples: 'sentiment_label' column is required to colour "
+            "tone and is missing from the given frame")
+
+    def _tone_css(val):
+        sw = theme.TONE.get(val)
+        return (f"background-color: {sw['fill']}; color: {sw['text']}"
+                if sw else "")
+
+    cols = [c for c in EXAMPLE_COLUMNS if c in df.columns]
+    styler = df[cols].style.map(_tone_css, subset=["sentiment_label"])
+    if "text_redacted" in cols:
+        styler = styler.set_properties(subset=["text_redacted"],
+                                       **{"text-align": "left"})
+    return styler.hide(axis="index")
