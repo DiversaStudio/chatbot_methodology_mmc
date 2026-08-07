@@ -60,9 +60,14 @@ def test_scrub_replaces_a_person_entity_when_ner_finds_one():
         def __call__(self, text):
             return _Doc(self._ents)
 
-    text = "hable con Andrea en la oficina"
-    start = text.index("Andrea")
-    ents = [_Ent("Andrea", "PER", start, start + len("Andrea"))]
+    # Xiomara is deliberately NOT in the Layer-2 gazetteer (checked at write
+    # time) so this test still isolates Layer 1: with a gazetteer name here
+    # (e.g. "Andrea") the message would now be dropped by Layer 2 before NER
+    # ever runs, which is correct behaviour but would defeat the point of
+    # this specific test.
+    text = "hable con Xiomara en la oficina"
+    start = text.index("Xiomara")
+    ents = [_Ent("Xiomara", "PER", start, start + len("Xiomara"))]
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
     assert out == f"hable con {redact.NAME_PLACEHOLDER} en la oficina"
     assert changed is True
@@ -152,4 +157,40 @@ def test_scrub_drops_on_overlapping_entities():
     ]
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
     assert out is None
+    assert changed is False
+
+
+# --- Fix round 2 regressions: the first-name gazetteer ----------------------
+
+def test_contains_known_first_name_matches_whole_word_case_insensitive():
+    assert redact.contains_known_first_name("hable con andrea ayer")
+    assert redact.contains_known_first_name("hable con Andrea ayer")
+    assert redact.contains_known_first_name("hable con ANDREA ayer")
+
+
+def test_contains_known_first_name_does_not_match_substrings():
+    # "ana" must not fire inside words that merely contain it.
+    for text in ["nos vemos mañana", "toda la semana estuve enferma",
+                 "mire por la ventana", "llamo manana temprano"]:
+        assert not redact.contains_known_first_name(text), text
+
+
+def test_scrub_drops_a_lowercase_third_party_name_with_no_frame():
+    # No self-identification frame, no third-party frame, no capital letter —
+    # the gazetteer is the only layer that can catch this.
+    out, changed = redact.scrub("necesito hablar con andrea sobre el tramite", nlp=None)
+    assert out is None
+    assert changed is False
+
+
+def test_scrub_drops_regardless_of_name_capitalisation():
+    for text in ["hable con andrea", "hable con Andrea", "hable con ANDREA"]:
+        out, _ = redact.scrub(text, nlp=None)
+        assert out is None, text
+
+
+def test_scrub_passes_clean_text_with_no_known_name_unchanged():
+    text = "necesito ayuda con la apostilla del registro de nacimiento"
+    out, changed = redact.scrub(text, nlp=None)
+    assert out == text
     assert changed is False

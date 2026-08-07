@@ -68,6 +68,88 @@ _THIRD_PARTY_FRAMES = [
 ]
 
 
+# Layer 2's third rung. Frames (above) close the phrasings we anticipated —
+# "me llamo X", "hable con X" — but cannot close the ones we did not think of.
+# spaCy tags PER largely off capitalisation, and this corpus is lowercase
+# phone-typed Spanish, so a bare first name with no frame around it and no
+# capital letter on it is invisible to both Layer 1 and the frame regexes.
+# This gazetteer keys on the name itself rather than on the words around it,
+# so it is the only layer that still works when both capitalisation and the
+# surrounding frame are absent.
+#
+# Known cost: a message like "mi hija sofia esta enferma" gets dropped even
+# though the name is incidental to the message's content. That is accepted —
+# drops cost coverage of the corpus, not rows in the output, because the
+# sampler refills each bucket from the next candidate.
+#
+# Traditional Spanish/Latin-American names plus the Venezuelan-specific
+# coinages common in this population (yorbelis, yusmary, keiber, ...) that
+# generic Spanish name lists omit.
+_FIRST_NAMES = frozenset({
+    # Traditional female
+    "maria", "ana", "rosa", "carmen", "isabel", "laura", "sofia", "valentina",
+    "camila", "andrea", "paola", "carolina", "daniela", "gabriela", "patricia",
+    "monica", "claudia", "diana", "alejandra", "natalia", "viviana", "sandra",
+    "martha", "marcela", "adriana", "liliana", "yolanda", "gloria", "elena",
+    "teresa", "cristina", "lucia", "victoria", "fernanda", "jimena", "ximena",
+    "catalina", "juliana", "mariana", "valeria", "luisa", "beatriz",
+    "esperanza", "consuelo", "dolores", "pilar", "rocio", "nubia", "amparo",
+    "alicia", "ines", "mercedes", "angela", "marisol", "milagros", "milena",
+    "noemi", "ruth", "raquel", "sara", "rebeca", "abigail", "dulce", "karina",
+    "karla", "carla", "sarai", "ivonne", "brenda", "tania", "tatiana",
+    "veronica", "vanessa", "samantha", "stefany", "stephanie", "estefania",
+    "fabiola", "francia", "hilda", "jacqueline", "janeth", "katherine",
+    "kimberly", "leidy", "lizeth", "luz", "magaly", "maribel", "marina",
+    "marisela", "michelle", "nataly", "oriana", "paula", "roxana", "silvia",
+    "soraya", "wendy", "zoraida", "yesenia", "yamile", "yaneth", "yuliana",
+    "yudith", "nayeli", "nayibe", "dayana", "dayanara", "yusmary", "yolimar",
+    "yoselin", "yohana", "yenifer", "jenifer", "keila", "keyla", "kelly",
+    "greisy", "greicy", "deisy", "deysi", "luzmila", "marleny", "marlin",
+    "marlene", "yesica", "yeimy", "yeisy", "yorbelis", "yulieth", "yudi",
+    "belkis", "damaris", "eglee", "eglis", "yhajaira", "yajaira", "zulay",
+    "zuleima", "genesis", "genesys", "anyelina", "anyeli", "estrella",
+    "esneida", "yubisay", "yumaira", "yusneidy",
+    # Traditional male
+    "jose", "luis", "carlos", "juan", "miguel", "antonio", "francisco",
+    "daniel", "gabriel", "pedro", "jesus", "andres", "felipe", "alejandro",
+    "fernando", "ricardo", "roberto", "jorge", "sergio", "cesar", "oscar",
+    "oswaldo", "eduardo", "enrique", "rafael", "ramon", "martin", "victor",
+    "ivan", "alberto", "alfredo", "arturo", "armando", "angel", "anibal",
+    "benjamin", "bernardo", "cristian", "dario", "david", "diego", "domingo",
+    "edgar", "edwin", "efrain", "elias", "emiro", "ernesto", "esteban",
+    "ezequiel", "federico", "freddy", "gerardo", "german", "gilberto",
+    "gonzalo", "gregorio", "guillermo", "gustavo", "hector", "henry",
+    "heriberto", "hernan", "hugo", "humberto", "ignacio", "isidro", "ismael",
+    "jairo", "javier", "jefferson", "joaquin", "johan", "jhon", "jhoan",
+    "jhonny", "joel", "jonathan", "josue", "julio", "justo", "kevin",
+    "leandro", "leonardo", "leonel", "lorenzo", "lucas", "manuel", "marco",
+    "marcos", "mario", "mauricio", "maximiliano", "moises", "nelson",
+    "nestor", "nicolas", "norberto", "octavio", "orlando", "pablo",
+    "patricio", "rene", "reinaldo", "reynaldo", "rigoberto", "rodrigo",
+    "rolando", "ruben", "salvador", "samuel", "santiago", "saul", "sebastian",
+    "simon", "tomas", "ulises", "vicente", "walter", "wilfredo", "wilfrido",
+    "william", "wilmer", "wilson", "yeison", "yeferson", "yerson", "yorman",
+    "yordan", "yosman", "deiber", "deiver", "deivi", "keiber", "keivin",
+    "keny", "kleiver", "kleider", "junior", "maiker", "maikol", "maykol",
+    "breiner", "brayan", "brandon", "franklin", "franyi", "frangel",
+    "geordy", "geraldo", "yeimer", "yerlin", "yorvin", "eliexer", "eliecer",
+    "yeiker", "yeikol", "neiker", "neomar", "reimer", "reinier", "jeanpiere",
+})
+
+_WORD = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]+")
+
+
+def contains_known_first_name(text: str) -> bool:
+    """True when a whole word in text matches the gazetteer, case-insensitive.
+
+    Whole-word only: a substring check would fire on "ana" inside "mañana",
+    "semana", "ventana" and gut the sample for no safety gain.
+    """
+    if not text:
+        return False
+    return any(w.lower() in _FIRST_NAMES for w in _WORD.findall(text))
+
+
 def has_self_identification(text: str) -> bool:
     """True when the message announces a person's name in a frame NER misses."""
     if not text:
@@ -103,7 +185,9 @@ def scrub(text, nlp=None) -> "tuple[str | None, bool]":
     text = str(text)
 
     # Layer 2 first: it is a drop, so there is no point scrubbing before it.
-    if has_self_identification(text):
+    # The gazetteer runs alongside the frame checks — it is the layer that
+    # still works when a bare name has neither a capital letter nor a frame.
+    if has_self_identification(text) or contains_known_first_name(text):
         return None, False
 
     # Layer 1: person names out, places and organisations kept. Cities are
