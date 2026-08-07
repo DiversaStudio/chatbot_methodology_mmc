@@ -6,8 +6,8 @@ meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
 ts_max,2026-07-28 13:46:49.197000
 salt_present,True
-generated_at,2026-08-06T20:12:11.884525+00:00
-schema_version,8
+generated_at,2026-08-07T19:34:18.938296+00:00
+schema_version,9
 report_version,2.0.0
 embed_model,intfloat/multilingual-e5-large
 sentiment_model,cardiffnlp/twitter-xlm-roberta-base-sentiment

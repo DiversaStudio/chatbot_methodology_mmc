@@ -29,7 +29,7 @@ from sklearn.cluster import KMeans
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
                   export, preflight, progress, config, schema, datasets, theme,
-                  subclusters, qa, bot_replies)
+                  subclusters, qa, bot_replies, redact)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
@@ -262,6 +262,10 @@ def main(argv=None) -> int:
         fact_message = export.build_fact_message(SD.messages, sentiment=sent, lab=lab,
                                                  sub_lab=sub_lab, sub_names=sub_names)
         fact_meal = export.build_fact_meal(SD.meal)
+        # NER is loaded once here rather than inside the sampler: the sampler is
+        # called per-bucket-loop and spacy.load is expensive.
+        fact_message_sample = export.build_fact_message_sample(
+            SD.messages, fact_message, nlp=redact.load_ner())
 
     with pr.stage("bot replies + coverage gap"):
         bot_log_path = (Path(args.bot_log) if args.bot_log
@@ -278,6 +282,7 @@ def main(argv=None) -> int:
         tables = {
             "dim_user": dim_user,
             "fact_message": fact_message,
+            "fact_message_sample": fact_message_sample,
             "fact_meal": fact_meal,
             "dim_city": export.build_dim_city(),
             "dim_quadrant": export.build_dim_quadrant(),
