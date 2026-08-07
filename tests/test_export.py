@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "8"
+    assert kv["schema_version"] == "9"
 
 
 def test_meta_run_carries_report_version():
@@ -1131,7 +1131,7 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
 def test_meta_run_reports_schema_v8():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "8"
+    assert val["schema_version"] == "9"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1366,10 +1366,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_8():
+def test_meta_run_defaults_to_schema_version_9():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "8"
+    assert out.set_index("key").loc["schema_version", "value"] == "9"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])

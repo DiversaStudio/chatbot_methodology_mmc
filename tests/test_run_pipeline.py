@@ -21,6 +21,21 @@ def test_run_pipeline_has_no_skip_nlp_argument():
     assert "skip_nlp" not in text
 
 
+def test_fact_message_sample_wired_into_pipeline():
+    """The redacted-example sampler (Task 3) must actually be called: a table
+    built but never wired into `tables` would silently ship without it. NER
+    must be loaded exactly once and passed in -- `redact.load_ner()` is a
+    real spaCy model load, so calling it per-bucket inside the sampler (or
+    forgetting the `nlp=` wiring entirely) would be an expensive, silent
+    regression a runtime test on this scale can't afford to catch by timing."""
+    src = Path(__file__).resolve().parents[1] / "run_pipeline.py"
+    text = src.read_text(encoding="utf-8")
+    assert "redact" in text.split("from sami import")[1].split(")")[0]
+    assert '"fact_message_sample"' in text
+    assert "export.build_fact_message_sample(" in text
+    assert "redact.load_ner()" in text
+
+
 def test_nlp_meta_carries_the_subcluster_keys():
     """The five meta_run keys schema v6 promises. Guards against a wiring change
     that drops one silently — meta_run is the run's identity card and a missing
