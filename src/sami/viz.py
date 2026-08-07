@@ -25,6 +25,14 @@ def _node_spans(values, gap: float = DEFAULT_GAP):
     if total <= 0:
         raise ValueError("cannot lay out nodes with zero total value")
     usable = 1.0 - gap * max(len(values) - 1, 0)
+    if usable <= 0:
+        # Past this many nodes at this gap, the gaps alone exceed the unit
+        # axis and bands would come out with negative height -- fail loudly
+        # instead of silently emitting an inverted (lo > hi) span.
+        raise ValueError(
+            f"{len(values)} nodes with gap={gap} leaves no usable height "
+            f"({gap} * {len(values) - 1} >= 1.0); reduce the node count or gap"
+        )
     y, spans = 0.0, []
     for v in values:
         h = usable * v / total
@@ -51,6 +59,13 @@ def sankey_two_level(links, *, color_map, ax=None,
 
     `links` needs columns source, target, value. Ribbon colour is taken from
     `color_map[source]`, so the parent's identity colour carries across.
+
+    Node order on both columns is first-appearance order in `links`' rows,
+    not grouped by source. Rows already grouped by source (all of A's links,
+    then all of B's, ...) give a grouped, low-crossing right column; rows
+    interleaved across sources give an interleaved right column with more
+    ribbon crossings. Sort `links` by source first if you want the grouped
+    layout.
     """
     if len(links) == 0:
         raise ValueError("no links to draw")
