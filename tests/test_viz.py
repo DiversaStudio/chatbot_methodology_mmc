@@ -110,3 +110,63 @@ def test_sankey_right_edge_ribbons_partition_a_shared_target_band():
 def test_node_spans_rejects_a_gap_too_large_for_the_node_count():
     with pytest.raises(ValueError, match="51"):
         viz._node_spans([1] * 51, gap=0.02)
+
+
+def _sample_frame():
+    return pd.DataFrame({
+        "cluster_id": [0, 0, 1], "subcluster_id": [0, 1, 10],
+        "subcluster_name": ["Starting a business", "Looking for work", "Biometrics"],
+        "sentiment_label": ["negative", "positive", "neutral"],
+        "city_canon": ["Cucuta", "Bogota", "Cali"],
+        "text_redacted": ["a", "b", "c"],
+    })
+
+
+def test_filter_examples_filters_by_tone():
+    out = viz.filter_examples(_sample_frame(), tone="negative")
+    assert set(out["sentiment_label"]) == {"negative"}
+
+
+def test_filter_examples_filters_by_subcluster():
+    out = viz.filter_examples(_sample_frame(), subcluster=10)
+    assert set(out["subcluster_id"]) == {10}
+
+
+def test_filter_examples_combines_filters_and_caps_rows():
+    out = viz.filter_examples(_sample_frame(), cluster=0, n=1)
+    assert len(out) == 1
+    assert set(out["cluster_id"]) == {0}
+
+
+def test_filter_examples_with_no_filters_returns_everything_up_to_n():
+    assert len(viz.filter_examples(_sample_frame())) == 3
+
+
+def test_style_examples_colours_the_tone_column():
+    from sami import theme
+    styled = viz.style_examples(_sample_frame())
+    rendered = styled.to_html()
+    assert theme.TONE["negative"]["fill"] in rendered
+
+
+def test_style_examples_leaves_every_other_column_unfilled():
+    # Stakeholder was explicit: ONLY tone is coloured. Asserting the cluster
+    # colours are ABSENT is the assertion that actually bites -- merely checking
+    # the names render would pass even if every column were filled.
+    from sami import theme
+    rendered = viz.style_examples(_sample_frame()).to_html()
+    body = rendered.split("<tbody>")[1]
+    fills = re.findall(r"background-color:\s*(#[0-9a-fA-F]{6})", body)
+    assert set(f.lower() for f in fills) <= {
+        s["fill"].lower() for s in theme.TONE.values()}
+
+
+def test_style_examples_raises_a_clear_error_when_tone_column_is_missing():
+    # style_examples' whole point is colouring sentiment_label; selecting
+    # EXAMPLE_COLUMNS present in the frame and then subsetting the Styler on
+    # "sentiment_label" regardless would raise a bare pandas KeyError with no
+    # indication of which column was expected -- naming it explicitly here
+    # is a deliberate, legible failure instead of an accidental one.
+    df = _sample_frame().drop(columns=["sentiment_label"])
+    with pytest.raises(KeyError, match="sentiment_label"):
+        viz.style_examples(df)
