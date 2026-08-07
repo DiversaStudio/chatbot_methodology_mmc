@@ -1,3 +1,4 @@
+import re
 import warnings
 
 import pytest
@@ -116,3 +117,26 @@ def test_subcluster_colors_never_returns_the_no_text_grey():
 def test_subcluster_colors_handles_zero():
     from sami import theme
     assert theme.subcluster_colors("#009ba4", 0) == []
+
+
+def test_tone_palette_covers_the_three_labels_with_fill_and_text():
+    assert set(theme.TONE) == {"negative", "neutral", "positive"}
+    for label, swatch in theme.TONE.items():
+        assert set(swatch) == {"fill", "text"}, label
+        for key, value in swatch.items():
+            assert re.fullmatch(r"#[0-9a-f]{6}", value), (label, key, value)
+
+
+def test_tone_fills_are_drawn_from_the_brand_palette():
+    # A future edit reaching for traffic-light red/green would break this.
+    brand = set(theme.CAT) | set(theme.BLUE_SEQ) | set(theme.EARTH)
+    assert {s["fill"] for s in theme.TONE.values()} <= brand
+
+
+def test_tone_text_colour_contrasts_with_its_fill():
+    # Pale fill takes dark text, saturated fills take white. Guards the one
+    # thing a palette edit silently breaks: unreadable labels.
+    for label, swatch in theme.TONE.items():
+        fill_lum = sum(theme._hex_to_rgb(swatch["fill"])) / 3
+        text_lum = sum(theme._hex_to_rgb(swatch["text"])) / 3
+        assert abs(fill_lum - text_lum) > 100, label
