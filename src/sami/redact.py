@@ -31,6 +31,13 @@ _NOT_NAMES = frozenset({
     "mayor", "nueva", "nuevo", "soltera", "soltero", "casada", "casado",
     "embarazada", "discapacitada", "discapacitado", "desplazada", "desplazado",
     "victima", "adulta", "adulto", "joven", "persona", "mujer", "hombre",
+    # Verbs/quantifiers that follow "mi <relation>" far more often than a name
+    # does ("mi hija tiene 5 años"). Without these the family-relation frames
+    # below would drop most sentences about a relative's health, age or
+    # status rather than the rare ones that actually state a name.
+    "tiene", "esta", "está", "necesita", "es", "no", "se", "ya", "todavia",
+    "todavía", "tambien", "también", "nacio", "nació", "cumple", "va",
+    "fue", "quiere", "sufre", "padece",
 })
 
 # The verb is matched case-insensitively via the scoped inline flag `(?i:soy)`
@@ -67,6 +74,21 @@ _THIRD_PARTY_FRAMES = [
     re.compile(r"\b(?:el|la)\s+trabajador(?:a)?\s+social\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)", re.I),
 ]
 
+# Family-relation frames. This is the single most common place a name appears
+# in this corpus — introducing a family member — and it was the gap the
+# reviewer found: "mi hija xiomara" has no frame and (before this fix) no
+# gazetteer entry either. Same lowercase-only gating as _THIRD_PARTY_FRAMES:
+# a capitalised name after "mi hija" is still NER's job.
+_FAMILY_FRAMES = [
+    re.compile(
+        r"\bmi\s+(?:hija|hijo|esposa|esposo|mam[aá]|pap[aá]|madre|padre|"
+        r"hermana|hermano|abuela|abuelo|nieta|nieto|sobrina|sobrino|"
+        r"prima|primo|t[ií]a|t[ií]o|cuñada|cuñado|pareja|novia|novio|"
+        r"vecina|vecino)\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)",
+        re.I,
+    ),
+]
+
 
 # Layer 2's third rung. Frames (above) close the phrasings we anticipated —
 # "me llamo X", "hable con X" — but cannot close the ones we did not think of.
@@ -85,6 +107,13 @@ _THIRD_PARTY_FRAMES = [
 # Traditional Spanish/Latin-American names plus the Venezuelan-specific
 # coinages common in this population (yorbelis, yusmary, keiber, ...) that
 # generic Spanish name lists omit.
+#
+# HONEST LIMIT: this is a finite list. A name absent from it, spoken with no
+# capital letter and no frame around it, WILL pass through unscrubbed — this
+# layer cannot and does not guarantee completeness, only that it catches the
+# names someone thought to add. That is why the sample this feeds is read
+# end-to-end by a human before it ships, not because this layer is expected
+# to be enough on its own.
 _FIRST_NAMES = frozenset({
     # Traditional female
     "maria", "ana", "rosa", "carmen", "isabel", "laura", "sofia", "valentina",
@@ -109,6 +138,16 @@ _FIRST_NAMES = frozenset({
     "belkis", "damaris", "eglee", "eglis", "yhajaira", "yajaira", "zulay",
     "zuleima", "genesis", "genesys", "anyelina", "anyeli", "estrella",
     "esneida", "yubisay", "yumaira", "yusneidy",
+    # Additional Venezuelan/Colombian coinages (y-/j-initial and otherwise)
+    # found missing on review — a genuine pass for frequency, not padding.
+    "xiomara", "katiuska", "maryuri", "yurani", "yuraima", "marilyn",
+    "marilin", "yulimar", "yusleidy", "yeraldin", "geraldine", "anyela",
+    "anyi", "yurley", "yumary", "dailyn", "yorley", "breidy", "franyelis",
+    "yulisbeth", "anggie", "angie", "yesibel", "luzney", "yeraldine",
+    "maiber", "maigualida", "neidy", "neiry", "zulmary", "zuly", "yolvia",
+    "dubraska", "keily", "keyra", "yasmin", "jazmin", "yoletzy",
+    "yoleidy", "yorgelis", "yosmely", "yosneidy", "yulieska", "franyi",
+    "keismary", "keimary", "leidymar", "durley", "yolanny", "yubelkis",
     # Traditional male
     "jose", "luis", "carlos", "juan", "miguel", "antonio", "francisco",
     "daniel", "gabriel", "pedro", "jesus", "andres", "felipe", "alejandro",
@@ -134,6 +173,15 @@ _FIRST_NAMES = frozenset({
     "breiner", "brayan", "brandon", "franklin", "franyi", "frangel",
     "geordy", "geraldo", "yeimer", "yerlin", "yorvin", "eliexer", "eliecer",
     "yeiker", "yeikol", "neiker", "neomar", "reimer", "reinier", "jeanpiere",
+    # Additional Venezuelan/Colombian coinages (y-/j-initial and otherwise)
+    # found missing on review — a genuine pass for frequency, not padding.
+    "anderson", "yeimar", "yosimar", "yorvis", "yulexis", "anyerson",
+    "maikel", "maickol", "jeanfranco", "jeandry", "jeampiere", "kleimer",
+    "kleyver", "yorbis", "yeriel", "deiker", "deinis", "neider", "jhonder",
+    "jhorman", "jheisson", "jheferson", "jhonatan", "yohander", "yoiber",
+    "yoendris", "franyer", "francys", "kendry", "kender", "maiko",
+    "maikelson", "ronal", "yulio", "yeikel", "leidyber",
+    "jeanpierre", "yorwin", "keinner", "kleyner",
 })
 
 _WORD = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]+")
@@ -159,7 +207,7 @@ def has_self_identification(text: str) -> bool:
     m = _SOY.search(text)
     if m and m.group(1).lower() not in _NOT_NAMES:
         return True
-    for pattern in _THIRD_PARTY_FRAMES:
+    for pattern in _THIRD_PARTY_FRAMES + _FAMILY_FRAMES:
         m = pattern.search(text)
         if m:
             token = m.group(1)
