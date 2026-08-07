@@ -142,6 +142,22 @@ def test_filter_examples_with_no_filters_returns_everything_up_to_n():
     assert len(viz.filter_examples(_sample_frame())) == 3
 
 
+def test_filter_examples_composes_tone_cluster_and_subcluster_together():
+    # The brief claims the three filters compose; every existing test only
+    # exercises one (or one plus the row cap) at a time, so a regression that
+    # silently ORs instead of ANDs the conditions would go undetected.
+    df = pd.concat([_sample_frame(), pd.DataFrame({
+        "cluster_id": [0], "subcluster_id": [1],
+        "subcluster_name": ["Looking for work"],
+        "sentiment_label": ["negative"],
+        "city_canon": ["Medellin"],
+        "text_redacted": ["d"],
+    })], ignore_index=True)
+    out = viz.filter_examples(df, tone="negative", cluster=0, subcluster=1)
+    assert len(out) == 1
+    assert out.loc[0, "text_redacted"] == "d"
+
+
 def test_style_examples_colours_the_tone_column():
     from sami import theme
     styled = viz.style_examples(_sample_frame())
@@ -150,15 +166,29 @@ def test_style_examples_colours_the_tone_column():
 
 
 def test_style_examples_leaves_every_other_column_unfilled():
-    # Stakeholder was explicit: ONLY tone is coloured. Asserting the cluster
-    # colours are ABSENT is the assertion that actually bites -- merely checking
-    # the names render would pass even if every column were filled.
-    from sami import theme
-    rendered = viz.style_examples(_sample_frame()).to_html()
-    body = rendered.split("<tbody>")[1]
-    fills = re.findall(r"background-color:\s*(#[0-9a-fA-F]{6})", body)
-    assert set(f.lower() for f in fills) <= {
-        s["fill"].lower() for s in theme.TONE.values()}
+    # Stakeholder was explicit: ONLY tone is coloured. pandas 3.x emits every
+    # CSS rule inside a <style> block BEFORE the table, keyed by id selectors
+    # like #T_<hash>_row<r>_col<c> -- cells never carry an inline style=, so
+    # a <tbody>-only search can never see "background-color" at all and any
+    # assertion built on that fragment is vacuous regardless of what
+    # style_examples does (proved by mutation-testing this exact test: a
+    # broken implementation that fills every column still passes it). Search
+    # the <style> block instead and assert on the SELECTORS: every
+    # background-color rule must target col0 (sentiment_label) and no other
+    # column index, with one rule per row.
+    df = _sample_frame()
+    rendered = viz.style_examples(df).to_html()
+    style_block = rendered.split("<style", 1)[1].split("</style>", 1)[0]
+    rules = re.findall(r"([^{}]+)\{([^{}]+)\}", style_block)
+
+    fill_selectors = []
+    for selector, decl in rules:
+        if "background-color" in decl:
+            fill_selectors.extend(s.strip() for s in selector.split(","))
+
+    assert fill_selectors, "expected at least one background-color rule"
+    assert all(re.search(r"_col0$", s) for s in fill_selectors), fill_selectors
+    assert len(fill_selectors) == len(df)
 
 
 def test_style_examples_raises_a_clear_error_when_tone_column_is_missing():
