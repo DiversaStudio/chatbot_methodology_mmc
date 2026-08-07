@@ -1128,7 +1128,7 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v8():
+def test_meta_run_reports_schema_v9():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
     assert val["schema_version"] == "9"

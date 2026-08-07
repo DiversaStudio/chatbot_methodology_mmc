@@ -191,27 +191,24 @@ _WORD = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]+")
 # "Quisiera", "Cuales", "Buenas" etc. get mislabelled as a person's name.
 # Measured on a real pipeline run: 21/138 sampled rows had a Layer-1
 # redaction applied, and every single one was this false positive, not a
-# real name. These recur often enough to name individually rather than rely
-# on position alone (see the sentence-initial rule in scrub()) — matched
-# case-insensitively, and this applies wherever the word appears, not just
-# sentence-initially, since it is never a name in this corpus regardless of
-# position.
+# real name. This is a fixed, named list of the SPECIFIC words the model
+# mistags — not a positional rule. An earlier version of scrub() also
+# distrusted PER purely by sentence-initial position (regardless of whether
+# the word was on this list), which silently let real sentence-initial
+# names ship unredacted; that was reverted. Matched case-insensitively, and
+# applied wherever the word appears — not just sentence-initially — since it
+# is never a name in this corpus regardless of position.
 _OPENER_STOPLIST = frozenset({
-    "quisiera", "quiero", "queria", "quería", "deseo", "necesito", "cuales",
+    "quisiera", "quiero", "queria", "quería", "quisieramos", "quisiéramos",
+    "deseo", "necesito", "tengo", "podria", "podría", "puedo", "cuales",
     "cuáles", "cual", "cuál", "cuando", "cuándo", "como", "cómo", "donde",
-    "dónde", "buenas", "buenos", "hola", "gracias", "disculpe", "señor",
-    "señora", "ayuda", "informacion", "información", "solicito", "solicite",
-    "solicité", "ingrese", "ingresé",
+    "dónde", "quien", "quién", "porque", "porqué", "buenas", "buenos",
+    "hola", "gracias", "disculpe", "disculpa", "perdon", "perdón", "señor",
+    "señora", "señores", "estimado", "estimada", "estimados", "saludos",
+    "cordialmente", "atentamente", "porfavor", "favor", "ayuda",
+    "informacion", "información", "solicito", "solicite", "solicité",
+    "ingrese", "ingresé",
 })
-
-_SENTENCE_END = (".", "!", "?")
-
-
-def _is_sentence_initial(text: str, start: int) -> bool:
-    """True when nothing but whitespace/sentence punctuation precedes `start`."""
-    prefix = text[:start].rstrip()
-    return prefix == "" or prefix[-1] in _SENTENCE_END
-
 
 def contains_known_first_name(text: str) -> bool:
     """True when a whole word in text matches the gazetteer, case-insensitive.
@@ -276,16 +273,19 @@ def scrub(text, nlp=None) -> "tuple[str | None, bool]":
     # and a redaction that cannot be applied cleanly must never be a silent
     # no-op; the safe move is to drop the whole message.
     #
-    # Sentence-initial PER spans are distrusted unless they are a known
-    # gazetteer name: a genuine sentence-initial first name never reaches
-    # here, because the gazetteer layer already dropped the whole message
-    # before Layer 1 ran. So the only thing a sentence-initial PER can be at
-    # this point is a capitalised non-gazetteer word — overwhelmingly a
-    # common word the model mislabelled, not a name. The opener stoplist
-    # (above) catches the same handful of words even mid-sentence, since
-    # they recur often enough on this corpus to name outright. Leaving a
-    # distrusted span untouched only weakens redaction, never dropping —
-    # the drop rules above are unaffected.
+    # A PER span is distrusted ONLY when its lowercased text is on the opener
+    # stoplist (above) — regardless of position. Position alone is NOT a
+    # signal: a prior version of this rule also distrusted any sentence-initial
+    # PER absent from the gazetteer, on the theory that a genuine
+    # sentence-initial name would already have been dropped by the gazetteer.
+    # That reasoning only holds for names actually IN the 400-entry gazetteer.
+    # A real name spaCy correctly tags as PER but that isn't in the gazetteer
+    # (e.g. "Ingrid me acompano...") was shipping untouched — a name leak, not
+    # a false-positive fix. The stoplist names the SPECIFIC words this model
+    # mistags on this corpus; anything else the model calls a person is
+    # treated as a person and gets redacted. Expect a little over-redaction
+    # for openers not yet on the stoplist — that is the safe failure
+    # direction, and a recurring one gets added to the stoplist.
     changed = False
     if nlp is not None:
         pers = sorted(
@@ -294,10 +294,7 @@ def scrub(text, nlp=None) -> "tuple[str | None, bool]":
         )
         to_redact = []
         for ent in pers:
-            lowered = ent.text.lower()
-            if lowered in _OPENER_STOPLIST:
-                continue
-            if _is_sentence_initial(text, ent.start_char) and lowered not in _FIRST_NAMES:
+            if ent.text.lower() in _OPENER_STOPLIST:
                 continue
             to_redact.append(ent)
         for prev, cur in zip(to_redact, to_redact[1:]):

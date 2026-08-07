@@ -269,8 +269,7 @@ def test_scrub_leaves_sentence_initial_common_word_untouched():
 def test_scrub_still_drops_a_sentence_initial_gazetteer_name():
     # This drops via the gazetteer (Layer 2), which runs before Layer 1 NER
     # ever sees the text — so the NER mock here is irrelevant to the
-    # outcome. A genuine sentence-initial first name never reaches the
-    # sentence-initial-distrust logic in scrub() at all.
+    # outcome.
     text = "Andrea necesita ayuda con el ppt"
     ents = [_Ent("Andrea", "PER", 0, len("Andrea"))]
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
@@ -293,6 +292,40 @@ def test_scrub_leaves_a_stoplist_word_untouched_mid_sentence():
     text = "muchas Gracias por su ayuda"
     start = text.index("Gracias")
     ents = [_Ent("Gracias", "PER", start, start + len("Gracias"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == text
+    assert changed is False
+
+
+# --- Fix round 5 regressions: position alone is not a distrust signal -------
+
+def test_scrub_redacts_a_sentence_initial_name_not_in_gazetteer_or_stoplist():
+    # THE load-bearing assertion for this round. "Ingrid" is a genuine name,
+    # correctly tagged PER, not in the 400-entry gazetteer and not on the
+    # opener stoplist. A prior version of this rule distrusted every
+    # sentence-initial PER absent from the gazetteer, which let this name
+    # ship unredacted. Position is no longer a signal on its own.
+    text = "Ingrid me acompano a la oficina de migracion ayer."
+    ents = [_Ent("Ingrid", "PER", 0, len("Ingrid"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == f"{redact.NAME_PLACEHOLDER} me acompano a la oficina de migracion ayer."
+    assert changed is True
+
+
+def test_scrub_redacts_a_name_opening_a_second_sentence():
+    # Same failure mode, but after a ". " rather than at text start — the
+    # old rule fired on any sentence boundary, not just the first word.
+    text = "Hola buenas. Ingrid me acompano a la oficina de migracion ayer."
+    start = text.index("Ingrid")
+    ents = [_Ent("Ingrid", "PER", start, start + len("Ingrid"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == f"Hola buenas. {redact.NAME_PLACEHOLDER} me acompano a la oficina de migracion ayer."
+    assert changed is True
+
+
+def test_scrub_leaves_a_sentence_initial_stoplist_word_unchanged():
+    text = "Quisiera saber como puedo ayudar"
+    ents = [_Ent("Quisiera", "PER", 0, len("Quisiera"))]
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
     assert out == text
     assert changed is False

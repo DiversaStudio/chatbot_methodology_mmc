@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import matplotlib
 matplotlib.use("Agg")
-from sami import viz
+from sami import export, viz
 
 
 def test_node_spans_are_ordered_and_non_overlapping():
@@ -200,3 +200,13 @@ def test_style_examples_raises_a_clear_error_when_tone_column_is_missing():
     df = _sample_frame().drop(columns=["sentiment_label"])
     with pytest.raises(KeyError, match="sentiment_label"):
         viz.style_examples(df)
+
+
+def test_example_columns_are_all_present_in_the_export_schema():
+    # style_examples silently filters EXAMPLE_COLUMNS down to whatever exists
+    # on the incoming frame (`if c in df.columns`), so a column renamed in
+    # export.FACT_MESSAGE_SAMPLE_COLUMNS would drop out of the rendered table
+    # with no error -- only "sentiment_label" is checked explicitly, above.
+    # This pins the two lists together so a rename fails loudly, at test
+    # time, instead of silently at render time.
+    assert set(viz.EXAMPLE_COLUMNS) <= set(export.FACT_MESSAGE_SAMPLE_COLUMNS)
