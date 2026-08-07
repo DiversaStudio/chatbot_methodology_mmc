@@ -225,6 +225,16 @@ QUADRANT = {
     "low_volume_low_need":   GREY,    # steady state
 }
 
+# Tone swatches. Diverging within the brand rather than traffic-light: wine for
+# negative, the palest blue for neutral, brand teal for positive. `text` is
+# bound to each fill so a consumer never has to recompute contrast — the Styler
+# and the Power BI conditional-formatting rules both read it straight.
+TONE = {
+    "negative": {"fill": EARTH[4], "text": "#ffffff"},   # #671e42
+    "neutral":  {"fill": BLUE_SEQ[0], "text": "#1a1a1a"},  # #eef6f5
+    "positive": {"fill": BLUE_SEQ[4], "text": "#ffffff"},  # #009ba4
+}
+
 # Neutrals: text inks, grid, surface.
 INK, INK2, MUTED = NAVY, '#3a3a5c', GREY
 GRID, SURFACE    = FOG, WHITE
