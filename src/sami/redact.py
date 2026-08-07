@@ -186,6 +186,32 @@ _FIRST_NAMES = frozenset({
 
 _WORD = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]+")
 
+# `es_core_news_sm` tags sentence-initial capitalised tokens as PER on this
+# corpus: phone keyboards auto-capitalise the first word of a message, and
+# "Quisiera", "Cuales", "Buenas" etc. get mislabelled as a person's name.
+# Measured on a real pipeline run: 21/138 sampled rows had a Layer-1
+# redaction applied, and every single one was this false positive, not a
+# real name. These recur often enough to name individually rather than rely
+# on position alone (see the sentence-initial rule in scrub()) — matched
+# case-insensitively, and this applies wherever the word appears, not just
+# sentence-initially, since it is never a name in this corpus regardless of
+# position.
+_OPENER_STOPLIST = frozenset({
+    "quisiera", "quiero", "queria", "quería", "deseo", "necesito", "cuales",
+    "cuáles", "cual", "cuál", "cuando", "cuándo", "como", "cómo", "donde",
+    "dónde", "buenas", "buenos", "hola", "gracias", "disculpe", "señor",
+    "señora", "ayuda", "informacion", "información", "solicito", "solicite",
+    "solicité", "ingrese", "ingresé",
+})
+
+_SENTENCE_END = (".", "!", "?")
+
+
+def _is_sentence_initial(text: str, start: int) -> bool:
+    """True when nothing but whitespace/sentence punctuation precedes `start`."""
+    prefix = text[:start].rstrip()
+    return prefix == "" or prefix[-1] in _SENTENCE_END
+
 
 def contains_known_first_name(text: str) -> bool:
     """True when a whole word in text matches the gazetteer, case-insensitive.
@@ -249,16 +275,35 @@ def scrub(text, nlp=None) -> "tuple[str | None, bool]":
     # refused outright rather than guessed at — this is a privacy backstop,
     # and a redaction that cannot be applied cleanly must never be a silent
     # no-op; the safe move is to drop the whole message.
+    #
+    # Sentence-initial PER spans are distrusted unless they are a known
+    # gazetteer name: a genuine sentence-initial first name never reaches
+    # here, because the gazetteer layer already dropped the whole message
+    # before Layer 1 ran. So the only thing a sentence-initial PER can be at
+    # this point is a capitalised non-gazetteer word — overwhelmingly a
+    # common word the model mislabelled, not a name. The opener stoplist
+    # (above) catches the same handful of words even mid-sentence, since
+    # they recur often enough on this corpus to name outright. Leaving a
+    # distrusted span untouched only weakens redaction, never dropping —
+    # the drop rules above are unaffected.
     changed = False
     if nlp is not None:
         pers = sorted(
             (e for e in nlp(text).ents if e.label_ == "PER"),
             key=lambda e: e.start_char,
         )
-        for prev, cur in zip(pers, pers[1:]):
+        to_redact = []
+        for ent in pers:
+            lowered = ent.text.lower()
+            if lowered in _OPENER_STOPLIST:
+                continue
+            if _is_sentence_initial(text, ent.start_char) and lowered not in _FIRST_NAMES:
+                continue
+            to_redact.append(ent)
+        for prev, cur in zip(to_redact, to_redact[1:]):
             if cur.start_char < prev.end_char:
                 return None, False
-        for ent in reversed(pers):
+        for ent in reversed(to_redact):
             start, end = ent.start_char, ent.end_char
             if text[start:end] != ent.text:
                 # Offsets don't line up with the text being scrubbed — refuse

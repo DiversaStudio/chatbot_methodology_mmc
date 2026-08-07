@@ -233,3 +233,66 @@ def test_scrub_does_not_drop_common_verbs_after_family_frames():
         out, changed = redact.scrub(text, nlp=None)
         assert out == text, f"unexpectedly dropped on verb {verb!r}"
         assert changed is False
+
+
+# --- Fix round 4 regressions: distrust sentence-initial NER false positives -
+
+class _Ent:
+    def __init__(self, t, label, start, end):
+        self.text, self.label_ = t, label
+        self.start_char, self.end_char = start, end
+
+
+class _Doc:
+    def __init__(self, ents):
+        self.ents = ents
+
+
+class _Nlp:
+    def __init__(self, ents):
+        self._ents = ents
+
+    def __call__(self, text):
+        return _Doc(self._ents)
+
+
+def test_scrub_leaves_sentence_initial_common_word_untouched():
+    # This is the measured production failure mode: es_core_news_sm tags
+    # the auto-capitalised first word of a phone-typed message as PER.
+    text = "Quisiera saber si puedo obtener el ppt por tener hijos colombianos"
+    ents = [_Ent("Quisiera", "PER", 0, len("Quisiera"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == text
+    assert changed is False
+
+
+def test_scrub_still_drops_a_sentence_initial_gazetteer_name():
+    # This drops via the gazetteer (Layer 2), which runs before Layer 1 NER
+    # ever sees the text — so the NER mock here is irrelevant to the
+    # outcome. A genuine sentence-initial first name never reaches the
+    # sentence-initial-distrust logic in scrub() at all.
+    text = "Andrea necesita ayuda con el ppt"
+    ents = [_Ent("Andrea", "PER", 0, len("Andrea"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out is None
+    assert changed is False
+
+
+def test_scrub_still_redacts_a_mid_sentence_non_gazetteer_name():
+    # The useful path must survive: this is not sentence-initial and
+    # "Herminia" is not a stoplist word, so it still gets redacted.
+    text = "hable con Herminia en la oficina"
+    start = text.index("Herminia")
+    ents = [_Ent("Herminia", "PER", start, start + len("Herminia"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == f"hable con {redact.NAME_PLACEHOLDER} en la oficina"
+    assert changed is True
+
+
+def test_scrub_leaves_a_stoplist_word_untouched_mid_sentence():
+    text = "muchas Gracias por su ayuda"
+    start = text.index("Gracias")
+    ents = [_Ent("Gracias", "PER", start, start + len("Gracias"))]
+    out, changed = redact.scrub(text, nlp=_Nlp(ents))
+    assert out == text
+    assert changed is False
