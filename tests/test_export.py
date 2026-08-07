@@ -1491,3 +1491,24 @@ def test_sample_passes_the_pii_gate():
     src, fm = _paired_frames()
     out = export.build_fact_message_sample(src, fm)
     assert qa.pii_scan(out) == []
+
+
+def test_sample_refills_a_dropped_candidate_rather_than_shrinking_the_bucket():
+    """A drop must cost coverage of the corpus, not a slot in the output.
+
+    sub=0/tone="negative" has 10 valid (60-190 char) candidates by construction
+    (_sample_msgs default n_per=10). Poisoning 2 of them must still fill the
+    bucket to SAMPLE_PER_BUCKET from the 8 survivors, not return 4 (6 - 2 lost
+    slots) as it would if a drop were counted against the quota before the
+    `continue`."""
+    src, fm = _paired_frames()
+    poisoned = ("me llamo maria y necesito ayuda urgente con el tramite "
+                "numero uno en la oficina de la ciudad hoy")
+    assert export.SAMPLE_LEN_MIN <= len(poisoned) <= export.SAMPLE_LEN_MAX
+    for i in (0, 1):
+        src.loc[i, "message"] = poisoned
+        fm.loc[i, "message_id"] = export.message_key(
+            src.loc[i, "user_id"], src.loc[i, "seq"], poisoned)
+    out = export.build_fact_message_sample(src, fm)
+    bucket = out[(out["subcluster_id"] == 0) & (out["sentiment_label"] == "negative")]
+    assert len(bucket) == export.SAMPLE_PER_BUCKET
