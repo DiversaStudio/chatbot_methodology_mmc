@@ -208,6 +208,20 @@ _OPENER_STOPLIST = frozenset({
     "cordialmente", "atentamente", "porfavor", "favor", "ayuda",
     "informacion", "información", "solicito", "solicite", "solicité",
     "ingrese", "ingresé",
+    # Round-2 additions, identified by cross-referencing a second real
+    # pipeline run's over-redaction rows against the earlier full read of
+    # the sample: "bueno"/"tambien" as fillers, "vacantes" opening a
+    # question about job listings. Plus other high-frequency conversational
+    # openers/acknowledgements this corpus uses that hadn't fired yet.
+    "bueno", "buena", "tambien", "también", "vacantes", "ok", "okay",
+    "listo", "perfecto", "claro", "entonces", "ahora", "amigo", "amiga",
+    "hermano", "hermana", "doctora",
+    # "Sami" is this chatbot's own name -- users address it directly
+    # ("Sami como renuncio a mi salvoconducto"). It is not a person whose
+    # privacy is at stake, so it belongs on this stoplist on principle, not
+    # just to fix a false-positive count. Do not remove this on the grounds
+    # that it looks like a first name.
+    "sami",
 })
 
 def contains_known_first_name(text: str) -> bool:

@@ -329,3 +329,21 @@ def test_scrub_leaves_a_sentence_initial_stoplist_word_unchanged():
     out, changed = redact.scrub(text, nlp=_Nlp(ents))
     assert out == text
     assert changed is False
+
+
+# --- Fix round 6 regressions: newly-stoplisted openers from the second read -
+
+def test_scrub_leaves_newly_stoplisted_openers_untouched():
+    # These are actual over-redaction rows from the second real pipeline
+    # run, not hypothetical ones: "Bueno lo que pasa..." and "Sami como
+    # renuncio a mi salvoconducto" both had their opening word wrongly
+    # tagged PER and replaced.
+    cases = [
+        ("Bueno lo que pasa que yo tengo un problema", "Bueno"),
+        ("Sami como renuncio a mi salvoconducto", "Sami"),
+    ]
+    for text, opener in cases:
+        ents = [_Ent(opener, "PER", 0, len(opener))]
+        out, changed = redact.scrub(text, nlp=_Nlp(ents))
+        assert out == text, opener
+        assert changed is False, opener
