@@ -911,9 +911,14 @@ def build_parity_check(reconciliation, dim_user, fact_message, fact_meal,
     # repeat-asker share (float %) — mirrors reconciliation.repeat_askers_pct
     rap_exp = round(100 * float(dim_user["is_repeat_asker"].mean()), 1)
     rap_rec = recon.get("repeat_askers_pct")
+    # reconciliation_table writes the string "pending" here when no response
+    # has a usable n_questions value — not a number, so it must never reach
+    # float(). Guard rather than let a source-data gap crash the last step
+    # of the whole export after every other table has already been written.
+    rap_rec_is_numeric = isinstance(rap_rec, (int, float)) and not isinstance(rap_rec, bool)
     rows.append({"metric": "repeat_askers_pct", "exported_value": rap_exp,
                  "reconciliation_value": rap_rec,
-                 "match": rap_rec is not None and float(rap_rec) == rap_exp})
+                 "match": rap_rec_is_numeric and float(rap_rec) == rap_exp})
     # Categorisation coverage. Unlike the rows above this has no reconciliation
     # counterpart — reconciliation is computed before clustering — so it is
     # matched against the threshold instead.

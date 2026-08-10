@@ -51,6 +51,44 @@ def test_sample_covers_every_non_empty_stratum(toy):
     assert set(picked["cluster_id"]) == set(msgs["cluster_id"])
 
 
+def test_stratified_sample_floor_survives_heavy_trimming():
+    """Regression: when many small strata each claim their floor-of-1 row and
+    the proportional allocation oversubscribes n, the trim step used to draw
+    uniformly across every picked row -- including floor rows -- so a
+    stratum's only row could be silently trimmed away despite the docstring's
+    "cannot vanish" guarantee. Build a corpus with many tiny, single-message
+    strata plus one big stratum so the allocation reliably overshoots n, and
+    confirm every stratum still survives across several seeds.
+    """
+    rows = []
+    for i in range(30):
+        rows.append({
+            "user_id": f"tiny{i}",
+            "message": f"mensaje corto {i} con texto",
+            "cluster_id": i,
+            "_label": "negative" if i % 2 else "neutral",
+        })
+    for i in range(200):
+        rows.append({
+            "user_id": f"big{i}",
+            "message": f"mensaje grande {i} con texto suficiente",
+            "cluster_id": 100,
+            "_label": "positive",
+        })
+    df = pd.DataFrame(rows)
+    messages = df[["user_id", "message", "cluster_id"]].reset_index(drop=True)
+    sentiment = pd.DataFrame({"label": df["_label"].values}, index=messages.index)
+
+    n_strata = len(set(zip(messages["cluster_id"], sentiment["label"])))
+    for seed in range(10):
+        out = validation.stratified_sample(messages, sentiment, n=60, random_state=seed)
+        picked_ids = out["message_id"]
+        picked_strata = set(zip(messages.loc[picked_ids, "cluster_id"],
+                                 sentiment.loc[picked_ids, "label"]))
+        assert len(picked_strata) == n_strata, (
+            f"seed {seed}: lost {n_strata - len(picked_strata)} stratum/strata")
+
+
 def test_binarize_collapses_to_two_classes():
     b = validation.binarize(["negative", "neutral", "positive", "NEGATIVE"])
     assert list(b) == ["negative", "not_negative", "not_negative", "negative"]

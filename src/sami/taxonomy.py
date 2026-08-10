@@ -13,18 +13,10 @@ import csv
 import io
 import re
 import warnings
-import unicodedata
 from pathlib import Path
 import pandas as pd
 
-from . import config
-
-
-def _fold(s: str) -> str:
-    s = unicodedata.normalize("NFKD", str(s))
-    s = "".join(c for c in s if not unicodedata.combining(c))
-    return s.lower()
-
+from . import canon, config
 
 # ---- institutions / procedures dictionary ----
 # The dictionary lives in a CSV registry (config.entities_path()), NOT here: the
@@ -130,9 +122,9 @@ def reload_entities(path=None) -> None:
     for row in rows:
         if row["kind"] == "ignore":
             if row["entity"]:
-                IGNORED_TERMS.add(_fold(row["entity"]))
+                IGNORED_TERMS.add(canon.fold(row["entity"]))
             if row["pattern"]:
-                IGNORED_TERMS.add(_fold(row["pattern"]))
+                IGNORED_TERMS.add(canon.fold(row["pattern"]))
             continue
         ENTITY_PATTERNS.setdefault(row["entity"], []).append(row["pattern"])
         ENTITY_KIND[row["entity"]] = row["kind"]
@@ -149,7 +141,7 @@ reload_entities()
 
 
 def extract_entities(text: str) -> set[str]:
-    t = _fold(text)
+    t = canon.fold(text)
     return {name for name, pats in _COMPILED.items() if any(p.search(t) for p in pats)}
 
 
@@ -208,17 +200,16 @@ def entity_stopterms() -> set[str]:
     would otherwise top the candidates table every single run, and it is
     dim_city's job, not the dictionary's.
     """
-    from . import canon
     from .clusters import SAMI_STOPWORDS
     from .load import SPANISH_STOPWORDS
 
     terms = set(IGNORED_TERMS)
-    terms |= {_fold(w) for w in SPANISH_STOPWORDS}
-    terms |= {_fold(w) for w in SAMI_STOPWORDS}
-    terms |= {_fold(v) for v in canon.CITY_CANON.values()}
-    terms |= {_fold(k) for k in canon.CITY_CANON}
-    terms |= {_fold(v) for v in canon.NATIONALITY_CANON.values()}
-    terms |= {_fold(k) for k in canon.NATIONALITY_CANON}
+    terms |= {canon.fold(w) for w in SPANISH_STOPWORDS}
+    terms |= {canon.fold(w) for w in SAMI_STOPWORDS}
+    terms |= {canon.fold(v) for v in canon.CITY_CANON.values()}
+    terms |= {canon.fold(k) for k in canon.CITY_CANON}
+    terms |= {canon.fold(v) for v in canon.NATIONALITY_CANON.values()}
+    terms |= {canon.fold(k) for k in canon.NATIONALITY_CANON}
     # Multiword canon values ("santa marta") also block their parts.
     for v in list(terms):
         terms |= set(v.split())
@@ -244,7 +235,7 @@ def entity_candidates(messages: pd.DataFrame, min_users: int = 15,
             continue
         if extract_entities(text):
             continue                      # recognised: nothing to learn here
-        folded = _fold(text)
+        folded = canon.fold(text)
         # Adjacency must be judged against the REAL text, not against the
         # survivors of the length filter -- otherwise a bigram can splice
         # together two words that a short connector ("ir a", "de", "el"...)
