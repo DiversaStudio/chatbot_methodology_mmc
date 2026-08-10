@@ -161,9 +161,14 @@ def stratified_sample(
     """Blind validation sample, stratified by cluster x predicted sentiment.
 
     Proportional allocation with a floor of one row per non-empty stratum, so
-    rare strata (e.g. negative + a small cluster) cannot vanish. The returned
-    frame contains SAMPLE_COLUMNS only — the prediction is deliberately
-    withheld.
+    rare strata (e.g. negative + a small cluster) cannot vanish. When the
+    proportional allocation oversubscribes `n`, the surplus is trimmed from
+    each stratum's rows ABOVE its floor first, so a stratum's guaranteed row
+    is never the one removed — unless there are more non-empty strata than
+    `n`, in which case no allocation can honor every floor and the trim falls
+    back to a uniform draw across every picked row, floors included. The
+    returned frame contains SAMPLE_COLUMNS only — the prediction is
+    deliberately withheld.
 
     Re-stratifying changes the shape of any FUTURE sample. The existing tone
     gold labels stay valid: they are keyed by message content hash and resolved
@@ -180,17 +185,32 @@ def stratified_sample(
     groups = list(frame.groupby("_strat"))
     total = len(frame)
 
-    picks: list[pd.DataFrame] = []
+    floor_picks: list[pd.DataFrame] = []
+    extra_picks: list[pd.DataFrame] = []
     for _, g in groups:
         want = max(1, int(round(n * len(g) / total)))
         want = min(want, len(g))
         take = rng.choice(g.index.values, size=want, replace=False)
-        picks.append(frame.loc[take])
+        floor_picks.append(frame.loc[take[:1]])
+        if want > 1:
+            extra_picks.append(frame.loc[take[1:]])
 
-    out = pd.concat(picks)
-    if len(out) > n:  # trim deterministically, keeping stratum coverage
-        keep = rng.choice(out.index.values, size=n, replace=False)
-        out = out.loc[keep]
+    floor_df = pd.concat(floor_picks)
+    extra_df = pd.concat(extra_picks) if extra_picks else frame.iloc[0:0]
+    out = pd.concat([floor_df, extra_df])
+
+    if len(out) > n:
+        surplus = len(out) - n
+        if surplus <= len(extra_df):
+            # Trim only rows above each stratum's floor, so every non-empty
+            # stratum's guaranteed row survives.
+            drop = rng.choice(extra_df.index.values, size=surplus, replace=False)
+            out = out.drop(index=drop)
+        else:
+            # More non-empty strata than n: no allocation can honor every
+            # floor simultaneously, so fall back to a uniform draw.
+            keep = rng.choice(out.index.values, size=n, replace=False)
+            out = out.loc[keep]
 
     out = out.sort_index()
     out = out.assign(message_id=out.index.astype(int))

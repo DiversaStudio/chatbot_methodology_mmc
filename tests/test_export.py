@@ -1305,6 +1305,32 @@ def _minimal_parity_inputs():
     return recon, dim_user, fact_message, fact_meal, _empty_dim_subcluster()
 
 
+def test_parity_check_survives_a_pending_repeat_askers_pct():
+    """Regression: reconciliation_table writes the string "pending" for
+    repeat_askers_pct when no response has a usable n_questions value.
+    build_parity_check used to do float(rap_rec) unguarded, which raises
+    ValueError on that string and would crash the whole export at its very
+    last step. It must degrade to a non-matching row instead."""
+    from sami import export
+    recon, dim_user, fact_message, fact_meal, dim_subcluster = _minimal_parity_inputs()
+    # Rebuild with an object-dtype "value" column carrying the literal string
+    # "pending" -- matches what reconciliation_table actually produces (a
+    # list of mixed int/str Python values), which an in-place .loc write onto
+    # the fixture's float64 column can't reproduce under current pandas.
+    recon = pd.DataFrame({
+        "metric": recon["metric"],
+        "value": [v if m != "repeat_askers_pct" else "pending"
+                  for m, v in zip(recon["metric"], recon["value"])],
+    })
+
+    out = export.build_parity_check(recon, dim_user, fact_message, fact_meal,
+                                     dim_subcluster)  # must not raise
+
+    row = out[out["metric"] == "repeat_askers_pct"].iloc[0]
+    assert row["reconciliation_value"] == "pending"
+    assert bool(row["match"]) is False
+
+
 def test_build_nlp_entity_candidates_shape():
     import pandas as pd
     from sami import export

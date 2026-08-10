@@ -2,7 +2,6 @@
 from __future__ import annotations
 import hashlib
 import re
-import unicodedata
 import warnings
 from pathlib import Path
 
@@ -50,12 +49,6 @@ def _is_noise(t: str) -> bool:
     return len(t) < 3 or t.isdigit() or t.lower() in _NOISE
 
 
-def _fold(s: str) -> str:
-    s = unicodedata.normalize("NFKD", str(s))
-    s = "".join(c for c in s if not unicodedata.combining(c))
-    return s.lower()
-
-
 _BASE_STOP = (
     "a al algo algunas algunos ante antes como con contra cual cuando de del "
     "desde donde dos el ella ellas ellos en entre era es esa ese eso esta este "
@@ -72,7 +65,7 @@ SPANISH_STOPWORDS = sorted(set(_BASE_STOP) | set(_COURTESY_TOKENS))
 
 
 def is_courtesy(text: str) -> bool:
-    words = re.findall(r"[a-zñ]+", _fold(text))
+    words = re.findall(r"[a-zñ]+", canon.fold(text))
     if not words:
         return True
     return all(w in _COURTESY_TOKENS for w in words)
