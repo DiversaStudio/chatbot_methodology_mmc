@@ -259,10 +259,19 @@ same join `fact_message_sample` uses so the tables cannot drift apart.
 | `text_redacted` | the message, run through `redact.scrub` — names dropped or the whole row dropped if a name cannot be cleanly removed (same rule as `fact_message_sample`) |
 | `redaction_applied` | whether `text_redacted` differs from the original |
 
-**Coverage is not 100% of `fact_message`.** A message dropped by `redact.scrub`
-(self-identification, a gazetteer name, or an unresolvable overlapping name
-span) is simply absent — that costs corpus coverage, not a silently
-unredacted row. Row count in `_manifest.csv` is the number that survived.
+**Coverage is not 100% of `fact_message`.** Two things drop a row, both
+counted against coverage rather than shipping a bad one: a message `redact.scrub`
+cannot cleanly redact (self-identification, a gazetteer name, or an
+unresolvable overlapping name span), and a message `export._is_low_content_message`
+flags as carrying no content of its own — a single word, a bare greeting
+("Hola", "Buenas tardes"), a greeting or thanks padded with filler
+("Muchas gracias", "Ok gracias", "Gracias Sami", "No gracias."), or nothing
+but a city name answering the platform's own prompt ("Bogotá", "Bogotá
+Soacha"). The low-content filter is whole-message, not contains: a greeting
+attached to real content ("Buenas, necesito ayuda con mi PPT") survives, and
+filler alone with no actual greeting/thanks word ("no si") is not treated as
+a greeting. Row count in `_manifest.csv` is the number that survived both
+filters.
 
 ### `fact_meal` — 1 row per MEAL survey respondent (115 rows; user grain)
 Source: `SD.meal`, deduplicated to the most recent response per user. The

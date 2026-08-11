@@ -1543,10 +1543,13 @@ def test_sample_refills_a_dropped_candidate_rather_than_shrinking_the_bucket():
 # ---- fact_message_full: every message, not a curated sample ------------------
 
 def test_full_covers_every_message_no_length_or_bucket_cap():
-    """Unlike the sample table, there is no 60-190 char band and no per-bucket cap."""
+    """Unlike the sample table, there is no 60-190 char band and no per-bucket cap.
+    "no se" is short (5 chars, under the sample's 60-char floor) but two words
+    and neither a greeting nor a city, so it must survive -- the low-content
+    filter is about token content, not character length."""
     src, fm = _paired_frames()
-    src.loc[0, "message"] = "corto"          # would fail the sample's length band
-    src.loc[1, "message"] = "x" * 400        # would also fail it
+    src.loc[0, "message"] = "no se"           # short, but not low-content
+    src.loc[1, "message"] = "palabra " * 50   # long (400 chars) but multi-word, not low-content
     fm["message_id"] = [export.message_key(u, s, m) for u, s, m
                         in zip(src["user_id"], src["seq"], src["message"])]
     out = export.build_fact_message_full(src, fm)
@@ -1562,6 +1565,93 @@ def test_full_excludes_empty_text():
     fm["message_id"] = [export.message_key(u, s, m) for u, s, m
                         in zip(src["user_id"], src["seq"], src["message"])]
     out = export.build_fact_message_full(src, fm)
+    assert len(out) == len(src) - 1
+
+
+# ---- fact_message_full: low-content filter (one word / greeting / city-only) --
+
+@pytest.mark.parametrize("text", ["gracias", "Cúcuta", "corto"])
+def test_low_content_drops_single_word_messages(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "hola", "Hola", "buenas tardes", "buenos dias", "hola buenas",
+    "que tal", "saludos cordiales", "Buenas tardes!", "buenas tardes?",
+])
+def test_low_content_drops_bare_greetings(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "Muchas gracias", "Ok gracias", "No gracias.", "Gracias Sami",
+    "Bueno muchas gracias", "Si gracias", "muy amable gracias",
+])
+def test_low_content_drops_greeting_plus_filler(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", ["Bogotá", "bogota", "Bogotá Soacha", "santa marta"])
+def test_low_content_drops_city_only_messages(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "necesito ayuda con mi PPT",
+    "Buenas, necesito ayuda con mi tramite porque me lo negaron",  # greeting + real content
+    "vivo en Bogotá pero necesito el certificado de la EPS",       # city + real content
+    "no se",
+    "no si",  # filler only, no actual greeting/thanks word -- says nothing, but not our rule's job
+])
+def test_low_content_keeps_substantive_messages(text):
+    assert export._is_low_content_message(text) is False
+
+
+def test_full_drops_low_content_messages():
+    src, fm = _paired_frames()
+    src.loc[0, "message"] = "hola"
+    src.loc[1, "message"] = "Cúcuta"
+    fm["message_id"] = [export.message_key(u, s, m) for u, s, m
+                        in zip(src["user_id"], src["seq"], src["message"])]
+    out = export.build_fact_message_full(src, fm)
+    assert len(out) == len(src) - 2
+    assert not out["text_redacted"].isin(["hola", "Cúcuta"]).any()
+
+
+def test_full_drops_a_message_that_redacts_down_to_a_bare_placeholder():
+    """A bare name with no self-identification frame ("Juan Perez", answering
+    a name prompt) clears the pre-redaction low-content filter -- it's two
+    words, not a greeting or city -- but Layer 1 NER replaces the whole thing
+    with the "[nombre]" placeholder, leaving a one-token row with no content.
+    Must be caught post-redaction too, not just pre-."""
+    class _Ent:
+        def __init__(self, t, label, start, end):
+            self.text, self.label_ = t, label
+            self.start_char, self.end_char = start, end
+
+    class _Doc:
+        def __init__(self, ents):
+            self.ents = ents
+
+    class _Nlp:
+        """Only flags the one poisoned message as a PER entity -- every other
+        row in the fixture must pass through Layer 1 untouched, or a shared
+        fake NER would wrongly redact/drop the whole corpus."""
+        def __init__(self, target_text, ents):
+            self._target, self._ents = target_text, ents
+
+        def __call__(self, text):
+            return _Doc(self._ents if text == self._target else [])
+
+    src, fm = _paired_frames()
+    bare_name = "Herminia Zapata"
+    src.loc[0, "message"] = bare_name
+    fm.loc[0, "message_id"] = export.message_key(
+        src.loc[0, "user_id"], src.loc[0, "seq"], bare_name)
+    fake_nlp = _Nlp(bare_name, [_Ent(bare_name, "PER", 0, len(bare_name))])
+
+    out = export.build_fact_message_full(src, fm, nlp=fake_nlp)
+    assert not out["text_redacted"].eq("[nombre]").any()
     assert len(out) == len(src) - 1
 
 
