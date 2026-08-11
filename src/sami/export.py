@@ -292,6 +292,65 @@ def build_fact_message_sample(messages: pd.DataFrame, fact_message: pd.DataFrame
     return out.reset_index(drop=True)
 
 
+# Display-only tone labels for this table alone. fact_message / fact_message_sample
+# stay lowercase because Power BI's existing conditional-formatting rules read
+# `sentiment_label` verbatim (theme.TONE keys are lowercase for the same reason);
+# this table is new and nothing depends on its casing yet.
+TONE_DISPLAY = {"negative": "Negative", "neutral": "Neutral", "positive": "Positive"}
+
+FACT_MESSAGE_FULL_COLUMNS = [
+    "message_id", "user_id", "cluster_id", "subcluster_id", "subcluster_name",
+    "sentiment_label", "age_num", "city_canon", "ts", "text_redacted",
+    "redaction_applied",
+]
+
+
+def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
+                            *, nlp=None) -> pd.DataFrame:
+    """Every message in the corpus, redacted, one row per message.
+
+    Unlike `build_fact_message_sample` (a curated handful per subcluster x tone
+    bucket for illustrative quotes), this is the whole corpus: the dashboard's
+    joint table of cluster, subcluster, tone, age, and raw text for anyone who
+    needs message-level detail rather than aggregates. Labels come from
+    `fact_message`, the same join `build_fact_message_sample` relies on, so the
+    two tables cannot drift against each other.
+
+    A message whose text cannot be safely redacted is DROPPED, exactly as in
+    the sample table (see `redact.scrub`) -- coverage of the corpus is the
+    cost, not a silently unredacted row.
+    """
+    src = messages.copy()
+    src["message_id"] = [message_key(u, s, m) for u, s, m
+                         in zip(src["user_id"], src["seq"], src["message"])]
+    df = fact_message.merge(
+        src[["message_id", "message", "age_num"]], on="message_id", how="inner")
+    df = df[df["message"].astype(str).str.strip() != ""]
+    df = df.sort_values("message_id", kind="mergesort")
+
+    rows = []
+    for rec in df.to_dict("records"):
+        clean, changed = redact.scrub(rec["message"], nlp=nlp)
+        if clean is None:
+            continue
+        rows.append({
+            "message_id": rec["message_id"],
+            "user_id": rec["user_id"],
+            "cluster_id": rec["cluster_id"],
+            "subcluster_id": rec["subcluster_id"],
+            "subcluster_name": rec["subcluster_name"],
+            "sentiment_label": TONE_DISPLAY.get(rec["sentiment_label"], rec["sentiment_label"]),
+            "age_num": rec["age_num"],
+            "city_canon": rec["city_canon"],
+            "ts": rec["ts"],
+            "text_redacted": clean,
+            "redaction_applied": changed,
+        })
+
+    out = pd.DataFrame(rows, columns=FACT_MESSAGE_FULL_COLUMNS)
+    return out.reset_index(drop=True)
+
+
 # Ratings for which the v2 "¿Por qué la información entregada no fue útil?"
 # question was SUPPOSED to fire. Its skip logic misfired in production: it was
 # asked of 118 respondents, 75 of whom had rated the service Útil or Muy útil
@@ -874,8 +933,47 @@ def build_agg_coverage_gap(turns: pd.DataFrame,
     return pd.DataFrame(rows, columns=AGG_COVERAGE_GAP_COLUMNS)
 
 
+# A rate over fewer than this many mentions is noise -- mirrors the notebook's
+# own floor for this exact chart (NB2 "SAMI's own words" topic breakdown).
+GAP_ENTITY_MENTION_FLOOR = 5
+AGG_BOT_GAP_ENTITIES_COLUMNS = ["kind", "entity", "gap_count", "total_count", "pct_gap"]
+
+
+def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
+    """Entity mentions split by whether the turn hit a coverage gap.
+
+    Counts only, never text: `fact_bot_turn` structurally excludes user/bot
+    text (a bot reply quotes the user's own details back), so this is the one
+    way the "what were the gaps about" chart (NB2 Figure 8) can reach the
+    dashboard -- aggregated the same way `build_agg_entities_by_kind` already
+    aggregates the main corpus, keyed by the same institution/procedure
+    dictionary so the two charts stay comparable.
+
+    Entities below `GAP_ENTITY_MENTION_FLOOR` total mentions are dropped: a
+    rate over a handful of mentions is noise, not a finding (NB2 applies the
+    identical floor to this exact chart).
+    """
+    if turns.empty:
+        return pd.DataFrame(columns=AGG_BOT_GAP_ENTITIES_COLUMNS)
+
+    gap_kind = taxonomy.entity_counts_by_kind(turns.loc[turns["gap_flag"], "user_message"])
+    all_kind = taxonomy.entity_counts_by_kind(turns["user_message"])
+
+    rows = []
+    for kind in ("institution", "procedure"):
+        for ent, total in all_kind[kind].items():
+            if total < GAP_ENTITY_MENTION_FLOOR:
+                continue
+            gap_n = int(gap_kind[kind].get(ent, 0))
+            rows.append({"kind": kind, "entity": ent, "gap_count": gap_n,
+                        "total_count": int(total),
+                        "pct_gap": round(100 * gap_n / total, 1)})
+    out = pd.DataFrame(rows, columns=AGG_BOT_GAP_ENTITIES_COLUMNS)
+    return out.sort_values("pct_gap", ascending=False).reset_index(drop=True)
+
+
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "9") -> pd.DataFrame:
+                   schema_version: str = "11") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

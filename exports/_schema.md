@@ -7,16 +7,47 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "8"`** (bumped from `"7"` by the Coverage Gap Rate — see
-`docs/superpowers/specs/2026-08-06-coverage-gap-kpi-design.md`: SAMI's own
-replies are ingested from the WhatsApp production log to produce a **measured**
+**`schema_version = "11"`** (bumped from `"10"` for `agg_bot_gap_entities` —
+counts of institution/procedure entity mentions in the bot log, split by
+whether that turn hit a coverage gap, so NB2 Figure 8's "where the gaps
+concentrate" topic breakdown can be built in Power BI. `fact_bot_turn`
+structurally excludes message text (a bot reply quotes the user's own details
+back — see that table's entry below), so this had to be an aggregate, the
+same pattern `agg_entities_by_kind` already uses for the main corpus:
+`kind, entity, gap_count, total_count, pct_gap`, one row per entity that
+clears a 5-mention floor (a rate over fewer mentions is noise — the same
+floor NB2's own chart applies). Degrades like the other bot-log tables: no
+log file → the table ships empty with its headers, not missing.
+
+Schema `"10"` (bumped from `"9"`) added `fact_message_full` — one
+row per message in the whole corpus, redacted, with cluster / subcluster /
+tone / age / raw text, for the dashboard's message-level joint table. Unlike
+`fact_message` (deliberately **text-free**) and `fact_message_sample` (a
+curated handful of quotes per subcluster x tone bucket), this table carries
+the full corpus at message grain — a stakeholder-requested departure from the
+"no message text in the model" default, so treat it as a distinct, larger
+privacy surface: every row goes through the same `redact.scrub` gate as the
+sample table (a message that cannot be safely redacted is dropped, not
+shipped unredacted), and `write_all`'s PII scan still runs over it before
+anything is written. `sentiment_label` here is **Title Case**
+(`Negative`/`Neutral`/`Positive`), unlike every other table's lowercase —
+deliberately: Power BI's existing conditional-formatting rules on
+`fact_message` / `fact_message_sample` read the lowercase string directly, and
+this table isn't wired into any of them yet, so nothing broke by making it
+display-ready here first. See below for the full column list.
+
+Schema `"8"` (bumped from `"7"` by the Coverage Gap Rate — see
+`docs/superpowers/specs/2026-08-06-coverage-gap-kpi-design.md`) ingested
+SAMI's own replies from the WhatsApp production log to produce a **measured**
 unmet-need indicator, replacing the tone-based one the stakeholder asked for
-(tone κ = 0.595 still fails its gate). Two tables were added, `fact_bot_turn`
-and `agg_coverage_gap`; `meta_run` gained up to eight keys — `bot_log_present`,
-`bot_log_turns`, `bot_log_users`, `gap_gold_present`, `coverage_gap_quotable`,
-and, when a gold set is present, `gap_probe_precision`, `gap_probe_recall`,
-`gap_precision_gate`. `parity_check` is unchanged. See "Bot replies / coverage
-gap" below.
+(tone gate still fails — see `meta_run[tone_kappa]` below for the current κ,
+and `validation/tone_gold_labels.csv` for the underlying labels: two
+independent blind annotators, n=378, κ≈0.48).
+Two tables were added, `fact_bot_turn` and `agg_coverage_gap`; `meta_run`
+gained up to eight keys — `bot_log_present`, `bot_log_turns`, `bot_log_users`,
+`gap_gold_present`, `coverage_gap_quotable`, and, when a gold set is present,
+`gap_probe_precision`, `gap_probe_recall`, `gap_precision_gate`.
+`parity_check` is unchanged. See "Bot replies / coverage gap" below.
 
 Both new tables are written **empty but column-complete** when the log is
 absent, so this bump does not require every consumer to have the out-of-band
@@ -215,6 +246,23 @@ Source: `SD.messages`, joined to sentiment + archetype.
 Feeds: NB2 §1 cluster share, §2 volume/cluster time series; NB3
 negative-by-cluster, sentiment distribution, voices; the Power-BI-native
 sentiment-by-cluster charts.
+
+### `fact_message_full` — 1 row per message, redacted (new in schema v10)
+Source: `SD.messages`, joined to `fact_message` for cluster/subcluster/tone,
+same join `fact_message_sample` uses so the tables cannot drift apart.
+
+| column | notes |
+|---|---|
+| `message_id`, `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `ts` | see `fact_message` |
+| `sentiment_label` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the one table in this export where tone is not lowercase; see the schema-v10 note above |
+| `age_num` | the message-owning user's age, straight from `SD.messages` |
+| `text_redacted` | the message, run through `redact.scrub` — names dropped or the whole row dropped if a name cannot be cleanly removed (same rule as `fact_message_sample`) |
+| `redaction_applied` | whether `text_redacted` differs from the original |
+
+**Coverage is not 100% of `fact_message`.** A message dropped by `redact.scrub`
+(self-identification, a gazetteer name, or an unresolvable overlapping name
+span) is simply absent — that costs corpus coverage, not a silently
+unredacted row. Row count in `_manifest.csv` is the number that survived.
 
 ### `fact_meal` — 1 row per MEAL survey respondent (115 rows; user grain)
 Source: `SD.meal`, deduplicated to the most recent response per user. The
@@ -575,6 +623,24 @@ figure must be labelled **"at least"**. As of 2026-08-06: precision 0.952
 
 Editing `taxonomy.COVERAGE_GAP_PROBE` invalidates all of these numbers.
 `tests/test_bot_replies.py` fails when the probe and the gold set disagree.
+
+### `agg_bot_gap_entities` — 1 row per entity above the mention floor (new in schema v11)
+
+Cols: `kind`, `entity`, `gap_count`, `total_count`, `pct_gap`.
+
+Feeds NB2 Figure 8's "where the gaps concentrate" panel: for each
+institution/procedure entity (same dictionary `agg_entities_by_kind` uses on
+the main corpus), how many of its mentions in the bot log landed in a turn
+`fact_bot_turn.gap_flag` marked, versus its total mentions. `pct_gap = 100 *
+gap_count / total_count`.
+
+**No message or reply text** — same structural reason as `fact_bot_turn`: a
+bot reply quotes the user's own details back, so raw text from this log is
+never a candidate for export, redacted or not. Entities below
+`export.GAP_ENTITY_MENTION_FLOOR` (5) total mentions are dropped; a rate over
+a handful of mentions is noise, not a finding — NB2's own version of this
+chart applies the identical floor. Degrades with the log: no bot log present
+→ empty table with headers, same as `fact_bot_turn` / `agg_coverage_gap`.
 
 ---
 
