@@ -6,6 +6,7 @@ docs/superpowers/specs/2026-07-24-sami-exports-powerbi-design.md.
 """
 from __future__ import annotations
 import hashlib
+import re
 import warnings
 from pathlib import Path
 
@@ -304,10 +305,71 @@ FACT_MESSAGE_FULL_COLUMNS = [
     "redaction_applied",
 ]
 
+# Whole-message vocabulary for the greeting filter below. A CONTAINS check
+# would also drop substantive messages that happen to open politely ("Buenas,
+# necesito ayuda con mi PPT porque..."); this only fires when EVERY token in
+# the message is drawn from this set (plus `_GREETING_FILLER_TOKENS` below),
+# so a greeting plus real content survives.
+_GREETING_TOKENS = frozenset({
+    "hola", "hi", "hey", "hello", "buenas", "buenos", "buen", "dia", "dias",
+    "día", "días", "tarde", "tardes", "noche", "noches", "saludos", "saludo",
+    "que", "qué", "tal", "cordial", "cordiales", "cordialmente", "gracias",
+})
+
+# Filler that carries no content of its own but routinely rides along with a
+# greeting/thanks word: "Muchas gracias", "Ok gracias", "Gracias Sami", "No
+# gracias.", "Bueno muchas gracias" -- all thanks-only, measured off real
+# `fact_message_full` rows. A message made ENTIRELY of these tokens (no
+# `_GREETING_TOKENS` word among them) is not treated as a greeting by itself
+# -- "no si" alone says nothing -- see the `any(...)` guard below.
+_GREETING_FILLER_TOKENS = frozenset({
+    "muchas", "mucho", "muy", "bueno", "buena", "buenisimo", "excelente",
+    "ok", "okay", "vale", "amable", "no", "si", "sí", "sami",
+})
+
+# City-name tokens for the city-only filter below, built from `canon.CITY_CANON`
+# so it can never drift from the one place city names are canonicalised: keys
+# are already-folded aliases, values are the accented display forms, and a
+# multi-word entry ("santa marta") contributes each of its words individually
+# so a two-city message ("Bogotá Soacha") still matches on both tokens.
+_CITY_TOKENS = frozenset(
+    tok for pair in canon.CITY_CANON.items() for name in pair
+    for tok in canon.fold(name).split())
+
+_PUNCT_EDGE = re.compile(r"^[^a-z0-9]+|[^a-z0-9]+$")
+
+
+def _tokenize(text: str) -> list[str]:
+    """Fold, split on whitespace, strip leading/trailing punctuation from each
+    token, and drop anything that strips to nothing (bare punctuation, an
+    emoji with no attached letters). "No gracias." and "Buenas tardes!" must
+    tokenize the same as "No gracias" and "Buenas tardes" -- a trailing period
+    or exclamation mark is not content."""
+    return [t for t in (_PUNCT_EDGE.sub("", tok) for tok in canon.fold(text).split()) if t]
+
+
+def _is_low_content_message(text: str) -> bool:
+    """True for a message that carries no analysable content of its own: a
+    single word, a bare greeting (optionally padded with thanks-adjacent
+    filler -- "Muchas gracias", "Gracias Sami"), or nothing but a city name
+    (one or two tokens, e.g. "Bogotá" or "Bogotá Soacha"). These pass every
+    other filter (non-empty, safely redactable) but add noise, not signal, to
+    a table meant to be read message by message."""
+    tokens = _tokenize(text)
+    if len(tokens) <= 1:
+        return True
+    greeting_vocab = _GREETING_TOKENS | _GREETING_FILLER_TOKENS
+    if (all(t in greeting_vocab for t in tokens)
+            and any(t in _GREETING_TOKENS for t in tokens)):
+        return True
+    if all(t in _CITY_TOKENS for t in tokens):
+        return True
+    return False
+
 
 def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
                             *, nlp=None) -> pd.DataFrame:
-    """Every message in the corpus, redacted, one row per message.
+    """Every substantive message in the corpus, redacted, one row per message.
 
     Unlike `build_fact_message_sample` (a curated handful per subcluster x tone
     bucket for illustrative quotes), this is the whole corpus: the dashboard's
@@ -316,9 +378,13 @@ def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
     `fact_message`, the same join `build_fact_message_sample` relies on, so the
     two tables cannot drift against each other.
 
-    A message whose text cannot be safely redacted is DROPPED, exactly as in
-    the sample table (see `redact.scrub`) -- coverage of the corpus is the
-    cost, not a silently unredacted row.
+    "Whole corpus" excludes low-content noise -- see `_is_low_content_message`:
+    one-word messages, bare greetings, and messages that are nothing but a
+    city name read as answers to the platform's own prompts, not conversation
+    to be analysed message by message. A message whose text cannot be safely
+    redacted is also DROPPED, exactly as in the sample table (see
+    `redact.scrub`) -- coverage of the corpus is the cost, not a silently
+    unredacted row.
     """
     src = messages.copy()
     src["message_id"] = [message_key(u, s, m) for u, s, m
@@ -326,12 +392,20 @@ def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
     df = fact_message.merge(
         src[["message_id", "message", "age_num"]], on="message_id", how="inner")
     df = df[df["message"].astype(str).str.strip() != ""]
+    df = df[~df["message"].astype(str).map(_is_low_content_message)]
     df = df.sort_values("message_id", kind="mergesort")
 
     rows = []
     for rec in df.to_dict("records"):
         clean, changed = redact.scrub(rec["message"], nlp=nlp)
         if clean is None:
+            continue
+        # A message that clears the pre-redaction filter can still collapse
+        # into noise: "Juan Perez" (a bare name, no self-identification frame
+        # for Layer 2 to drop) survives scrub as a one-token "[nombre]"
+        # placeholder. Re-check post-redaction so a placeholder-only row
+        # doesn't ship as if it were content.
+        if _is_low_content_message(clean):
             continue
         rows.append({
             "message_id": rec["message_id"],

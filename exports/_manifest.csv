@@ -17,9 +17,9 @@ dim_user,1392,"user_id,instrument_version,gender_clean,age_num,age_flag,city_can
 fact_bot_turn,1021,"turn_id,user_id,ts,has_survey_record,gap_flag,handoff_flag",fd1763765dda0946ea5bfe1f5b2956024d341cd8
 fact_meal,115,"user_id,ts,usefulness_rating,rating_num,would_recommend,recommendation_text,discovery_channel,no_usefulness_reason,reason_is_valid",3d1fcc33787fc03f428897016bca167eca4c5fe2
 fact_message,4663,"message_id,user_id,ts,city_canon,seq,n_msgs_user,sentiment_label,cluster_id,subcluster_id,subcluster_name",7ce6ecbe0ed977f8bc0a4702d761461dffe98ea6
-fact_message_full,4476,"message_id,user_id,cluster_id,subcluster_id,subcluster_name,sentiment_label,age_num,city_canon,ts,text_redacted,redaction_applied",74e93e26119abf7bc13b816a1e374c950b8b877e
+fact_message_full,3924,"message_id,user_id,cluster_id,subcluster_id,subcluster_name,sentiment_label,age_num,city_canon,ts,text_redacted,redaction_applied",a3a655cc86f31cbbc02af7a0f1f3ca267d3d425d
 fact_message_sample,138,"message_id,user_id,cluster_id,subcluster_id,subcluster_name,sentiment_label,city_canon,ts,char_len,text_redacted,redaction_applied",f5de1973a40a59d48b7560e7ae28e26471fa97db
-meta_run,37,"key,value",356768686604aaffaaee3a558c930918a5b50ba7
+meta_run,37,"key,value",e59956ea30a70119554c75ee6cfa44cef3235a82
 nlp_cluster_terms,240,"cluster_id,rank,term,weight",fbb26a042e096a9073eca83f0c4329327a31b7cc
 nlp_emergent_themes,6,"theme,slug,n_messages,n_users",2fce878cd764994b88d153e377f5e653c2a64631
 nlp_entity_candidates,40,"term,n_gram,n_msgs,n_users,example_message_id",10f81cdb36af0c1184468f0a7573a0b1e6c07a12

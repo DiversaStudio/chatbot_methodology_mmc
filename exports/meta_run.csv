@@ -6,7 +6,7 @@ meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
 ts_max,2026-07-28 13:46:49.197000
 salt_present,True
-generated_at,2026-08-11T16:31:53.542062+00:00
+generated_at,2026-08-11T18:55:44.027310+00:00
 schema_version,11
 report_version,2.0.0
 embed_model,intfloat/multilingual-e5-large
