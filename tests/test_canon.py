@@ -222,3 +222,32 @@ def test_v2_discovery_options_are_complete_and_consistent():
     assert d["Otro migrante"] == d["Recomendación de otro migrante"]
     assert d["Recomendación de ONG"] == d["Recomendación de una ONG"]
     assert d["Punto de atención"] == d["Cartelera en un punto de atención"]
+
+
+def test_discovery_channel_display_defaults_unknown_to_other():
+    """Free text typed into the 'Otro' option's own field (instead of the
+    literal 'Otro'), and any other value outside the closed dropdown set,
+    still means 'other' -- it must not draw its own bar."""
+    assert canon.discovery_channel_display(
+        "Por un afiche que esta pegado a la pared") == "Other"
+    assert canon.discovery_channel_display("Por int�grate") == "Other"
+    assert canon.discovery_channel_display("Recomendación de otro migrante") == \
+        "Another migrant"
+    assert canon.discovery_channel_display("Social media") == "Social media"
+    assert canon.discovery_channel_display(None) is None
+    import pandas as pd
+    assert pd.isna(canon.discovery_channel_display(float("nan")))
+
+
+def test_language_display_covers_es_en_fr_and_defaults_to_not_specified():
+    """fr has zero usage in the current export (the selector is v2-only and
+    no v2 user has picked it yet), but the option exists, so it must display
+    correctly the moment it appears rather than needing a code change."""
+    assert canon.language_display("es") == "Spanish"
+    assert canon.language_display("en") == "English"
+    assert canon.language_display("fr") == "French"
+    assert canon.language_display("ES") == "Spanish"  # case-insensitive
+    assert canon.language_display("pt") == "Not specified"  # unrecognized code
+    assert canon.language_display(None) == "Not specified"
+    import pandas as pd
+    assert canon.language_display(float("nan")) == "Not specified"

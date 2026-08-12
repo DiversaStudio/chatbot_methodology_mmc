@@ -7,16 +7,70 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "8"`** (bumped from `"7"` by the Coverage Gap Rate — see
-`docs/superpowers/specs/2026-08-06-coverage-gap-kpi-design.md`: SAMI's own
-replies are ingested from the WhatsApp production log to produce a **measured**
+**`schema_version = "14"`** (bumped from `"13"` for `agg_daily_meal` — daily
+MEAL survey response counts, same shape as `agg_daily_volume` but over
+`fact_meal[ts]`, added so the MEAL Analysis page can show a survey-response
+timeline alongside the message-volume line. See that table's entry below.
+
+Schema `"13"` (bumped from `"12"` for `fact_conversation_full` —
+one row per user, their whole conversation concatenated in `seq` order,
+replacing the message-grain `fact_message_full`. The old table fed only the
+Data page's one-row-per-message table and nothing else in the report; the
+new table is what that page now shows. Same per-message redaction and
+low-content filtering as before, just regrouped by user instead of shipped
+one row per message — see that table's entry below. `sentiment_label` has no
+single value once messages are joined into one block of text, so
+`dominant_sentiment` (the most frequent label across the user's surviving
+messages) replaces it, explicitly named as an aggregate.
+
+Schema `"12"` (bumped from `"11"` for `fact_message_entities` —
+message-grain entity hits, replacing `agg_entities_by_kind`. The retired
+table's (kind, entity, n) rows had no key any dashboard filter could reach;
+the new table carries `message_id` instead, so Top Institutions / Top
+Procedures can be filtered by date, city, gender, cluster, etc. via the
+existing `fact_message` relationships — see that table's entry below.
+
+Schema `"11"` (bumped from `"10"`) added `agg_bot_gap_entities` —
+counts of institution/procedure entity mentions in the bot log, split by
+whether that turn hit a coverage gap, so NB2 Figure 8's "where the gaps
+concentrate" topic breakdown can be built in Power BI. `fact_bot_turn`
+structurally excludes message text (a bot reply quotes the user's own details
+back — see that table's entry below), so this had to be an aggregate, the
+same pattern `agg_entities_by_kind` already uses for the main corpus:
+`kind, entity, gap_count, total_count, pct_gap`, one row per entity that
+clears a 5-mention floor (a rate over fewer mentions is noise — the same
+floor NB2's own chart applies). Degrades like the other bot-log tables: no
+log file → the table ships empty with its headers, not missing.
+
+Schema `"10"` (bumped from `"9"`) added `fact_message_full` — one
+row per message in the whole corpus, redacted, with cluster / subcluster /
+tone / age / raw text, for the dashboard's message-level joint table. Unlike
+`fact_message` (deliberately **text-free**) and `fact_message_sample` (a
+curated handful of quotes per subcluster x tone bucket), this table carries
+the full corpus at message grain — a stakeholder-requested departure from the
+"no message text in the model" default, so treat it as a distinct, larger
+privacy surface: every row goes through the same `redact.scrub` gate as the
+sample table (a message that cannot be safely redacted is dropped, not
+shipped unredacted), and `write_all`'s PII scan still runs over it before
+anything is written. `sentiment_label` here is **Title Case**
+(`Negative`/`Neutral`/`Positive`), unlike every other table's lowercase —
+deliberately: Power BI's existing conditional-formatting rules on
+`fact_message` / `fact_message_sample` read the lowercase string directly, and
+this table isn't wired into any of them yet, so nothing broke by making it
+display-ready here first. See below for the full column list.
+
+Schema `"8"` (bumped from `"7"` by the Coverage Gap Rate — see
+`docs/superpowers/specs/2026-08-06-coverage-gap-kpi-design.md`) ingested
+SAMI's own replies from the WhatsApp production log to produce a **measured**
 unmet-need indicator, replacing the tone-based one the stakeholder asked for
-(tone κ = 0.595 still fails its gate). Two tables were added, `fact_bot_turn`
-and `agg_coverage_gap`; `meta_run` gained up to eight keys — `bot_log_present`,
-`bot_log_turns`, `bot_log_users`, `gap_gold_present`, `coverage_gap_quotable`,
-and, when a gold set is present, `gap_probe_precision`, `gap_probe_recall`,
-`gap_precision_gate`. `parity_check` is unchanged. See "Bot replies / coverage
-gap" below.
+(tone gate still fails — see `meta_run[tone_kappa]` below for the current κ,
+and `validation/tone_gold_labels.csv` for the underlying labels: two
+independent blind annotators, n=378, κ≈0.48).
+Two tables were added, `fact_bot_turn` and `agg_coverage_gap`; `meta_run`
+gained up to eight keys — `bot_log_present`, `bot_log_turns`, `bot_log_users`,
+`gap_gold_present`, `coverage_gap_quotable`, and, when a gold set is present,
+`gap_probe_precision`, `gap_probe_recall`, `gap_precision_gate`.
+`parity_check` is unchanged. See "Bot replies / coverage gap" below.
 
 Both new tables are written **empty but column-complete** when the log is
 absent, so this bump does not require every consumer to have the out-of-band
@@ -216,6 +270,38 @@ Feeds: NB2 §1 cluster share, §2 volume/cluster time series; NB3
 negative-by-cluster, sentiment distribution, voices; the Power-BI-native
 sentiment-by-cluster charts.
 
+### `fact_conversation_full` — 1 row per user, whole conversation (new in schema v13)
+Source: `SD.messages`, joined to `fact_message` for cluster/subcluster/tone,
+same join `fact_message_sample` uses so the tables cannot drift apart.
+Supersedes the retired message-grain `fact_message_full` (schema v10–v12) —
+same underlying redaction and content filtering, regrouped by user instead of
+shipped one row per message.
+
+| column | notes |
+|---|---|
+| `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `age_num` | see `fact_message` — all already constant per user upstream, so they carry over from the user's first surviving message unchanged |
+| `dominant_sentiment` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the most frequent `sentiment_label` across the user's surviving messages, ties broken alphabetically for a deterministic result. `sentiment_label` is per-message and has no single value once messages are joined into one block of text; this is an explicit aggregate, not a per-message truth |
+| `n_messages` | how many of the user's messages survived redaction and the low-content filter and are represented in `conversation_text` |
+| `ts_first`, `ts_last` | timestamp of the user's first and last surviving message |
+| `conversation_text` | the user's surviving messages, each run through `redact.scrub`, joined in `seq` order (not `ts` — messages sent in the same second would otherwise join in an arbitrary order) with `"\n\n"` as the separator |
+| `redaction_applied` | `True` if *any* of the user's messages needed redaction |
+
+**Coverage is not 100% of `fact_message`.** Two things drop a message from
+`conversation_text` (and can drop a user entirely, if it was their only
+message), both counted against coverage rather than shipping a bad one: a
+message `redact.scrub` cannot cleanly redact (self-identification, a
+gazetteer name, or an unresolvable overlapping name span), and a message
+`export._is_low_content_message` flags as carrying no content of its own —
+a single word, a bare greeting ("Hola", "Buenas tardes"), a greeting or
+thanks padded with filler ("Muchas gracias", "Ok gracias", "Gracias Sami",
+"No gracias."), or nothing but a city name answering the platform's own
+prompt ("Bogotá", "Bogotá Soacha"). The low-content filter is whole-message,
+not contains: a greeting attached to real content ("Buenas, necesito ayuda
+con mi PPT") survives, and filler alone with no actual greeting/thanks word
+("no si") is not treated as a greeting. Row count in `_manifest.csv` is the
+number of *users* with at least one surviving message, not the number of
+messages — `n_messages` on each row is what states message-level coverage.
+
 ### `fact_meal` — 1 row per MEAL survey respondent (115 rows; user grain)
 Source: `SD.meal`, deduplicated to the most recent response per user. The
 underlying survey file has 142 raw response rows — quote the 115 figure for
@@ -398,6 +484,14 @@ line). Feeds NB2 §2 cluster-volume time series; map `cluster_id` through
 ### `agg_daily_volume` — 1 row per day (126 rows)
 Cols: `day`, `n`. Daily message counts. Feeds NB2 §2 volume line.
 
+### `agg_daily_meal` — 1 row per day (new in schema v14)
+Cols: `day`, `n`. Daily MEAL survey response counts, same shape as
+`agg_daily_volume` but over `fact_meal[ts]`. Feeds the MEAL Analysis survey
+timeline, paired with `agg_daily_volume` on a shared date axis so a reader
+can see days with heavy message traffic and few or no surveys completed. At
+115 total responses over a ~4.5-month window most days are 0 or 1 — sparse by
+nature, not a bug.
+
 ### `agg_weekly_rating` — 1 row per week (19 rows)
 Cols: `week`, `mean_rating`, `n`. Weekly MEAL usefulness mean. Feeds NB2 §5.
 
@@ -512,9 +606,16 @@ message-level volume to plot), so every row resolves to a real, named cluster.
 columns, which mirror `metrics.priority_matrix_frame`'s actual (richer)
 output — this file reflects what's actually written.*
 
-### `agg_entities_by_kind` — 1 row per (kind, entity) (18 rows)
-Cols: `kind`, `entity`, `n`. Extracted-entity mentions (orgs, documents, etc.)
-by kind. Feeds NB2 §1 entity chart.
+### `fact_message_entities` — 1 row per (message, entity) mention
+Cols: `message_id`, `kind`, `entity`. Message-grain entity hits — supersedes
+`agg_entities_by_kind` (retired in schema v12), which collapsed every mention
+across the whole corpus into one row per (kind, entity) and so carried no key
+any dashboard filter could reach. This table relates to
+`fact_message[message_id]`, which already relates to
+`dim_user`/`dim_city`/`dim_date`/`dim_cluster` — a DAX `SUMMARIZE` over it
+reproduces the old table's unfiltered total (`n` = row count per kind/entity)
+while also responding to every page filter. Feeds NB2 §1 entity chart (Top
+Institutions / Top Procedures).
 
 ---
 
@@ -575,6 +676,24 @@ figure must be labelled **"at least"**. As of 2026-08-06: precision 0.952
 
 Editing `taxonomy.COVERAGE_GAP_PROBE` invalidates all of these numbers.
 `tests/test_bot_replies.py` fails when the probe and the gold set disagree.
+
+### `agg_bot_gap_entities` — 1 row per entity above the mention floor (new in schema v11)
+
+Cols: `kind`, `entity`, `gap_count`, `total_count`, `pct_gap`.
+
+Feeds NB2 Figure 8's "where the gaps concentrate" panel: for each
+institution/procedure entity (same dictionary `fact_message_entities` uses on
+the main corpus), how many of its mentions in the bot log landed in a turn
+`fact_bot_turn.gap_flag` marked, versus its total mentions. `pct_gap = 100 *
+gap_count / total_count`.
+
+**No message or reply text** — same structural reason as `fact_bot_turn`: a
+bot reply quotes the user's own details back, so raw text from this log is
+never a candidate for export, redacted or not. Entities below
+`export.GAP_ENTITY_MENTION_FLOOR` (5) total mentions are dropped; a rate over
+a handful of mentions is noise, not a finding — NB2's own version of this
+chart applies the identical floor. Degrades with the log: no bot log present
+→ empty table with headers, same as `fact_bot_turn` / `agg_coverage_gap`.
 
 ---
 

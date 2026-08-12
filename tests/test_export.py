@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "9"
+    assert kv["schema_version"] == "14"
 
 
 def test_meta_run_carries_report_version():
@@ -136,10 +136,13 @@ def test_dim_user_display_values_are_english(SD):
     d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
                               sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
     _no_spanish(d, ["gender_clean", "minors", "away_duration_canon",
-                    "city_duration_canon", "city_canon", "nationality_canon"])
+                    "city_duration_canon", "city_canon", "nationality_canon",
+                    "language"])
     from sami import canon
     assert set(d["gender_clean"].dropna()) <= {
         "Woman", "Man", "LGBTQ+", canon.GENDER_OTHER_OR_UNSTATED, ""}
+    assert set(d["language"].dropna()) <= {"Spanish", "English", "French",
+                                            "Not specified"}
     # the ordering columns still carry the sort after the labels are translated
     if d["away_duration_order"].notna().any():
         pairs = d.dropna(subset=["away_duration_order"])
@@ -211,16 +214,33 @@ def test_agg_funnel_top_equals_users(SD):
     assert int(f["n"].iloc[0]) == SD.responses["user_id"].nunique()
 
 
-def test_agg_entities_by_kind(SD):
-    e = export.build_agg_entities_by_kind(SD.messages)
-    assert set(e.columns) == {"kind", "entity", "n"}
-    assert (e["n"] > 0).all()
+def test_fact_message_entities(SD):
+    e = export.build_fact_message_entities(SD.messages)
+    assert list(e.columns) == ["message_id", "kind", "entity"]
+    assert set(e["kind"]) <= {"institution", "procedure"}
+    # every message_id traces back to a real message in this corpus
+    real_ids = {export.message_key(u, s, m) for u, s, m in
+                zip(SD.messages["user_id"], SD.messages["seq"], SD.messages["message"])}
+    assert set(e["message_id"]) <= real_ids
+    # re-aggregating reproduces the retired agg_entities_by_kind totals
+    resummed = e.groupby(["kind", "entity"]).size()
+    by_kind = taxonomy.entity_counts_by_kind(SD.messages["message"])
+    for kind, s in by_kind.items():
+        for ent, n in s.items():
+            assert resummed.get((kind, ent), 0) == n
 
 
 def test_agg_daily_volume(SD):
     d = export.build_agg_daily_volume(SD.messages)
     assert set(d.columns) == {"day", "n"}
     assert d["n"].sum() == SD.messages["ts"].notna().sum()
+
+
+def test_agg_daily_meal(SD):
+    fmeal = export.build_fact_meal(SD.meal)
+    d = export.build_agg_daily_meal(fmeal)
+    assert set(d.columns) == {"day", "n"}
+    assert d["n"].sum() == fmeal["ts"].notna().sum()
 
 
 def test_nlp_umap_synthetic():
@@ -578,7 +598,7 @@ def test_dim_user_carries_the_new_v2_fields():
     for col in ("language", "registration_status", "attempts", "is_returning",
                 "safety_alert", "escalation_status"):
         assert col in d.columns, f"{col} missing from dim_user"
-    assert d.set_index("user_id").loc["u2", "language"] == "en"
+    assert d.set_index("user_id").loc["u2", "language"] == "English"
 
 
 def test_every_dim_user_column_has_a_cohort_policy():
@@ -704,9 +724,9 @@ def test_agg_language_splits_by_instrument_version():
     f = export.build_agg_language(_responses_registration())
     got = {(r.language, r.instrument_version): r.n_users
            for r in f.itertuples()}
-    assert got[("es", "v2")] == 2
-    assert got[("en", "v2")] == 1
-    assert got[("es", "v1")] == 1
+    assert got[("Spanish", "v2")] == 2
+    assert got[("English", "v2")] == 1
+    assert got[("Spanish", "v1")] == 1
 
 
 def test_agg_registration_funnel_empty_without_the_columns():
@@ -870,7 +890,7 @@ def test_agg_language_counts_multilingual_users_per_language():
     assert len(lg) == 2  # two language rows
     assert lg["n_users"].sum() == 2  # sum is 2 (user counted twice), but only 1 distinct user
     assert (lg["instrument_version"] == "v2").all()  # both rows are v2
-    assert set(lg["language"]) == {"es", "en"}
+    assert set(lg["language"]) == {"Spanish", "English"}
     # Per-cohort distinct users still matches dim_user (max n_users per cohort)
     assert lg[lg["instrument_version"] == "v2"]["n_users"].max() == 1
 
@@ -1128,10 +1148,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v9():
+def test_meta_run_reports_schema_v14():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "9"
+    assert val["schema_version"] == "14"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1392,10 +1412,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_9():
+def test_meta_run_defaults_to_schema_version_14():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "9"
+    assert out.set_index("key").loc["schema_version", "value"] == "14"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
@@ -1435,7 +1455,7 @@ def _sample_msgs(n_per=10):
                 rows.append({"user_id": f"u{sub}{tone}{i}", "seq": 1,
                              "message": f"necesito ayuda con el tramite numero {i} "
                                         f"para {tone} en la oficina de la ciudad hoy",
-                             "sub": sub, "tone": tone})
+                             "sub": sub, "tone": tone, "age_num": 30 + i})
     return pd.DataFrame(rows)
 
 
@@ -1538,3 +1558,281 @@ def test_sample_refills_a_dropped_candidate_rather_than_shrinking_the_bucket():
     out = export.build_fact_message_sample(src, fm)
     bucket = out[(out["subcluster_id"] == 0) & (out["sentiment_label"] == "negative")]
     assert len(bucket) == export.SAMPLE_PER_BUCKET
+
+
+# ---- fact_conversation_full: every user's whole conversation, one row each ---
+# fact_message_full (message-grain) is retired: it fed only the Data page's
+# table, which migrated to whole-conversation text, and nothing else in the
+# report used it -- keeping both would run the (expensive) redaction pass
+# twice over the corpus for no second consumer.
+
+def test_conversation_covers_every_surviving_message_no_length_or_bucket_cap():
+    """Unlike the sample table, there is no 60-190 char band and no per-bucket cap.
+    "no se" is short (5 chars, under the sample's 60-char floor) but two words
+    and neither a greeting nor a city, so it must survive -- the low-content
+    filter is about token content, not character length. `_paired_frames`
+    gives each user exactly one message, so at this grain "every message
+    survives" and "every user gets a row" are the same assertion."""
+    src, fm = _paired_frames()
+    src.loc[0, "message"] = "no se"           # short, but not low-content
+    src.loc[1, "message"] = "palabra " * 50   # long (400 chars) but multi-word, not low-content
+    fm["message_id"] = [export.message_key(u, s, m) for u, s, m
+                        in zip(src["user_id"], src["seq"], src["message"])]
+    out = export.build_fact_conversation_full(src, fm)
+    assert len(out) == len(src)
+    assert (out["n_messages"] == 1).all()
+
+
+def test_conversation_excludes_a_user_whose_only_message_is_empty():
+    src, fm = _paired_frames()
+    src.loc[0, "message"] = "   "
+    fm["message_id"] = [export.message_key(u, s, m) for u, s, m
+                        in zip(src["user_id"], src["seq"], src["message"])]
+    out = export.build_fact_conversation_full(src, fm)
+    assert len(out) == len(src) - 1
+
+
+# ---- fact_conversation_full: low-content filter (one word / greeting / city-only) --
+
+@pytest.mark.parametrize("text", ["gracias", "Cúcuta", "corto"])
+def test_low_content_drops_single_word_messages(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "hola", "Hola", "buenas tardes", "buenos dias", "hola buenas",
+    "que tal", "saludos cordiales", "Buenas tardes!", "buenas tardes?",
+])
+def test_low_content_drops_bare_greetings(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "Muchas gracias", "Ok gracias", "No gracias.", "Gracias Sami",
+    "Bueno muchas gracias", "Si gracias", "muy amable gracias",
+])
+def test_low_content_drops_greeting_plus_filler(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", ["Bogotá", "bogota", "Bogotá Soacha", "santa marta"])
+def test_low_content_drops_city_only_messages(text):
+    assert export._is_low_content_message(text) is True
+
+
+@pytest.mark.parametrize("text", [
+    "necesito ayuda con mi PPT",
+    "Buenas, necesito ayuda con mi tramite porque me lo negaron",  # greeting + real content
+    "vivo en Bogotá pero necesito el certificado de la EPS",       # city + real content
+    "no se",
+    "no si",  # filler only, no actual greeting/thanks word -- says nothing, but not our rule's job
+])
+def test_low_content_keeps_substantive_messages(text):
+    assert export._is_low_content_message(text) is False
+
+
+def test_conversation_drops_users_whose_only_message_is_low_content():
+    src, fm = _paired_frames()
+    src.loc[0, "message"] = "hola"
+    src.loc[1, "message"] = "Cúcuta"
+    fm["message_id"] = [export.message_key(u, s, m) for u, s, m
+                        in zip(src["user_id"], src["seq"], src["message"])]
+    out = export.build_fact_conversation_full(src, fm)
+    assert len(out) == len(src) - 2
+    assert not out["conversation_text"].isin(["hola", "Cúcuta"]).any()
+
+
+def test_conversation_drops_a_message_that_redacts_down_to_a_bare_placeholder():
+    """A bare name with no self-identification frame ("Juan Perez", answering
+    a name prompt) clears the pre-redaction low-content filter -- it's two
+    words, not a greeting or city -- but Layer 1 NER replaces the whole thing
+    with the "[nombre]" placeholder, leaving a one-token row with no content.
+    Must be caught post-redaction too, not just pre-."""
+    class _Ent:
+        def __init__(self, t, label, start, end):
+            self.text, self.label_ = t, label
+            self.start_char, self.end_char = start, end
+
+    class _Doc:
+        def __init__(self, ents):
+            self.ents = ents
+
+    class _Nlp:
+        """Only flags the one poisoned message as a PER entity -- every other
+        row in the fixture must pass through Layer 1 untouched, or a shared
+        fake NER would wrongly redact/drop the whole corpus."""
+        def __init__(self, target_text, ents):
+            self._target, self._ents = target_text, ents
+
+        def __call__(self, text):
+            return _Doc(self._ents if text == self._target else [])
+
+    src, fm = _paired_frames()
+    bare_name = "Herminia Zapata"
+    src.loc[0, "message"] = bare_name
+    fm.loc[0, "message_id"] = export.message_key(
+        src.loc[0, "user_id"], src.loc[0, "seq"], bare_name)
+    fake_nlp = _Nlp(bare_name, [_Ent(bare_name, "PER", 0, len(bare_name))])
+
+    out = export.build_fact_conversation_full(src, fm, nlp=fake_nlp)
+    assert not out["conversation_text"].eq("[nombre]").any()
+    assert len(out) == len(src) - 1
+
+
+def test_conversation_dominant_sentiment_is_capitalized_for_display():
+    src, fm = _paired_frames()
+    out = export.build_fact_conversation_full(src, fm)
+    assert set(out["dominant_sentiment"]) == {"Negative", "Neutral", "Positive"}
+    # the shared fact_message frame stays lowercase -- only this table's copy changes
+    assert set(fm["sentiment_label"]) == {"negative", "neutral", "positive"}
+
+
+def test_conversation_drops_a_name_bearing_message_rather_than_redacting_it():
+    src, fm = _paired_frames()
+    poisoned = ("me llamo maria fernanda y necesito ayuda urgente con el "
+                "tramite de mi documento en la oficina")
+    src.loc[0, "message"] = poisoned
+    fm.loc[0, "message_id"] = export.message_key(
+        src.loc[0, "user_id"], src.loc[0, "seq"], poisoned)
+    out = export.build_fact_conversation_full(src, fm)
+    assert not out["conversation_text"].str.contains("me llamo").any()
+    assert "maria" not in " ".join(out["conversation_text"]).lower()
+
+
+def test_conversation_has_the_declared_columns():
+    src, fm = _paired_frames()
+    out = export.build_fact_conversation_full(src, fm)
+    assert list(out.columns) == export.FACT_CONVERSATION_FULL_COLUMNS
+
+
+def test_conversation_passes_the_pii_gate():
+    from sami import qa
+    src, fm = _paired_frames()
+    out = export.build_fact_conversation_full(src, fm)
+    assert qa.pii_scan(out) == []
+
+
+def test_conversation_carries_age():
+    src, fm = _paired_frames()
+    out = export.build_fact_conversation_full(src, fm)
+    merged_age = src.set_index(["user_id"])["age_num"]
+    assert (out.set_index("user_id")["age_num"] == merged_age.loc[out["user_id"]].values).all()
+
+
+def test_conversation_is_deterministic():
+    src, fm = _paired_frames()
+    a = export.build_fact_conversation_full(src, fm)
+    b = export.build_fact_conversation_full(src, fm)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def _multi_message_frames():
+    """One user, three messages out of seq/ts order in the source, so ordering
+    bugs (sorting by ts, or by insertion order) show up as a wrong-order join
+    instead of accidentally passing."""
+    rows = [
+        {"user_id": "u1", "seq": 3, "message": "y ahora necesito el certificado de la EPS",
+         "sub": 0, "tone": "neutral", "age_num": 30},
+        {"user_id": "u1", "seq": 1, "message": "hola necesito ayuda con mi tramite de PPT",
+         "sub": 0, "tone": "negative", "age_num": 30},
+        {"user_id": "u1", "seq": 2, "message": "me lo negaron en la oficina de migracion",
+         "sub": 0, "tone": "negative", "age_num": 30},
+    ]
+    src = pd.DataFrame(rows)
+    fm = pd.DataFrame({
+        "message_id": [export.message_key(u, s, m) for u, s, m
+                       in zip(src["user_id"], src["seq"], src["message"])],
+        "user_id": src["user_id"],
+        "ts": [pd.Timestamp("2026-01-01 10:00:00")] * 3,   # identical ts -- seq must break the tie
+        "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 3,
+        "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
+        "subcluster_id": src["sub"], "subcluster_name": "n",
+    })
+    return src, fm
+
+
+def test_conversation_concatenates_in_seq_order_not_ts_or_source_order():
+    src, fm = _multi_message_frames()
+    out = export.build_fact_conversation_full(src, fm)
+    assert len(out) == 1
+    row = out.iloc[0]
+    assert row["n_messages"] == 3
+    parts = row["conversation_text"].split(export.CONVERSATION_SEPARATOR)
+    assert parts == [
+        "hola necesito ayuda con mi tramite de PPT",   # seq 1
+        "me lo negaron en la oficina de migracion",    # seq 2
+        "y ahora necesito el certificado de la EPS",   # seq 3
+    ]
+
+
+def test_conversation_dominant_sentiment_is_the_most_frequent_label():
+    src, fm = _multi_message_frames()  # 2 negative, 1 neutral
+    out = export.build_fact_conversation_full(src, fm)
+    assert out.iloc[0]["dominant_sentiment"] == "Negative"
+
+
+def test_conversation_dominant_sentiment_ties_break_alphabetically():
+    assert export._dominant_sentiment(["Positive", "Negative"]) == "Negative"
+    assert export._dominant_sentiment(["Neutral", "Negative", "Neutral", "Negative"]) == "Negative"
+
+
+def test_conversation_redaction_applied_if_any_message_was_redacted():
+    """A self-identification frame ("me llamo X") is DROPPED outright by
+    redact.scrub, not redacted-in-place -- see redact.scrub's Layer 2 -- so
+    `redaction_applied=True` needs a Layer 1 (NER) name redaction that keeps
+    the message instead. `contains_known_first_name` also drops on gazetteer
+    presence alone, so the fake entity here ("Herminia Zapata") is one already
+    established elsewhere in this file as safe from that gazetteer/frame
+    drop (see test_conversation_drops_a_message_that_redacts_down_to_a_bare_
+    placeholder), with enough surrounding real content that it survives the
+    post-redaction low-content re-check too."""
+    class _Ent:
+        def __init__(self, t, label, start, end):
+            self.text, self.label_ = t, label
+            self.start_char, self.end_char = start, end
+
+    class _Doc:
+        def __init__(self, ents):
+            self.ents = ents
+
+    class _Nlp:
+        def __init__(self, target_text, ents):
+            self._target, self._ents = target_text, ents
+
+        def __call__(self, text):
+            return _Doc(self._ents if text == self._target else [])
+
+    src, fm = _multi_message_frames()
+    named = ("Herminia Zapata trabaja en la oficina de migracion y me ayudo "
+             "con el certificado de la EPS")
+    src.loc[src["seq"] == 3, "message"] = named
+    fm.loc[fm["seq"] == 3, "message_id"] = export.message_key("u1", 3, named)
+    fake_nlp = _Nlp(named, [_Ent("Herminia Zapata", "PER", 0, len("Herminia Zapata"))])
+
+    out = export.build_fact_conversation_full(src, fm, nlp=fake_nlp)
+    assert out.iloc[0]["n_messages"] == 3
+    assert "[nombre]" in out.iloc[0]["conversation_text"]
+    assert bool(out.iloc[0]["redaction_applied"]) is True
+
+
+def test_conversation_ts_first_and_last_span_the_conversation():
+    rows = [
+        {"user_id": "u1", "seq": 1, "message": "hola necesito ayuda con mi tramite de PPT",
+         "sub": 0, "tone": "neutral", "age_num": 30},
+        {"user_id": "u1", "seq": 2, "message": "me lo negaron en la oficina de migracion",
+         "sub": 0, "tone": "neutral", "age_num": 30},
+    ]
+    src = pd.DataFrame(rows)
+    fm = pd.DataFrame({
+        "message_id": [export.message_key(u, s, m) for u, s, m
+                       in zip(src["user_id"], src["seq"], src["message"])],
+        "user_id": src["user_id"],
+        "ts": [pd.Timestamp("2026-01-01 09:00:00"), pd.Timestamp("2026-01-03 14:00:00")],
+        "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 2,
+        "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
+        "subcluster_id": src["sub"], "subcluster_name": "n",
+    })
+    out = export.build_fact_conversation_full(src, fm)
+    row = out.iloc[0]
+    assert row["ts_first"] == pd.Timestamp("2026-01-01 09:00:00")
+    assert row["ts_last"] == pd.Timestamp("2026-01-03 14:00:00")
