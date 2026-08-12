@@ -347,20 +347,76 @@ USEFULNESS_DISPLAY_EN: dict[str, str] = {
     "Nada útil": "Not useful",
 }
 DISCOVERY_DISPLAY_EN: dict[str, str] = {
-    "Recomendación de otro migrante": "Referral from another migrant",
-    "Recomendación de una ONG": "Referral from an NGO",
-    "Cartelera en un punto de atención": "Poster at a service point",
+    # Short, non-redundant labels: the chart title already says "How Users
+    # Find Sami," so "Referral from" on every bar was repeated context, and
+    # the longer strings were the ones truncating in the bar chart's category
+    # axis ("Referral from anot...", "Referral from an N...").
+    "Recomendación de otro migrante": "Another migrant",
+    "Recomendación de una ONG": "An NGO",
+    "Cartelera en un punto de atención": "Service point poster",
     "Redes sociales": "Social media",
     "Otro": "Other",
     # v2 reworded these three options; both vintages map to one label so a
     # pooled chart does not split the same answer in multiple slices.
-    "Otro migrante": "Referral from another migrant",
-    "Recomendación de ONG": "Referral from an NGO",
-    "Punto de atención": "Poster at a service point",
+    "Otro migrante": "Another migrant",
+    "Recomendación de ONG": "An NGO",
+    "Punto de atención": "Service point poster",
 }
 # 'Otra' (city) / 'Desconocida' (nationality) are the two catch-all buckets that
 # the canon functions themselves emit.
 OTHER_BUCKET_EN: dict[str, str] = {"Otra": "Other", "Desconocida": "Unknown"}
+
+DISCOVERY_CANONICAL_EN = frozenset(DISCOVERY_DISPLAY_EN.values())
+
+
+def discovery_channel_display(raw):
+    """EN label for a discovery_channel answer, defaulting unknowns to 'Other'.
+
+    The survey's 'Otro' option lets a respondent type free text, and some rows
+    have that free text sitting directly in `discovery_channel` instead of the
+    literal string 'Otro' -- each one a singleton, several with encoding noise.
+    They are still answers to the 'other' option, so they collapse to the same
+    'Other' bucket rather than each drawing its own bar. Unlike `_mapper`
+    (value-preserving passthrough, used elsewhere), this closed-set lookup
+    NEVER passes an unrecognized string through raw.
+    """
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return raw
+    if raw in DISCOVERY_DISPLAY_EN:
+        return DISCOVERY_DISPLAY_EN[raw]
+    if raw in DISCOVERY_CANONICAL_EN:
+        return raw
+    return "Other"
+
+
+# The interface-language selector (v2-only -- v1 users have no language
+# field, hence the volume of blanks). Currently only `es`/`en` appear in the
+# data (94.9%/0.2%, the rest blank), but the selector's own option set
+# includes French, so it's mapped here even with zero current usage -- it
+# must display correctly the moment it appears, not need a code change.
+LANGUAGE_DISPLAY_EN: dict[str, str] = {
+    "es": "Spanish",
+    "en": "English",
+    "fr": "French",
+}
+LANGUAGE_CANONICAL_EN = frozenset(LANGUAGE_DISPLAY_EN.values())
+
+
+def language_display(raw):
+    """EN label for an interface-language code.
+
+    Closed-set lookup, same discipline as `discovery_channel_display`: blank
+    (v1 users, who were never asked) and any unrecognized code both become
+    'Not specified' rather than showing a raw 2-letter code or an empty slice
+    with no label in a chart."""
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return "Not specified"
+    key = str(raw).strip().lower()
+    if key in LANGUAGE_DISPLAY_EN:
+        return LANGUAGE_DISPLAY_EN[key]
+    if raw in LANGUAGE_CANONICAL_EN:
+        return raw
+    return "Not specified"
 
 
 def yes_no_display(raw) -> str:

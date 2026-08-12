@@ -233,6 +233,55 @@ def test_empty_tables_keep_their_headers():
     assert len(empty) == 0
 
 
+# ---- agg_bot_gap_entities: the topic breakdown behind NB2 Figure 8 ----
+# Five distinct users each mention "PPT" (a procedure entity); two of the five
+# get a gap reply, so PPT clears the mention floor at gap_count=2, total=5,
+# pct_gap=40.0. A sixth user with no PPT mention is noise the count must not pick up.
+PPT_ROWS = [
+    ["2026-07-23T10:00:00.000Z", "whatsapp:+573001112231", "necesito el PPT", GAP_REPLY],
+    ["2026-07-23T10:01:00.000Z", "whatsapp:+573001112232", "quiero saber del PPT", GAP_REPLY_2],
+    ["2026-07-23T10:02:00.000Z", "whatsapp:+573001112233", "el PPT ya vence", PLAIN_REPLY],
+    ["2026-07-23T10:03:00.000Z", "whatsapp:+573001112234", "como saco el PPT", PLAIN_REPLY],
+    ["2026-07-23T10:04:00.000Z", "whatsapp:+573001112235", "info del PPT porfa", PLAIN_REPLY],
+    ["2026-07-23T10:05:00.000Z", "whatsapp:+573001112236", "hola", PLAIN_REPLY],
+]
+
+
+def test_agg_bot_gap_entities_computes_the_rate_above_the_floor(tmp_path):
+    out = export.build_agg_bot_gap_entities(_turns(tmp_path, PPT_ROWS))
+    row = out[(out.kind == "procedure") & (out.entity == "PPT")]
+    assert len(row) == 1
+    r = row.iloc[0]
+    assert (r.gap_count, r.total_count) == (2, 5)
+    assert r.pct_gap == pytest.approx(40.0)
+
+
+def test_agg_bot_gap_entities_drops_entities_below_the_mention_floor(tmp_path):
+    """BASE_ROWS mentions each entity at most once -- well under the floor of 5."""
+    out = export.build_agg_bot_gap_entities(_turns(tmp_path))
+    assert out.empty
+
+
+def test_agg_bot_gap_entities_carries_no_message_text(tmp_path):
+    """Structural, like fact_bot_turn: this table is counts, never text."""
+    out = export.build_agg_bot_gap_entities(_turns(tmp_path, PPT_ROWS))
+    assert list(out.columns) == export.AGG_BOT_GAP_ENTITIES_COLUMNS
+    assert "user_message" not in out.columns
+
+
+def test_agg_bot_gap_entities_passes_the_pii_gate(tmp_path):
+    out = export.build_agg_bot_gap_entities(_turns(tmp_path, PPT_ROWS))
+    assert qa.pii_scan(out) == []
+
+
+def test_agg_bot_gap_entities_empty_log_keeps_headers():
+    """A clone with no bot log must still produce a loadable, column-complete table."""
+    empty = export.build_agg_bot_gap_entities(
+        pd.DataFrame(columns=["gap_flag", "user_message"]))
+    assert list(empty.columns) == export.AGG_BOT_GAP_ENTITIES_COLUMNS
+    assert len(empty) == 0
+
+
 # ---- the shipped gold set ----
 def test_shipped_gold_set_clears_the_precision_gate():
     """Guards the real measurement, not a fixture.

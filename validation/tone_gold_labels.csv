@@ -1,179 +1,379 @@
 message_id,message,human_label,model_label,labelled_by
-8a6eb39d7bf4b861,Me encuentro en Rionegro medellín Antioquia,not_negative,not_negative,analyst pass only (no reviewer file present)
-7fa1e3cbc6cf8ccc,Yo no tengo pasaporte con el único documento que cuento es mi cedula venezolana,not_negative,not_negative,analyst pass only (no reviewer file present)
-1570b39cecd19e61,Bogotá Soacha,not_negative,not_negative,analyst pass only (no reviewer file present)
-be61b601468c0811,English please,not_negative,not_negative,analyst pass only (no reviewer file present)
-110b02aed6d94301,Y como hago para saber l certificado del ppt en trámite,not_negative,not_negative,analyst pass only (no reviewer file present)
-429df8c96e5fc533,Entiendo si tengo la atención médica secretaria de salud me cubre pero solo las diálisis no entra exámenes importantes que debo hacerme medicamentos que aparte son de alto costo,negative,negative,analyst pass only (no reviewer file present)
-fc0f6ccbd89e6829,Muchas gracias pero yo quisiera tener información de que si yo estoy en los 30 días hábiles ya ah pasado casi ya los dos meses de que cancillería no me da respuesta para el salvó conducto que debo hacer,negative,negative,analyst pass only (no reviewer file present)
-adc28431a2882113,Como conseguir trabajo si soy extranjero,not_negative,not_negative,analyst pass only (no reviewer file present)
-3736be54da9bf29f,Información sobre otra capacitación,not_negative,not_negative,analyst pass only (no reviewer file present)
-2c4ce6b86f215ae9,OIM,not_negative,not_negative,analyst pass only (no reviewer file present)
-2791d81c1c9216ae,Materno infantil,not_negative,negative,analyst pass only (no reviewer file present)
-950a6d89d7feec7c,"No, necesito centro de salud la parada",not_negative,negative,analyst pass only (no reviewer file present)
-66e5a185d6687eb9,más información,not_negative,not_negative,analyst pass only (no reviewer file present)
-348c4d20ca4a22de,Hola salí,not_negative,not_negative,analyst pass only (no reviewer file present)
-051e9c697790ebdf,Ya puse el denunció en una notaria,not_negative,not_negative,analyst pass only (no reviewer file present)
-0fe64b66893200c3,Requisitos,not_negative,not_negative,analyst pass only (no reviewer file present)
-56c9ebc6031d2a80,Quiero obtener un ayuda con la regularizarse y solicitar salvo conducto,not_negative,not_negative,analyst pass only (no reviewer file present)
-1e40f8db9a989e5c,necesito documento de identidad para pasar la frontera?,not_negative,not_negative,analyst pass only (no reviewer file present)
-8eabb1989a2fabff,Como hago para q me den una ayuda ya q no tengo ppt ni nda y quiero trabajar y ayudar a mi mama con mi hermanito de tres años,negative,not_negative,analyst pass only (no reviewer file present)
-ee190253c6d4cbfc,Información sobre tramites y procesos,not_negative,not_negative,analyst pass only (no reviewer file present)
-1c2820d6463944ad,Servicios de salud,not_negative,not_negative,analyst pass only (no reviewer file present)
-a566e677d756ee4e,Quiero regular el estatus migración por ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-e7042ebe2f85f339,Hola buenas tardes veci,not_negative,not_negative,analyst pass only (no reviewer file present)
-7d00df8fbaf29b0e,Me llamo vidalys Rosa González cédula [redacted] TLF [redacted] quiero saber cómo puedo saber mi permiso permanente aquí en Colombia,not_negative,not_negative,analyst pass only (no reviewer file present)
-f477066387e56c82,Todavía hay tiempo para sacar el ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-199b400fcf7fe4c8,Quiero un permiso para trabajar y para la salud,not_negative,not_negative,analyst pass only (no reviewer file present)
-fd6e0f6ef2e0f662,De Ipiales a pasto o cali nesecitamos dónde rrefujiarnos o encontrar cualquier ayuda,negative,not_negative,analyst pass only (no reviewer file present)
-a46588737d15a98e,Hay un rrefujio en pasto que nos rrefujie ala familia con niños,negative,negative,analyst pass only (no reviewer file present)
-83af393147361ca9,Si deseo trabajar,not_negative,not_negative,analyst pass only (no reviewer file present)
-db4a6b39f7b4f97c,Estan entregan el permiso de protección temporal,not_negative,not_negative,analyst pass only (no reviewer file present)
-152d4ded4cd30e54,Como solicitar un reasentamiento si soy refugiada de Colombia.,not_negative,negative,analyst pass only (no reviewer file present)
-28f829aa35c82896,Estoy situada en cúcuta - municipio de los patios,not_negative,not_negative,analyst pass only (no reviewer file present)
-bee4c72a038fecd8,Mi esposo es migrante venezolano y no tiene ppt .,not_negative,negative,analyst pass only (no reviewer file present)
-23c1b0672a8eeca4,Como apostillar documentos peruanos desde Colombia para obtener mi doble nacionalidad colomboperuana. Y poder tener documentos colombianos,not_negative,not_negative,analyst pass only (no reviewer file present)
-8f6bc7c736db1ac2,Cómo puedo solicitar a visa tipo M,not_negative,not_negative,analyst pass only (no reviewer file present)
-95de75f5e5d56b40,Cómo haría para poder apostillar sus documentos a mis hijos que son colombianos,not_negative,not_negative,analyst pass only (no reviewer file present)
-e95c35221c38c04f,Albergue,not_negative,not_negative,analyst pass only (no reviewer file present)
-d57e393637d1477f,Y como puedo hacer,not_negative,not_negative,analyst pass only (no reviewer file present)
-c018f3ecd1fbee80,Cómo obtengo la visa y que tipo de visa sería,not_negative,not_negative,analyst pass only (no reviewer file present)
-3c87a6b853259b12,Ok gracias lo mismo de siempre,negative,not_negative,analyst pass only (no reviewer file present)
-83c821f4a25d4b69,Otro día me dió una neurisma yy tampoco me atendieron ese día ni me miró el médico x eso se q no eso se puede,negative,negative,analyst pass only (no reviewer file present)
-77cc5b34be6e4a19,Como ago para tener la ayuda consejo danés para refugiados.por favor,not_negative,not_negative,analyst pass only (no reviewer file present)
-966da783592d4c96,Cómo recibir ayuda para mí Emprendimiento,not_negative,not_negative,analyst pass only (no reviewer file present)
-af7457770b3b314a,Sobre empleo,not_negative,not_negative,analyst pass only (no reviewer file present)
-421a52f897c0df75,"Después del sellado de pasaporte, que trámite debo realizar para continuar la permanencia en Colombia",not_negative,not_negative,analyst pass only (no reviewer file present)
-df5493bc64bb8cb4,"No somos personas conflictivas ni buscamos depender permanentemente de ayudas. Nuestro mayor deseo es poder estabilizarnos, capacitarnos, emprender y recuperar poco a poco nuestra independencia y tranquilidad.",not_negative,not_negative,analyst pass only (no reviewer file present)
-db733eebcd5c2ec8,Así está bien,not_negative,not_negative,analyst pass only (no reviewer file present)
-b1abbba34a911fc5,Hola si me gustaría saber en donde puedo conseguir un arriendo barato,not_negative,not_negative,analyst pass only (no reviewer file present)
-720eb4b279417949,Pero allá va a ser mi destino para dar a luz necesito la información,not_negative,not_negative,analyst pass only (no reviewer file present)
-b87cd3b4f1674326,Necesito buscar trabajo en medellin,not_negative,not_negative,analyst pass only (no reviewer file present)
-4df55e5d15a1c49f,Sí pero ustedes pueden ayudar a sacarlo o el ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-d2ab3eac4302d6f1,En el santuario antioquia,not_negative,not_negative,analyst pass only (no reviewer file present)
-9801f2527ab0465b,Dónde me queda migración,not_negative,negative,analyst pass only (no reviewer file present)
-4a319929d4610985,Como ago para mi duplicado del ppt ya que no puedo obtener. Cita en migración,negative,not_negative,analyst pass only (no reviewer file present)
-980f729927c130fc,Cuando activan la EPS el Pep tutor,not_negative,not_negative,analyst pass only (no reviewer file present)
-63c236f3800d6925,Concejo danes mas cercano,not_negative,not_negative,analyst pass only (no reviewer file present)
-1f2b11c207f5a3a1,Pero no tengo nada de papeles,not_negative,not_negative,analyst pass only (no reviewer file present)
-16ab43e8538c5974,Mi hijo ya está en proceso de su ppt el tiene una condición,not_negative,not_negative,analyst pass only (no reviewer file present)
-9cce13fa3f30772d,Cuando se termina la ayuda nos avisan?,not_negative,not_negative,analyst pass only (no reviewer file present)
-b44959b0fe44ccc2,Ayuda para mujer embarazada en Bogotá,not_negative,not_negative,analyst pass only (no reviewer file present)
-396e541f82282a23,Mi hija tiene 7 años no tenemos casa propia y estoy sin trabajo actualmente,negative,negative,analyst pass only (no reviewer file present)
-4a4efec389fe4dd3,Y entonces no me quieres ayudar Sami,negative,negative,analyst pass only (no reviewer file present)
-e5e9d520fb502fbc,Cuales son los servicios,not_negative,not_negative,analyst pass only (no reviewer file present)
-a035560de3c9465b,Como acceder ah cuentas bancarias,not_negative,not_negative,analyst pass only (no reviewer file present)
-73e2a722d322e8ee,esos es lo mismo del cane,not_negative,not_negative,analyst pass only (no reviewer file present)
-784da88f192bd936,Conoces el centro intégrate,not_negative,not_negative,analyst pass only (no reviewer file present)
-a2cf04746292db1c,Aqui en medellin dan ayudas para comprar alimentos,not_negative,not_negative,analyst pass only (no reviewer file present)
-e3cbba77b1892a60,Última mente hay muchas peleas y eso me afecta Ami,negative,negative,analyst pass only (no reviewer file present)
-bd7b0417a027eb48,Quisiera saber donde puedo llevar a mi hija de 16 año al medico ya que su eps se la cambiaron a maicao y ella está en medellin,not_negative,not_negative,analyst pass only (no reviewer file present)
-04f5881161a8a3eb,Y para consulta con medicina general también se puede hay,not_negative,not_negative,analyst pass only (no reviewer file present)
-29285ad3eee38ce1,Tengo una hija tiene 5 meses y no es podido saca el permiso y no es podido metela a nincun programa para ayudar,negative,not_negative,analyst pass only (no reviewer file present)
-77dfab9ace14b41c,Para sacale el permiso a mi hija ella tiene 5 meses de nacida,not_negative,not_negative,analyst pass only (no reviewer file present)
-7b8c5a6bc5f5acb8,Para ir necesito llevar todos los documentos de mi núcleo Familiar,not_negative,not_negative,analyst pass only (no reviewer file present)
-8b907ae69a26966d,Soy venezolano y tengo 3 años acá en Colombia no tengo permiso de protección temporal que otro medio puedo usar para regularizarme,not_negative,negative,analyst pass only (no reviewer file present)
-326f92cca7a71095,Heratland aliancce,not_negative,not_negative,analyst pass only (no reviewer file present)
-085c36bea33dc223,Le doy dónde dice aquí y no entra,negative,negative,analyst pass only (no reviewer file present)
-015efb73f6045199,Existe alguna sede de odontologia gratuita a la que pueda asistir como migrante venezolano,not_negative,not_negative,analyst pass only (no reviewer file present)
-e2160b3343344845,Puedo optar por el ppt?,not_negative,not_negative,analyst pass only (no reviewer file present)
-1133db62c5d51217,Tengo 5 años aqui en Colombia no e podido  obtener el registro colombiano ni el ppt para poder tener acceso a la salud y en ninguna parte me atienden si me atienden me cobran un platero asta los centro de salud,negative,negative,analyst pass only (no reviewer file present)
-acc35217b6402491,"Buenos días, quisiera saber si prestan ayuda humanitaria o donde podría yo solicitar esa ayuda..",not_negative,not_negative,analyst pass only (no reviewer file present)
-f7e8c137d413e54e,Quiero información sobre las ayudas humanitarias y las ayudas para los emprendedores,not_negative,not_negative,analyst pass only (no reviewer file present)
-85e11dc5f4ecb269,Yo vivo aquí en Bogotá tengo 5 años aquí pueden darle ayuda humanitaria,not_negative,not_negative,analyst pass only (no reviewer file present)
-fc01448af7fad1af,Primera mente quiero saber cuándo hay censo para emprendimiento,not_negative,not_negative,analyst pass only (no reviewer file present)
-2601c8eeac385fcc,Y si el la plataforma no aparece oficina en Medellín que se hace,not_negative,negative,analyst pass only (no reviewer file present)
-6259c656202d773e,Quiero saber como hago para sacar el ppt oh salvoconducto es yo poder trabajar,not_negative,not_negative,analyst pass only (no reviewer file present)
-606d58eefa55e9ef,como puedo emigrar a españa?,not_negative,not_negative,analyst pass only (no reviewer file present)
-f75c15ec7946edf2,Vendo bolsas cuando puedo.,not_negative,not_negative,analyst pass only (no reviewer file present)
-3c6cb37c33461a15,Quiero acceder a un ppt o a un salvoconducto.,not_negative,not_negative,analyst pass only (no reviewer file present)
-3086b742cfea2242,Soy venezolana  y me quedó acá en colombia,not_negative,not_negative,analyst pass only (no reviewer file present)
-96d909a8497b25d1,No entiendo que consultas puedo hacerte entonces,negative,negative,analyst pass only (no reviewer file present)
-20a2f8f7dd590394,Quiero saber dónde puedo ir a buscar ayuda alimentaria,not_negative,not_negative,analyst pass only (no reviewer file present)
-4db8367c89205a2c,Estoy en medellín Robledo villa flora donde tengo que ir directamente y específicamente,not_negative,not_negative,analyst pass only (no reviewer file present)
-1e1ad362c150af48,Pero si existe ese servicio en la alcaldía,not_negative,not_negative,analyst pass only (no reviewer file present)
-62ce79918fc7f688,Como puedo hacer para saber si mi permiso ppt esta impreso hace tres años fui a migración y me dieron el rumv me tomaron la foto pero a mi hicieron un robo a mano armada y perdí mi cedula y mi rumv,negative,negative,analyst pass only (no reviewer file present)
-fe07297e1bcb0396,Desde que hora tienen servicio en migración,not_negative,not_negative,analyst pass only (no reviewer file present)
-0c8e0968c2da284b,Me puedes dar los número para llamar,not_negative,not_negative,analyst pass only (no reviewer file present)
-46d8c860a235293a,𝗕𝗮𝗿𝗿𝗮𝗻𝗾𝘂𝗶𝗹𝗹𝗮,not_negative,not_negative,analyst pass only (no reviewer file present)
-a45dde862ddf0f11,Yo quisiera saber sobre empleabilidad o emprendimiento,not_negative,not_negative,analyst pass only (no reviewer file present)
-0566d2b70e591094,Cómo se si siendo venezolana estoy en data crédito,not_negative,not_negative,analyst pass only (no reviewer file present)
-b58371409f5f61b9,Y para las vacunas a embarazadas,not_negative,not_negative,analyst pass only (no reviewer file present)
-3847b4b26fb9bc46,"Quisiera tener un empleo fijo , oh un emprendimiento ya q hecho varios cursos, cocina , panadería, tortas",not_negative,not_negative,analyst pass only (no reviewer file present)
-ee16b55f29ec3532,"Quedó igual , con la pregunta sin respuesta gracias.",negative,negative,analyst pass only (no reviewer file present)
-938f5ffd7ccf2c37,Como puedo obtener un permiso para trabajar o un salvoconducto,not_negative,not_negative,analyst pass only (no reviewer file present)
-464f793b85b6519a,Tengo mi documento quiero estar aquí para estudiar y trabajar,not_negative,not_negative,analyst pass only (no reviewer file present)
-9334872e3bfdb958,Pero  es porque  no tengo  ppt ni salvo  conductor  por eso no me quieren  operar,negative,negative,analyst pass only (no reviewer file present)
-bd1d5e87edeee828,Mañana  voy  a donde me dijeste,not_negative,not_negative,analyst pass only (no reviewer file present)
-eaff555539713e5c,No pude sacar mi ppt cuando salió por problemas económicos en ese entonces tenía a mis hijos a mi cargo y era solo pagar arriendo y comida y no me quedaba para pasajes para ir hasta allá hace ya unos meses pude obtener el salvoconducto sc2 ya tengo sisben y e querido afiliarme a la salud de acá desde que tengo ese documento y nunca e salido que puedo hacer?,negative,negative,analyst pass only (no reviewer file present)
-1cf8b3186ae24a15,Yo quisiera saber dónde puedo ir para q me vea el médico porq no me ven si no tengo ppt,negative,not_negative,analyst pass only (no reviewer file present)
-b57a06bad9a55fee,Por urgencia no me hacen tac abdominal,negative,negative,analyst pass only (no reviewer file present)
-d57c49256116eef2,Permiso de trabajo,not_negative,not_negative,analyst pass only (no reviewer file present)
-f356af45e3684103,me gustaria saber como iniciar el proceso,not_negative,not_negative,analyst pass only (no reviewer file present)
-2ff155b3c537e93c,Pues vengo por acá haber si me pueden ayudar con la ayuda que esta dando de verda no me a ido bien y pues tube un accidente donde no me a atendido en ningún hospital y de verda necesito me ayude estoy con mi hija acá y pues de verda de corazón se los pido,negative,negative,analyst pass only (no reviewer file present)
-8e29bef61dd511fd,Ok mucha gracias,not_negative,not_negative,analyst pass only (no reviewer file present)
-bb9afa5f6ce1c143,Yo estoi aka en el.terminal de medellim.en el.norte yo.necesito son los psssjes haci sea ssta cucuta,negative,not_negative,analyst pass only (no reviewer file present)
-da4931dc1c5fa9ec,Cuales son los requisitos a llenar en dicha planilla,not_negative,not_negative,analyst pass only (no reviewer file present)
-79e94ed805b27f71,Cuando vuelven a dar el ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-dac0c74f81b7c1f8,Quiero orientación,not_negative,not_negative,analyst pass only (no reviewer file present)
-8d874d674d6c6108,Sami el PAO- ACNUR,not_negative,not_negative,analyst pass only (no reviewer file present)
-d88466a36d53ffa6,Ayuda humanitaria en Villavicencio,not_negative,not_negative,analyst pass only (no reviewer file present)
-c6ae1605124d2805,Si ingrese este año que puedo hacer?,not_negative,not_negative,analyst pass only (no reviewer file present)
-fb8a5e3d46c3f090,Trámites y requisitos para salida de menores venezolanos de colombia a Venezuela,not_negative,not_negative,analyst pass only (no reviewer file present)
-deed205ae9a4f66d,Si quisiera saber atención médica y información específica estoy en Soacha quiero obtener un papel de refugiado,not_negative,not_negative,analyst pass only (no reviewer file present)
-8417d5733b4f2ac2,No brindan ayuda económica o para emprendedores?,not_negative,not_negative,analyst pass only (no reviewer file present)
-3f98b032639ed3a1,Me puedes ayudar mad,not_negative,not_negative,analyst pass only (no reviewer file present)
-20151cacc9162c13,Es que no se como hacerlo,not_negative,negative,analyst pass only (no reviewer file present)
-aaece0548bd27db6,Quiero sacar mi ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-17338d0cc5360b36,Ella viaja conmigo,not_negative,not_negative,analyst pass only (no reviewer file present)
-138be8a65ce3ad05,Para la visa m,not_negative,not_negative,analyst pass only (no reviewer file present)
-5f1770ad579923ea,Esque yo tengo 15 años acá en Colombia,not_negative,not_negative,analyst pass only (no reviewer file present)
-76419b6ae37ef6b8,En Cúcuta en que lugares puedo acudir para la esterelizacion después del parto,not_negative,not_negative,analyst pass only (no reviewer file present)
-6c66df5216ef4186,Estoy embarazada y necesito saber cómo hacer para acceder a un médico.,not_negative,not_negative,analyst pass only (no reviewer file present)
-bb40db4ad4cffa6f,Aca en maicao,not_negative,negative,analyst pass only (no reviewer file present)
-60b77b4f0f44628b,Si  que necesito,not_negative,not_negative,analyst pass only (no reviewer file present)
-69f0586d5c434a40,"Tengo PPT y no tengo actualizado el número de telf, que debo hacer?",not_negative,negative,analyst pass only (no reviewer file present)
-81aea02363443670,Donde hago este pre registro virtual?,not_negative,not_negative,analyst pass only (no reviewer file present)
-388fa822046a3cd2,Cuánto es el costo de la visa V,not_negative,not_negative,analyst pass only (no reviewer file present)
-4242a904a32413a4,Necesito una cita con un especialista en ortopedia pero no tengo dinero,negative,not_negative,analyst pass only (no reviewer file present)
-cd4158671e4539f6,Necesito saber en dónde hay refugio,not_negative,not_negative,analyst pass only (no reviewer file present)
-4872a8cc961c355f,De q manera me puedo regularizar en colombia?,not_negative,not_negative,analyst pass only (no reviewer file present)
-5530b69eea0cd8f7,Buenas noches en que empresa puedo conseguir trabajo con un salvo conducto,not_negative,not_negative,analyst pass only (no reviewer file present)
-ba6826da54629b2d,Voy a tener un hijo un hijo aquí en Colombia quería saber si por tenerlo aqui me daban algún tipo de documentos a mi,not_negative,not_negative,analyst pass only (no reviewer file present)
-3e34003818def160,Colombia medellin,not_negative,not_negative,analyst pass only (no reviewer file present)
-0ba04f9d88f8c90c,Debo ir a migración colombia?,not_negative,not_negative,analyst pass only (no reviewer file present)
-a2f8042e2eb1e49b,Me puedes dar los números de los hospitales donde me pueden atender y poner en control,not_negative,not_negative,analyst pass only (no reviewer file present)
-8b27ccc2d30fe91a,Número de WhatsApp,not_negative,not_negative,analyst pass only (no reviewer file present)
-41a85eae57d9db0b,Quiero saber si puedo sacar al ppt,not_negative,not_negative,analyst pass only (no reviewer file present)
-25365073072fa1d8,Para solicitar la visa,not_negative,not_negative,analyst pass only (no reviewer file present)
-18523ee8ecbecdda,Otra pregunta como puedo saber si mi núcleo familiar es beneficiado en el bono alimentario,not_negative,not_negative,analyst pass only (no reviewer file present)
-89e0173613a4795a,Puedo trabajar si no tengo mi ppt en físico,not_negative,not_negative,analyst pass only (no reviewer file present)
-f441033edd6b1272,Quisiera saber si están dando cualquier tipo de ayuda es q no estoy trabajando y tengo 2 niñas,negative,not_negative,analyst pass only (no reviewer file present)
-3ed45ec1206c6026,Deceo saber tengo mi hijo que cuando llegamos aquí a Colombia nos rejistramos con el ptt. Y después su papá lo registro tiene cédula de ciudadanía y también el rud como hace xq tiene 2 documentos,not_negative,not_negative,analyst pass only (no reviewer file present)
-1c90f70ab85ac62d,Ya me dieron la autorización el ministerio de relaciones,not_negative,not_negative,analyst pass only (no reviewer file present)
-89cb698ffd5b264d,Que otro documento puedo solicitar ya que solo tengo cédula de identidad,not_negative,not_negative,analyst pass only (no reviewer file present)
-b4f58db87000f29e,Tengo cédula de extranjería seguro y hasta cuenta bancaria,not_negative,not_negative,analyst pass only (no reviewer file present)
-be642fbd14f97303,No puedo trasladar las cotizaciones que tengo de todos los años en Venezuela para acá en Colombia,negative,negative,analyst pass only (no reviewer file present)
-912c01a5d6c14583,Si no tengo pasaporte vigente?,not_negative,not_negative,analyst pass only (no reviewer file present)
-7e62d930b0f16abb,En que parte pueden ayudar con pasaje en Bogotá,not_negative,not_negative,analyst pass only (no reviewer file present)
-21c8d4a7a3887304,Requisitos para acceder a seguridad social en salud,not_negative,not_negative,analyst pass only (no reviewer file present)
-bf1abf7e7ea4ead2,Mi pregunta es si con el salvo conducto puedo meter a mi hija ala EPS,not_negative,not_negative,analyst pass only (no reviewer file present)
-6da7fad385aa372d,Como puedo gestionar el PPT,not_negative,not_negative,analyst pass only (no reviewer file present)
-16142f5933cbc501,Mi esposo aún no le entregan el carnet ppt y en este momento requiere una operación q tengo q hacer en este caso me voy a Venezuela nuevamente...????  Ya q tuve q verlo medicamente allá xq el aún no le han hecho entrega d su ppt,negative,negative,analyst pass only (no reviewer file present)
-2e2601d6d4702f22,Donde podría ir para q lo valoren nuevamente x acá y le digan si lo operan o no,not_negative,not_negative,analyst pass only (no reviewer file present)
-8e8eb723e2e0c165,En el 2023 saqué el rumv aún puedo tramitar el PPT?,not_negative,not_negative,analyst pass only (no reviewer file present)
-72bfa494dfa426eb,Si lo que pasa que yo no tengo cedula Venezuela y me adicho que sin la cédula no puedo y el papá es fallecido,negative,negative,analyst pass only (no reviewer file present)
-7991d9751eb16532,Yo lo único que tengo es el registro venezolano con eso no la puedo registrar,negative,negative,analyst pass only (no reviewer file present)
-4ba8244386c854f1,Bucaramanga tiene los números de WhatsApp para escribir,not_negative,not_negative,analyst pass only (no reviewer file present)
-8e93692c42ee681c,Donde le dan comida y ropa a migrantes venezolanos,not_negative,not_negative,analyst pass only (no reviewer file present)
-e3c1633ea42dc2aa,Que información tienes,not_negative,not_negative,analyst pass only (no reviewer file present)
-a42c281e014cbef7,Cursos de inglés gratis para migrantes en barranquilla,not_negative,not_negative,analyst pass only (no reviewer file present)
-6a95edd1c2e4bf22,Quiero regresar a mi país,not_negative,negative,analyst pass only (no reviewer file present)
-f3a55e28c88d40a6,Quisiera saber si hay ayuda para mujer soltera venezolana con niños,not_negative,not_negative,analyst pass only (no reviewer file present)
-7c28dcff1d47462d,Sólo quería saber cómo ago para contar con una ayuda para el emprendimiento que tengo y poder sobrevivir acá en Colombia por favor,negative,not_negative,analyst pass only (no reviewer file present)
-f4f8efdafb7e4109,Y como ago para sacar pasaporte venezolano,not_negative,not_negative,analyst pass only (no reviewer file present)
-43b27bd4e39ad384,Yo puedo recibir ayuda económica,not_negative,not_negative,analyst pass only (no reviewer file present)
-055f765f3f089ecf,y sobre el por selo saque Ami hija y nada q lo entrega,negative,negative,analyst pass only (no reviewer file present)
-f8931305dc55d8a8,Entre a colombia este mismo año,not_negative,not_negative,analyst pass only (no reviewer file present)
-74656ca1c5e83220,Siendo venezolano,not_negative,not_negative,analyst pass only (no reviewer file present)
-bf2078213444fa76,Me fue de mucha ayuda,not_negative,not_negative,analyst pass only (no reviewer file present)
+8a6eb39d7bf4b861,Me encuentro en Rionegro medellín Antioquia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7fa1e3cbc6cf8ccc,Yo no tengo pasaporte con el único documento que cuento es mi cedula venezolana,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1570b39cecd19e61,Bogotá Soacha,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+be61b601468c0811,English please,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+110b02aed6d94301,Y como hago para saber l certificado del ppt en trámite,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+429df8c96e5fc533,Entiendo si tengo la atención médica secretaria de salud me cubre pero solo las diálisis no entra exámenes importantes que debo hacerme medicamentos que aparte son de alto costo,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+fc0f6ccbd89e6829,Muchas gracias pero yo quisiera tener información de que si yo estoy en los 30 días hábiles ya ah pasado casi ya los dos meses de que cancillería no me da respuesta para el salvó conducto que debo hacer,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+adc28431a2882113,Como conseguir trabajo si soy extranjero,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3736be54da9bf29f,Información sobre otra capacitación,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2c4ce6b86f215ae9,OIM,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2791d81c1c9216ae,Materno infantil,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+950a6d89d7feec7c,"No, necesito centro de salud la parada",not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+66e5a185d6687eb9,más información,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+348c4d20ca4a22de,Hola salí,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+051e9c697790ebdf,Ya puse el denunció en una notaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0fe64b66893200c3,Requisitos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+56c9ebc6031d2a80,Quiero obtener un ayuda con la regularizarse y solicitar salvo conducto,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1e40f8db9a989e5c,necesito documento de identidad para pasar la frontera?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8eabb1989a2fabff,Como hago para q me den una ayuda ya q no tengo ppt ni nda y quiero trabajar y ayudar a mi mama con mi hermanito de tres años,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ee190253c6d4cbfc,Información sobre tramites y procesos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1c2820d6463944ad,Servicios de salud,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a566e677d756ee4e,Quiero regular el estatus migración por ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e7042ebe2f85f339,Hola buenas tardes veci,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7d00df8fbaf29b0e,Me llamo vidalys Rosa González cédula [redacted] TLF [redacted] quiero saber cómo puedo saber mi permiso permanente aquí en Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f477066387e56c82,Todavía hay tiempo para sacar el ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+199b400fcf7fe4c8,Quiero un permiso para trabajar y para la salud,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+fd6e0f6ef2e0f662,De Ipiales a pasto o cali nesecitamos dónde rrefujiarnos o encontrar cualquier ayuda,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a46588737d15a98e,Hay un rrefujio en pasto que nos rrefujie ala familia con niños,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+83af393147361ca9,Si deseo trabajar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+db4a6b39f7b4f97c,Estan entregan el permiso de protección temporal,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+152d4ded4cd30e54,Como solicitar un reasentamiento si soy refugiada de Colombia.,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+28f829aa35c82896,Estoy situada en cúcuta - municipio de los patios,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bee4c72a038fecd8,Mi esposo es migrante venezolano y no tiene ppt .,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+23c1b0672a8eeca4,Como apostillar documentos peruanos desde Colombia para obtener mi doble nacionalidad colomboperuana. Y poder tener documentos colombianos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8f6bc7c736db1ac2,Cómo puedo solicitar a visa tipo M,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+95de75f5e5d56b40,Cómo haría para poder apostillar sus documentos a mis hijos que son colombianos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e95c35221c38c04f,Albergue,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d57e393637d1477f,Y como puedo hacer,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c018f3ecd1fbee80,Cómo obtengo la visa y que tipo de visa sería,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3c87a6b853259b12,Ok gracias lo mismo de siempre,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+83c821f4a25d4b69,Otro día me dió una neurisma yy tampoco me atendieron ese día ni me miró el médico x eso se q no eso se puede,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+77cc5b34be6e4a19,Como ago para tener la ayuda consejo danés para refugiados.por favor,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+966da783592d4c96,Cómo recibir ayuda para mí Emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+af7457770b3b314a,Sobre empleo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+421a52f897c0df75,"Después del sellado de pasaporte, que trámite debo realizar para continuar la permanencia en Colombia",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+df5493bc64bb8cb4,"No somos personas conflictivas ni buscamos depender permanentemente de ayudas. Nuestro mayor deseo es poder estabilizarnos, capacitarnos, emprender y recuperar poco a poco nuestra independencia y tranquilidad.",negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+db733eebcd5c2ec8,Así está bien,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b1abbba34a911fc5,Hola si me gustaría saber en donde puedo conseguir un arriendo barato,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+720eb4b279417949,Pero allá va a ser mi destino para dar a luz necesito la información,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b87cd3b4f1674326,Necesito buscar trabajo en medellin,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4df55e5d15a1c49f,Sí pero ustedes pueden ayudar a sacarlo o el ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d2ab3eac4302d6f1,En el santuario antioquia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9801f2527ab0465b,Dónde me queda migración,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+4a319929d4610985,Como ago para mi duplicado del ppt ya que no puedo obtener. Cita en migración,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+980f729927c130fc,Cuando activan la EPS el Pep tutor,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+63c236f3800d6925,Concejo danes mas cercano,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1f2b11c207f5a3a1,Pero no tengo nada de papeles,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+16ab43e8538c5974,Mi hijo ya está en proceso de su ppt el tiene una condición,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9cce13fa3f30772d,Cuando se termina la ayuda nos avisan?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b44959b0fe44ccc2,Ayuda para mujer embarazada en Bogotá,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+396e541f82282a23,Mi hija tiene 7 años no tenemos casa propia y estoy sin trabajo actualmente,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+4a4efec389fe4dd3,Y entonces no me quieres ayudar Sami,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+e5e9d520fb502fbc,Cuales son los servicios,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a035560de3c9465b,Como acceder ah cuentas bancarias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+73e2a722d322e8ee,esos es lo mismo del cane,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+784da88f192bd936,Conoces el centro intégrate,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a2cf04746292db1c,Aqui en medellin dan ayudas para comprar alimentos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e3cbba77b1892a60,Última mente hay muchas peleas y eso me afecta Ami,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+bd7b0417a027eb48,Quisiera saber donde puedo llevar a mi hija de 16 año al medico ya que su eps se la cambiaron a maicao y ella está en medellin,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+04f5881161a8a3eb,Y para consulta con medicina general también se puede hay,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+29285ad3eee38ce1,Tengo una hija tiene 5 meses y no es podido saca el permiso y no es podido metela a nincun programa para ayudar,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+77dfab9ace14b41c,Para sacale el permiso a mi hija ella tiene 5 meses de nacida,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7b8c5a6bc5f5acb8,Para ir necesito llevar todos los documentos de mi núcleo Familiar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8b907ae69a26966d,Soy venezolano y tengo 3 años acá en Colombia no tengo permiso de protección temporal que otro medio puedo usar para regularizarme,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+326f92cca7a71095,Heratland aliancce,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+085c36bea33dc223,Le doy dónde dice aquí y no entra,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+015efb73f6045199,Existe alguna sede de odontologia gratuita a la que pueda asistir como migrante venezolano,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e2160b3343344845,Puedo optar por el ppt?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1133db62c5d51217,Tengo 5 años aqui en Colombia no e podido  obtener el registro colombiano ni el ppt para poder tener acceso a la salud y en ninguna parte me atienden si me atienden me cobran un platero asta los centro de salud,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+acc35217b6402491,"Buenos días, quisiera saber si prestan ayuda humanitaria o donde podría yo solicitar esa ayuda..",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f7e8c137d413e54e,Quiero información sobre las ayudas humanitarias y las ayudas para los emprendedores,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+85e11dc5f4ecb269,Yo vivo aquí en Bogotá tengo 5 años aquí pueden darle ayuda humanitaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+fc01448af7fad1af,Primera mente quiero saber cuándo hay censo para emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2601c8eeac385fcc,Y si el la plataforma no aparece oficina en Medellín que se hace,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+6259c656202d773e,Quiero saber como hago para sacar el ppt oh salvoconducto es yo poder trabajar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+606d58eefa55e9ef,como puedo emigrar a españa?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f75c15ec7946edf2,Vendo bolsas cuando puedo.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3c6cb37c33461a15,Quiero acceder a un ppt o a un salvoconducto.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3086b742cfea2242,Soy venezolana  y me quedó acá en colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+96d909a8497b25d1,No entiendo que consultas puedo hacerte entonces,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+20a2f8f7dd590394,Quiero saber dónde puedo ir a buscar ayuda alimentaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4db8367c89205a2c,Estoy en medellín Robledo villa flora donde tengo que ir directamente y específicamente,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1e1ad362c150af48,Pero si existe ese servicio en la alcaldía,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+62ce79918fc7f688,Como puedo hacer para saber si mi permiso ppt esta impreso hace tres años fui a migración y me dieron el rumv me tomaron la foto pero a mi hicieron un robo a mano armada y perdí mi cedula y mi rumv,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+fe07297e1bcb0396,Desde que hora tienen servicio en migración,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0c8e0968c2da284b,Me puedes dar los número para llamar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+46d8c860a235293a,𝗕𝗮𝗿𝗿𝗮𝗻𝗾𝘂𝗶𝗹𝗹𝗮,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a45dde862ddf0f11,Yo quisiera saber sobre empleabilidad o emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0566d2b70e591094,Cómo se si siendo venezolana estoy en data crédito,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b58371409f5f61b9,Y para las vacunas a embarazadas,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3847b4b26fb9bc46,"Quisiera tener un empleo fijo , oh un emprendimiento ya q hecho varios cursos, cocina , panadería, tortas",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ee16b55f29ec3532,"Quedó igual , con la pregunta sin respuesta gracias.",negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+938f5ffd7ccf2c37,Como puedo obtener un permiso para trabajar o un salvoconducto,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+464f793b85b6519a,Tengo mi documento quiero estar aquí para estudiar y trabajar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9334872e3bfdb958,Pero  es porque  no tengo  ppt ni salvo  conductor  por eso no me quieren  operar,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+bd1d5e87edeee828,Mañana  voy  a donde me dijeste,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+eaff555539713e5c,No pude sacar mi ppt cuando salió por problemas económicos en ese entonces tenía a mis hijos a mi cargo y era solo pagar arriendo y comida y no me quedaba para pasajes para ir hasta allá hace ya unos meses pude obtener el salvoconducto sc2 ya tengo sisben y e querido afiliarme a la salud de acá desde que tengo ese documento y nunca e salido que puedo hacer?,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+1cf8b3186ae24a15,Yo quisiera saber dónde puedo ir para q me vea el médico porq no me ven si no tengo ppt,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b57a06bad9a55fee,Por urgencia no me hacen tac abdominal,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+d57c49256116eef2,Permiso de trabajo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f356af45e3684103,me gustaria saber como iniciar el proceso,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2ff155b3c537e93c,Pues vengo por acá haber si me pueden ayudar con la ayuda que esta dando de verda no me a ido bien y pues tube un accidente donde no me a atendido en ningún hospital y de verda necesito me ayude estoy con mi hija acá y pues de verda de corazón se los pido,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+8e29bef61dd511fd,Ok mucha gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bb9afa5f6ce1c143,Yo estoi aka en el.terminal de medellim.en el.norte yo.necesito son los psssjes haci sea ssta cucuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+da4931dc1c5fa9ec,Cuales son los requisitos a llenar en dicha planilla,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+79e94ed805b27f71,Cuando vuelven a dar el ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+dac0c74f81b7c1f8,Quiero orientación,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8d874d674d6c6108,Sami el PAO- ACNUR,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d88466a36d53ffa6,Ayuda humanitaria en Villavicencio,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c6ae1605124d2805,Si ingrese este año que puedo hacer?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+fb8a5e3d46c3f090,Trámites y requisitos para salida de menores venezolanos de colombia a Venezuela,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+deed205ae9a4f66d,Si quisiera saber atención médica y información específica estoy en Soacha quiero obtener un papel de refugiado,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8417d5733b4f2ac2,No brindan ayuda económica o para emprendedores?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3f98b032639ed3a1,Me puedes ayudar mad,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+20151cacc9162c13,Es que no se como hacerlo,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+aaece0548bd27db6,Quiero sacar mi ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+17338d0cc5360b36,Ella viaja conmigo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+138be8a65ce3ad05,Para la visa m,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5f1770ad579923ea,Esque yo tengo 15 años acá en Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+76419b6ae37ef6b8,En Cúcuta en que lugares puedo acudir para la esterelizacion después del parto,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6c66df5216ef4186,Estoy embarazada y necesito saber cómo hacer para acceder a un médico.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bb40db4ad4cffa6f,Aca en maicao,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+60b77b4f0f44628b,Si  que necesito,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+69f0586d5c434a40,"Tengo PPT y no tengo actualizado el número de telf, que debo hacer?",not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+81aea02363443670,Donde hago este pre registro virtual?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+388fa822046a3cd2,Cuánto es el costo de la visa V,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4242a904a32413a4,Necesito una cita con un especialista en ortopedia pero no tengo dinero,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+cd4158671e4539f6,Necesito saber en dónde hay refugio,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4872a8cc961c355f,De q manera me puedo regularizar en colombia?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5530b69eea0cd8f7,Buenas noches en que empresa puedo conseguir trabajo con un salvo conducto,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ba6826da54629b2d,Voy a tener un hijo un hijo aquí en Colombia quería saber si por tenerlo aqui me daban algún tipo de documentos a mi,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3e34003818def160,Colombia medellin,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0ba04f9d88f8c90c,Debo ir a migración colombia?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a2f8042e2eb1e49b,Me puedes dar los números de los hospitales donde me pueden atender y poner en control,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8b27ccc2d30fe91a,Número de WhatsApp,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+41a85eae57d9db0b,Quiero saber si puedo sacar al ppt,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+25365073072fa1d8,Para solicitar la visa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+18523ee8ecbecdda,Otra pregunta como puedo saber si mi núcleo familiar es beneficiado en el bono alimentario,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+89e0173613a4795a,Puedo trabajar si no tengo mi ppt en físico,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f441033edd6b1272,Quisiera saber si están dando cualquier tipo de ayuda es q no estoy trabajando y tengo 2 niñas,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3ed45ec1206c6026,Deceo saber tengo mi hijo que cuando llegamos aquí a Colombia nos rejistramos con el ptt. Y después su papá lo registro tiene cédula de ciudadanía y también el rud como hace xq tiene 2 documentos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1c90f70ab85ac62d,Ya me dieron la autorización el ministerio de relaciones,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+89cb698ffd5b264d,Que otro documento puedo solicitar ya que solo tengo cédula de identidad,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b4f58db87000f29e,Tengo cédula de extranjería seguro y hasta cuenta bancaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+be642fbd14f97303,No puedo trasladar las cotizaciones que tengo de todos los años en Venezuela para acá en Colombia,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+912c01a5d6c14583,Si no tengo pasaporte vigente?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7e62d930b0f16abb,En que parte pueden ayudar con pasaje en Bogotá,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+21c8d4a7a3887304,Requisitos para acceder a seguridad social en salud,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bf1abf7e7ea4ead2,Mi pregunta es si con el salvo conducto puedo meter a mi hija ala EPS,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6da7fad385aa372d,Como puedo gestionar el PPT,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+16142f5933cbc501,Mi esposo aún no le entregan el carnet ppt y en este momento requiere una operación q tengo q hacer en este caso me voy a Venezuela nuevamente...????  Ya q tuve q verlo medicamente allá xq el aún no le han hecho entrega d su ppt,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+2e2601d6d4702f22,Donde podría ir para q lo valoren nuevamente x acá y le digan si lo operan o no,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8e8eb723e2e0c165,En el 2023 saqué el rumv aún puedo tramitar el PPT?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+72bfa494dfa426eb,Si lo que pasa que yo no tengo cedula Venezuela y me adicho que sin la cédula no puedo y el papá es fallecido,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+7991d9751eb16532,Yo lo único que tengo es el registro venezolano con eso no la puedo registrar,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+4ba8244386c854f1,Bucaramanga tiene los números de WhatsApp para escribir,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8e93692c42ee681c,Donde le dan comida y ropa a migrantes venezolanos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e3c1633ea42dc2aa,Que información tienes,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a42c281e014cbef7,Cursos de inglés gratis para migrantes en barranquilla,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6a95edd1c2e4bf22,Quiero regresar a mi país,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+f3a55e28c88d40a6,Quisiera saber si hay ayuda para mujer soltera venezolana con niños,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7c28dcff1d47462d,Sólo quería saber cómo ago para contar con una ayuda para el emprendimiento que tengo y poder sobrevivir acá en Colombia por favor,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f4f8efdafb7e4109,Y como ago para sacar pasaporte venezolano,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+43b27bd4e39ad384,Yo puedo recibir ayuda económica,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+055f765f3f089ecf,y sobre el por selo saque Ami hija y nada q lo entrega,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+f8931305dc55d8a8,Entre a colombia este mismo año,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+74656ca1c5e83220,Siendo venezolano,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bf2078213444fa76,Me fue de mucha ayuda,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a5a1194b5375484e,Quiero pedir citas medicas en mutualser y caja copi . Cuáles son los numero a llama r,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9a58c280b6ca6fa4,Si en Medellín,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+66612202b703daf3,"Si se me perdió el PPT y  la policía no acepta que se pongan denuncias, que debo entregar como justificante de esa perdida",negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+5cd363ad9c0038b6,No nada,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+81d6afe1f2f0bd41,Cúcuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+112beee08965deb3,Hola me gustaría q me diera información sobre... empleo o emprendimiento.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7f5648e0c6f67dd7,ACNUR en bogota,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a8bb005a46bf17ce,no estoy en Ipiales,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7abc8574f4c87e4f,terminar conversación,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+cab74e9ee081a5f3,¿Como es para sacar el salvoconducto de permanencia acá en Colombia?.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+080cd9b234c10b40,San Javier,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+61aacd534942a488,"Soy migrante, por salud no puedo trabajar",not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+11dee435a0405e21,Tengo 4 niños horita no tengo un trabajo estable y de verdad quiero que me ayuden con un arriendo para comprar comida,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+0ae9673317fa0271,Y para la cédula de extranjería debo tener primero la visa?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+815b91a24a378067,Talleres de esparcimiento gratuitos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a9b0dd0b009a2585,Lo que pasa es que no tengo ppt y no me hace tan para nada,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+9bec79f1110736ba,Te pregunto y siendo venezolana existe la posibilidad de poder casarme con otro venezolano ...,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9b5b33e56302fca1,Intégrate no está dando ayuda humanitaria para extranjeros?,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+4f87a4671d6c862d,Mercado ropa para mi bebé para mi,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+66bcfccd6652558b,Si me gustaría saber sobre otras organizaciones en cali,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5e243123b6eec50e,"Tuve visa tipo R desde hace más de 30 años, mi esposo falleció y él era el titular, me quitaron la visa. Ahora me encuentro irregular y me dicen que no cumplo requisitos para hacer ninguna visa. ¿Que debo hacer?",negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+0ce34353690f803b,la cita es en venezuela en sami,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+81a11d43adbc0600,Hay alguna refugio para migrante de Ipiales asta cali,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c273694df7857416,Cómo puedo sacar el PPT o estar legalizado acá en Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3156bf4718deef52,Cómo ago para obtener el PPT yo mis hijos y mi esposa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d02ce0ea12110db9,Y como ago para estar legalizado acá en Colombia yo siendo mayor de edad de 37 años,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+15656abd72b97d19,T dond puedo hacer el trámite de la visa con el ppt gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+41cb3dca103d377b,Necesito saber cómo hago aquí en medellín Antioquia para que solo integren a mis niñas en el Sisben y me den nuevamente la salud ya que tengo Sisben B5,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1e3ca9c59e92f2f4,Porq yo lo necesito para sacarle el silben a mi hijo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+777883c3778eebb1,Los rrefujios de Ipiales no cuentan con apollo lla emos preguntado,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+747fe7f98156d009,Cómo hago para regularizarme si estoy viviendo en colombia?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d8349a1dc647fdba,Cómo puedo obtener el ppt ?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b7d5f38cc7f7db71,Ok dime que ayudas hay disponibles en galapa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ce872f102f298004,Y es importante  para mi,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+483db362704f8b8d,Los testigos tienen que ser familiares?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b51f80ec33498146,Y para empleos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3fd00772192c887a,Y que porcentaje hay de que sea aprobado la condición de refugiados?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7fdb70431b888f78,Estoy embarazada,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bcaea457ecf36fd1,Solitar asilo madri,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+66ff72923abb6393,Estoy en Medellín,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+805f591f88d88437,Yo sufro de la tensión y creo que también tengo azúcar y me da mucho dolor en el brazo derecho y me lo duerme por eso me dirijo a ustedes para que me ayuden a obtener un saboconducto para poder ir y que me hagan todos mis examenes,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+7b3f220a8fa0937d,Buenas tarde,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9035dd33d4555b84,Cómo puedo sacar la biometría de mis dos hijos menores de edad si ya tengo todos los requisitos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+173f448391dd6fd1,Que documentos tienen disponibles para permanecer en Colombia?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b5aef005dfbb1f4f,En Cúcuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+938efbb556fa775f,pero como hago para que mi hijo tenga atención en salud además de urgencias médicas,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b121586cb03b63c0,Quiero y necesito trabajar ayúdame,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8a085fb6e0613097,Me siento deprimida,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+70d85993e1dbcea5,Si los requisitos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c6a04da4b319f76b,Por lo menos un mes de arriendo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+273694861b4adb33,Necesito saber que albergues puedo encontrar en Ipiales,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+548e64b65fd018d7,Necesito saber si Laury González trabaja con ustedes en recursos humanos porque recibí una oferta laboral de ella y no se si es una estafa.,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+ffa4e02ef9f2e0e4,Hoy les escribimos con profunda humildad porque estamos atravesando una situación extremadamente difícil y urgente.,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+e734e310c18512f1,"• ayuda básica de emergencia y alimentación,",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+cc6400adccc9881c,Ayuda económica,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b1b3c4d317e2113b,Quiero un mejor futuro para mi y para mi hijo ya que soy padre solo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ef5b6bc491cb5e00,Necesito cita con el medico,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0e1e0a025918b834,Cómo hago para tener pasaporte y visa para entrar a México humanitario,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2b45e1b0823b6a53,Quiero asesoría con respecto al trámite de PPT de mis hijos. Ya están estudiando,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ffdbfe78bb9fae37,Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+25407150ca1b5712,Te puedo hacer otra pregunta de otra persona,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+fadc59f0220bd514,Tengo una niña que estudia acá le saque el rumm le puedo sacar su ppt?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c3b8abfacc413f0f,Yo tengo eps pero no está activa por no tener como pagarla como aria para ser tener la eps subsidiada,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+c24891de56d0d946,que documentos piden para afiliación de la  EPS y como puede saber  si están inscritos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8cd942726b62a19c,No tengo pasaporte,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+bddea8aea9715c54,Puedo sacarme el salvoconducto sin tener pasaporte?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+226f52b98c7aa541,Algún correo electrónico para yo enviar una hoja de vida a la empresa enwarios,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+89fbc35aad2d2e14,Igualmente,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+cecf8225adaee3e1,Una pregunta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+51f2790c658ac180,Quiero trabajar pero no tengo el ppt como hago,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+76f566dfdedfc2ff,Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+65f1913903447976,Hola buenas tardes,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ada5ee72b6f9c46d,Que tipo de ayuda brinda la OIM,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a47d915f03c528a8,Oferta para familias en Medellín,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d0965ee3832094b3,Como iniciar el proceso de PPT para niños,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2716d44fb7415e81,Ubicación,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+140f01f73a7de1c4,Me llamaron y fui y me hicieron una encuesta y quisiera saber si soy acta para la segunda fase,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9227d2de69674ab7,A Donde puedo ir para que me orienten sobre lo que quiero saber sobre la atención en salud para consulta prenatal,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2a78549f060e8589,Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f0ee8fef35f7cd86,Quiero verificar la confirmacion de mi cita para la solicitud de PPT,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f3f100fe46f30309,En trabajo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+af02656529105974,Valledupar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b2440147984a6959,Bueno para ver en qué me pueden ayudar o colaborar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6a5ff33af541a637,Hola,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ea40c046da49f4b1,Que posibilidades hay para las personas que entraron después del 2024,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+3810306c464f468b,Que documentos necesito,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5c43209d18c35fe9,¿cual es mi estado migratorio?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+dc9f80d12b6a9ba8,A bueno muchas gracias Sami .ya el lunes empezaré a buscar. Vacantes de empleo en esas número de contactos quee me compartiste .,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e43de6c48abdbf83,Bogotá,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+80f09d4eaf51cdce,Cómo hago para resivir atención humanitaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8385f4a3e25421cf,Tengo casi 3 años de no legalizar mi estancia legal en Colombia. ¿Qué proceso debo seguir para volver a legalizarme?,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+ca60e7536b158350,me dicen q tengo q tener el ppt para poder adquirir un empleó,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6034f1c4ac7c081d,Que debo hacer,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4710af2c3738fdf7,Se puede sacar el pep tutor con ese RUMV sin tener el ppt del menor,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+6bf78a765e8e6874,Hola,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7fb48da69a514ad1,Hola mi nombre es Ángela González yo saqué mi permiso de residencia de refugiados pero lo deje vence hace un año será q puedo volver a renovarlo o ya no se puede,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+e473fe7def58b7c0,Estoy en Ipiales Nariño donde puedo ir algún consulado,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c21e580b4f342976,dime cómo fuiste entrenado?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+97cebd4be21e9a4d,Coloca hago para apostillado mi titulo de bachiller en mede,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+59508c1ee8bbe60e,Me gustaría saber si puedo obtener atención de salud gratuita en Cúcuta siendo venezolana,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c8a8d45837512747,"Pero esa carta es q un colombiano acredite q yo estoy en Colombia Pero si yo ya tuve pep, mi hijo nació acá, tengo rut, tengo cámara de comercion, tengo registro ramw",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7d81f975447e0ec3,Solo quería saber eso y como ago para un permiso para poder trabajar en un una empresa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e1fca3a054bcb44f,Si xfavor,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0669dff9e079c2bb,Entonces si no tengo nada de eso no puedo hacer los trámites para el PPT mío y de los niños,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e1629fb9da1cec5f,Para información sobre ayuda o emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+190d7188c5c683fe,Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+50216cfbd03d0e4e,Sí xfavor me encuentro en bello antioquia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+697a5854590a9504,"pero el PPT ya no está disponible, no se porq me sugieres este trámite",negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+7ac22d323a6761c1,Puedo sacar salvoconducto teniendo multa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+1fc176bb53c4f2d1,una ayuda de dinero?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+12aea838c86a2300,De 4 niños,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+07a506f46efa46fa,Nesecito apoyo económico,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+861bbc6575eb77e3,Por favor dame información sobre Quipu y cm puedo llegar a Quipu y Monet,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4578e864575cb18c,Yo regrese a Venezuela y luego volví a Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+2358d622a4a18e22,Pero cuento solo con el rumw,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d8b2c7524e13d923,Donde es migración,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+6ba2095217a0af21,Regularización,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e4c6fe7efa931b19,Quisiera información para ayuda de alojamiento y trabajo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b3dd74ab908d0541,"Quisiera saber en q puede ayudarme está entidad, ya q me encuentro desempleada, hace 15 días.",not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+86dfbe5fd29533e3,Si para empleo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+30acaa15f5751ff5,Tengo cédula Pero no sellé en Ecuador puedo sellar en Rumichaca,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0e0f1ffb0c168285,Y no hay para poder tener un salvo conducto para verse,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+3e2936d4d70bb8fe,el salvoconducto fue habilitado para laborar ?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9d6471a3d3f497f3,Tengo la partida de  nacimiento legalizada la del niño mi prima me hizo el favor pero en venezuela de legalizara ya me la traje a colombia falta apostillarla y no se a donde es la apostillamiento,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+da5451e9cc587918,Ya no más.  Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+fc884dadbe578da9,Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b1b2bd052a6cc6d4,Como hago para obtener la visa tipo v,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e1d3397a5d28ba8d,Que necesito para regularizar me dentro del país?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5c760b793bd5dedd,Pero adónde la presento?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c7b857cac5e362fc,"Necesito saber qué requisitos necesito para casarme acá en Medellín, teniendo en cuenta que tengo pasaporte venezolano vencido y cuento con PPT. Mi pareja es nacionalizado colombiano y tenemos dos hijos en común de nacionalidad colombiana también",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+145775a6fc6e0e33,Ya acudí a Migración y es allí donde me dicen que me pueden anular el permiso pero igual tengo que pagar...,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+807b8d90b98a226b,Solo quiero pagar la multa pero que me entreguen mi permiso corregido para poder continuar legalmente mi estadía aquí...,negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d60fcb54fb85f2cb,Nos encontramos  en rumi chaca,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+80a0577482572850,Ayuda a encontrae empleo desde casa,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b6a5cca23b98b7de,Muchas gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a2a8e024f5ce843e,Te pregunto si tengo ppt dentro de un año tengo la opción para mi cédula de residencia en Colombia es importante mi pasaporte sellado? Ya que entre sin el y en la actualidad no cuento con el mismo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ac33bc56c53e4e24,Gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8035a236cca0fa9c,Me encuentro en Medellín,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+68ddda3d8b0bd716,No gracias así está bien,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4ad406aa1a6b925d,Cómo me puedo inscribir para el programa de ADN de dignidad,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c63df73007a227ab,Sin necesito ayuda humanitaria me encuentro en Bogotá Soacha,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+7fce0eeceefc5940,necesito la cédula,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+de7cd8b41dcd94d2,Mi hija  tiene las Dos nacionalidades  puede prestar servicio de polisia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d1891bbacccae89a,Tú me puedes ayudarme para hacer la cita y cómo puedo saber cómo va el proceso  del ppt de mis hijos,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9bb308471b4a6a40,PPT,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a4e950f35d4f0448,La uariv no me incluyó en el RUV,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+4ea549ede30b8fd3,Centros de salud gratuitos con especialista,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a6564740d7fa394d,Que no tengo ni ppt ni pep . Cómo aria para solicitar la visa de residente sin eso ?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ba329586d6995b59,Y si paso los 6 meses y se me vence la estadía legal en el país?,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+91be480366a7260e,Que canal me recomiendas o lugar para conseguir un empleo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+808a1d66ed07afeb,Quisiera saber dónde hay refugio en pasto,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a709418e8e033690,Buenas sñ,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e7e0d03c514177d1,Cuáles son mis derechos en cucuta como venezolana,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c469a5d0468d298f,Quiero asistencia humanitaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ac3e3f69879408b5,foto de una cédula de extranjería,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+475ec2c025d535ff,Sí me gustaría saber sobre algún permiso en particular,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+218b6bd67f680269,Si quisiera saber como obtener el ppt en 2026,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+35a07043f50b20f8,Y para renovar el pasaporte que bale  la renobalq,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+b1913aec82d11cee,Tengo q estar presente para retirar una copia del registro o puede hacerlo un familiar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0fd9cb545fc03f7c,quiero registrarme de nuevo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+67e365a59cf2050e,quiero registrarme de nuevo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+8a4a7fcf0471fcc7,i want to register again,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9b2d10aeb7690bc7,i want to register again,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a2a1cc888db82bee,i want to register again,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5b1b1231cb7601e6,i want to register again,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d3359f26963075e5,que es DRC,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+af31835a93750e72,No poseo documentos de regularización migratoria cómo puedo sacar uno siendo una persona mayor,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+dad3a7c89c13c56c,Como puedo acceder a un emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a65d50f659195130,No gracias,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+1b8ac209c0f3240e,Solo quiero saber de que se trata este anuncio .para saber mis derechos acá en Colombia .12 años tengo en Colombia no   podido  obtener la cédula colombiana,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+732b6a2cfb87186c,Quisiera poder tener una ayuda para el cuidado de mi hijo ya q no cuento con un buen estado economico,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+3520c7be688dbf1c,Quiero buscar una organización que me ayude para insumos para mi emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+d656c50f62d1d0f9,Ok gracias,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+56b0559f847ef5ad,No tengo pasaporte por eso necesito salvoconducto pq estoy embarazada y no tengo ninguna eps,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+da27e8a1d05e7c5a,Trámites para obtener cédula venezolana en Colombia,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7d8e402aaf8ea83c,Eso es Cúcuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+46340a8fd5a35e7a,quiero para participar en un ayuda humanitaria porque me quiero regresar a mi pais,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bac11903256453cd,Emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+132438d2f4ea0bf5,Cucuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7b4c0e5b8f1ec2f2,Necesito un empleo o una ayuda  humanitaria,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+e7753a306a3d1604,Estoy aquí en el cenaf y dice q eso se acabó hace un año ya no dan eso,not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+7c4959b565af7560,Donde ayuden con comida y alojamiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+6aad5988ddf7cab9,Si ay en Cúcuta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+7d30908376941f30,Quiero saber si ya estoy activa en la eps,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+bfe12c7babec3395,Gracias x la información fue de gran ayuda,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+12ed9ce07dd3f2ef,"Como hago para apostillar mi bachiller venezolano, es que quiero estudiar",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+289419d2a46a0b13,Barranquilla,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+288e6f87908abb9b,"My name is Alfonso, do you need my id",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+9fbf4753f0442e1a,Deseo encontrar empleo.,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+ca2f9891e9a048cc,Tengo un niño de 10 y una niña de 12 y mi esposo queremos ir a Bogotá para trabajar,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a052cabf17e776d6,Cual es la página oficial de migración,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+f12fc80a7b4b1c94,Necesito que me ayuden Con un caso de salud q tengo a mi hijo en hospital de santa Marta necesito de su apollo,negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+3ea6a3b931eaeb5a,Santa Marta,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+a1fa697b44dd7056,Quiero un trabajo,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+4225769d2ef36cff,A que servicios como migrante tengo acceso,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+0cad23eafa514faf,Medellín,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+5c07de454f19bae8,"Soy un joven venezolano que salió de su país por la situación, llegue en busca de estudiar y trabajar y necesito regularizarme",not_negative,negative,"analyst + reviewer (independent blind pass, n=378)"
+563e614f5602292b,Emprendimiento,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+65c0c1f665a754e1,"Hola , me gustaría saber cómo hago  para renovar el    salvo conducto ya que me toca presentarme",not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"
+c56464e2d5d02f85,Estoy en cucuta a donde puedo ir para empezar a legalizarme,not_negative,not_negative,"analyst + reviewer (independent blind pass, n=378)"

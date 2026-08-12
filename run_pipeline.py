@@ -97,13 +97,28 @@ def _nlp_tables(SD, pr):
     with pr.stage("archetype profiles + tone validation + stability"):
         prof = clusters.archetype_profiles(lab, SD.responses, SD.messages, terms=terms)
         msgs_lab = SD.messages.merge(lab, left_on="user_id", right_index=True, how="inner")
+        # The gold set is two independent blind passes, not one: an analyst
+        # labelled 178 messages; a reviewer, blind to both the analyst's labels
+        # and the model's predictions, independently re-labelled those 178 plus
+        # 200 newly drawn messages (n=378). Inter-annotator agreement on the
+        # 178 overlap is kappa=0.731 (93.3% raw agreement), so once the reviewer
+        # file exists it is trusted as the human record IN FULL -- it carries
+        # its own message_id list and does not need the analyst's 178 to
+        # resolve ids. See notebooks/03_text_insights_nlp.ipynb §4 for the
+        # full account of why (the earlier analyst-only kappa=0.604 turned out
+        # to be an optimistic small-sample estimate).
         analyst = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
+        reviewer_path = Path("validation/tone_labels_reviewer.csv")
+        if reviewer_path.exists():
+            reviewer = pd.read_csv(reviewer_path, encoding="utf-8")
+            gold_ids, human = reviewer["message_id"], reviewer["label_reviewer"]
+        else:
+            gold_ids, human = analyst["message_id"], analyst["label_analyst"]
         # align_gold matches on message_id and raises if any label is unresolvable.
         # The previous `sent.loc[analyst["message_id"]]` was a POSITIONAL lookup
         # that silently compared unrelated messages -- see validation.align_gold.
         report = validation.validation_report(
-            analyst["label_analyst"],
-            validation.align_gold(analyst["message_id"], SD.messages, sent))
+            human, validation.align_gold(gold_ids, SD.messages, sent))
         stab = clusters.stability_ari(X, K, n_boot=50, random_state=RANDOM_STATE)
         dev = nlp.device_report()
 
@@ -165,7 +180,8 @@ def _bot_tables(path, dim_user) -> tuple[dict, dict]:
     provide would hide their mistake.
     """
     empty = {"fact_bot_turn": pd.DataFrame(columns=export.FACT_BOT_TURN_COLUMNS),
-             "agg_coverage_gap": pd.DataFrame(columns=export.AGG_COVERAGE_GAP_COLUMNS)}
+             "agg_coverage_gap": pd.DataFrame(columns=export.AGG_COVERAGE_GAP_COLUMNS),
+             "agg_bot_gap_entities": pd.DataFrame(columns=export.AGG_BOT_GAP_ENTITIES_COLUMNS)}
     if path is None:
         return empty, {"bot_log_present": False, "gap_gold_present": False,
                        "coverage_gap_quotable": False}
@@ -185,6 +201,7 @@ def _bot_tables(path, dim_user) -> tuple[dict, dict]:
     tables = {
         "fact_bot_turn": export.build_fact_bot_turn(turns, dim_user),
         "agg_coverage_gap": export.build_agg_coverage_gap(turns, gap_probe=probe),
+        "agg_bot_gap_entities": export.build_agg_bot_gap_entities(turns),
     }
     meta = {
         "bot_log_present": True,
@@ -264,8 +281,11 @@ def main(argv=None) -> int:
         fact_meal = export.build_fact_meal(SD.meal)
         # NER is loaded once here rather than inside the sampler: the sampler is
         # called per-bucket-loop and spacy.load is expensive.
+        _ner = redact.load_ner()
         fact_message_sample = export.build_fact_message_sample(
-            SD.messages, fact_message, nlp=redact.load_ner())
+            SD.messages, fact_message, nlp=_ner)
+        fact_conversation_full = export.build_fact_conversation_full(
+            SD.messages, fact_message, nlp=_ner)
 
     with pr.stage("bot replies + coverage gap"):
         bot_log_path = (Path(args.bot_log) if args.bot_log
@@ -283,16 +303,18 @@ def main(argv=None) -> int:
             "dim_user": dim_user,
             "fact_message": fact_message,
             "fact_message_sample": fact_message_sample,
+            "fact_conversation_full": fact_conversation_full,
             "fact_meal": fact_meal,
             "dim_city": export.build_dim_city(),
             "dim_quadrant": export.build_dim_quadrant(),
             "agg_funnel": export.build_agg_funnel(SD.responses, SD.messages, SD.meal),
             "agg_registration_funnel": export.build_agg_registration_funnel(SD.responses),
             "agg_language": export.build_agg_language(SD.responses),
-            "agg_entities_by_kind": export.build_agg_entities_by_kind(SD.messages),
+            "fact_message_entities": export.build_fact_message_entities(SD.messages),
             "nlp_entity_candidates": ent_candidates,
             "agg_weekly_cluster": export.build_agg_weekly_cluster(SD.messages),
             "agg_daily_volume": export.build_agg_daily_volume(SD.messages),
+            "agg_daily_meal": export.build_agg_daily_meal(fact_meal),
             "agg_weekly_rating": export.build_agg_weekly_rating(fact_meal),
             "agg_priority_matrix": export.build_agg_priority_matrix(
                 SD.messages, fact_meal, dim_user, dim_cluster,

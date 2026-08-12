@@ -36,6 +36,19 @@ def test_fact_message_sample_wired_into_pipeline():
     assert "redact.load_ner()" in text
 
 
+def test_fact_conversation_full_wired_into_pipeline_reusing_the_same_ner_load():
+    """The whole-conversation table (schema v13, superseding message-grain
+    fact_message_full) must be wired in too, and it must reuse the one
+    `redact.load_ner()` call the sampler already pays for -- a second
+    `load_ner()` would double the spaCy model-load cost for no reason."""
+    src = Path(__file__).resolve().parents[1] / "run_pipeline.py"
+    text = src.read_text(encoding="utf-8")
+    assert '"fact_conversation_full"' in text
+    assert "export.build_fact_conversation_full(" in text
+    assert "fact_message_full" not in text
+    assert text.count("redact.load_ner()") == 1
+
+
 def test_nlp_meta_carries_the_subcluster_keys():
     """The five meta_run keys schema v6 promises. Guards against a wiring change
     that drops one silently — meta_run is the run's identity card and a missing
@@ -137,18 +150,19 @@ def _build_nlp_tables_fixture():
     responses = pd.DataFrame(resp_rows)
 
     from sami import export as export_mod
-    analyst_rows = []
+    analyst_rows, reviewer_rows = [], []
     for u in user_ids[:10]:
         m = messages[messages["user_id"] == u].iloc[0]
-        analyst_rows.append({
-            "message_id": export_mod.message_key(u, m["seq"], m["message"]),
-            "label_analyst": "neutral"})
+        mid = export_mod.message_key(u, m["seq"], m["message"])
+        analyst_rows.append({"message_id": mid, "label_analyst": "neutral"})
+        reviewer_rows.append({"message_id": mid, "label_reviewer": "neutral"})
     analyst = pd.DataFrame(analyst_rows)
+    reviewer = pd.DataFrame(reviewer_rows)
 
     from sami.facade import SamiData
     SD = SamiData(responses=responses, messages=messages, meal=pd.DataFrame(),
                   reconciliation=pd.DataFrame(), run_meta={})
-    return SD, analyst, X, user_ids
+    return SD, analyst, reviewer, X, user_ids
 
 
 def _run_nlp_tables_with_fixture(monkeypatch):
@@ -158,7 +172,7 @@ def _run_nlp_tables_with_fixture(monkeypatch):
     import run_pipeline
     from sami import nlp, clusters, subclusters, progress
 
-    SD, analyst, X, user_ids = _build_nlp_tables_fixture()
+    SD, analyst, reviewer, X, user_ids = _build_nlp_tables_fixture()
 
     def fake_embed(docs):
         assert len(docs) == len(user_ids)
@@ -170,6 +184,11 @@ def _run_nlp_tables_with_fixture(monkeypatch):
                             index=messages_df.index)
 
     def fake_read_csv(path, *a, **kw):
+        # The real repo's validation/ carries both files; this must resolve
+        # each on name alone rather than assuming only the analyst path is
+        # ever read, now that _nlp_tables checks for a reviewer pass too.
+        if "tone_labels_reviewer" in str(path):
+            return reviewer
         assert "tone_labels_analyst" in str(path)
         return analyst
 

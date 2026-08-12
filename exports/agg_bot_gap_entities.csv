@@ -1,0 +1,16 @@
+kind,entity,gap_count,total_count,pct_gap
+procedure,Salvoconducto,4,23,17.4
+procedure,Regularización,5,36,13.9
+procedure,Trabajo/Empleo,5,50,10.0
+procedure,Refugio/Asilo,1,11,9.1
+institution,Migración Colombia,1,13,7.7
+procedure,Salud/EPS,2,44,4.5
+procedure,Visa,1,28,3.6
+procedure,Emprendimiento,1,31,3.2
+procedure,PPT,3,97,3.1
+procedure,Cédula,0,22,0.0
+procedure,Pasaporte,0,22,0.0
+procedure,Educación,0,10,0.0
+procedure,SISBÉN,0,7,0.0
+procedure,Nacionalidad/Naturalización,0,5,0.0
+procedure,Registro civil/Apostilla,0,5,0.0
