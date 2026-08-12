@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import re
 import warnings
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -103,6 +104,7 @@ def to_english_user(agg: pd.DataFrame) -> pd.DataFrame:
     _translate(agg, "city_duration_canon", _mapper(canon.CITY_DURATION_DISPLAY_EN))
     _translate(agg, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     _translate(agg, "nationality_canon", _mapper(canon.OTHER_BUCKET_EN))
+    _translate(agg, "language", canon.language_display)
     _fill_non_response(agg, "away_duration_canon", "away_duration_order")
     _fill_non_response(agg, "city_duration_canon", "city_duration_order")
     return agg
@@ -113,7 +115,7 @@ def to_english_meal(f: pd.DataFrame) -> pd.DataFrame:
     usefulness vocabulary."""
     _translate(f, "usefulness_rating", _mapper(canon.USEFULNESS_DISPLAY_EN))
     _translate(f, "would_recommend", canon.yes_no_display)
-    _translate(f, "discovery_channel", _mapper(canon.DISCOVERY_DISPLAY_EN))
+    _translate(f, "discovery_channel", canon.discovery_channel_display)
     return f
 
 
@@ -299,12 +301,6 @@ def build_fact_message_sample(messages: pd.DataFrame, fact_message: pd.DataFrame
 # this table is new and nothing depends on its casing yet.
 TONE_DISPLAY = {"negative": "Negative", "neutral": "Neutral", "positive": "Positive"}
 
-FACT_MESSAGE_FULL_COLUMNS = [
-    "message_id", "user_id", "cluster_id", "subcluster_id", "subcluster_name",
-    "sentiment_label", "age_num", "city_canon", "ts", "text_redacted",
-    "redaction_applied",
-]
-
 # Whole-message vocabulary for the greeting filter below. A CONTAINS check
 # would also drop substantive messages that happen to open politely ("Buenas,
 # necesito ayuda con mi PPT porque..."); this only fires when EVERY token in
@@ -319,7 +315,7 @@ _GREETING_TOKENS = frozenset({
 # Filler that carries no content of its own but routinely rides along with a
 # greeting/thanks word: "Muchas gracias", "Ok gracias", "Gracias Sami", "No
 # gracias.", "Bueno muchas gracias" -- all thanks-only, measured off real
-# `fact_message_full` rows. A message made ENTIRELY of these tokens (no
+# corpus rows. A message made ENTIRELY of these tokens (no
 # `_GREETING_TOKENS` word among them) is not treated as a greeting by itself
 # -- "no si" alone says nothing -- see the `any(...)` guard below.
 _GREETING_FILLER_TOKENS = frozenset({
@@ -367,24 +363,42 @@ def _is_low_content_message(text: str) -> bool:
     return False
 
 
-def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
-                            *, nlp=None) -> pd.DataFrame:
-    """Every substantive message in the corpus, redacted, one row per message.
+FACT_CONVERSATION_FULL_COLUMNS = [
+    "user_id", "cluster_id", "subcluster_id", "subcluster_name",
+    "dominant_sentiment", "age_num", "city_canon", "n_messages",
+    "ts_first", "ts_last", "conversation_text", "redaction_applied",
+]
+CONVERSATION_SEPARATOR = "\n\n"
 
-    Unlike `build_fact_message_sample` (a curated handful per subcluster x tone
-    bucket for illustrative quotes), this is the whole corpus: the dashboard's
-    joint table of cluster, subcluster, tone, age, and raw text for anyone who
-    needs message-level detail rather than aggregates. Labels come from
-    `fact_message`, the same join `build_fact_message_sample` relies on, so the
-    two tables cannot drift against each other.
 
-    "Whole corpus" excludes low-content noise -- see `_is_low_content_message`:
-    one-word messages, bare greetings, and messages that are nothing but a
-    city name read as answers to the platform's own prompts, not conversation
-    to be analysed message by message. A message whose text cannot be safely
-    redacted is also DROPPED, exactly as in the sample table (see
-    `redact.scrub`) -- coverage of the corpus is the cost, not a silently
-    unredacted row.
+def _dominant_sentiment(labels) -> str:
+    """Most frequent label; ties break alphabetically so a re-run on the same
+    input reproduces the same table byte-for-byte (no RNG, same discipline as
+    build_fact_message_sample's deterministic selection)."""
+    counts = Counter(labels)
+    return min(counts, key=lambda k: (-counts[k], k))
+
+
+def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
+                                 *, nlp=None) -> pd.DataFrame:
+    """One row per user: their whole conversation, concatenated in order.
+
+    Supersedes the retired message-grain `fact_message_full`, which fed a
+    one-row-per-message table on the Data page and nothing else in the
+    report. Same per-message redaction and low-content filtering as that
+    table used (`_is_low_content_message`, `redact.scrub`), just regrouped by
+    user instead of shipped one row per message. Ordered by `seq`, not `ts`
+    -- messages sent in the same second would otherwise concatenate in an
+    arbitrary order.
+
+    `sentiment_label` is per-message and has no single value once messages
+    are joined into one block of text; `dominant_sentiment` (the most
+    frequent label across the user's surviving messages) is carried instead,
+    explicitly named as an aggregate rather than presented as a per-message
+    truth. `cluster_id`/`subcluster_id`/`subcluster_name`/`city_canon`/
+    `age_num` are already constant per user upstream (clustering and the
+    profile fields are assigned per user, not per message), so the first
+    surviving message's values carry over unchanged.
     """
     src = messages.copy()
     src["message_id"] = [message_key(u, s, m) for u, s, m
@@ -393,36 +407,41 @@ def build_fact_message_full(messages: pd.DataFrame, fact_message: pd.DataFrame,
         src[["message_id", "message", "age_num"]], on="message_id", how="inner")
     df = df[df["message"].astype(str).str.strip() != ""]
     df = df[~df["message"].astype(str).map(_is_low_content_message)]
-    df = df.sort_values("message_id", kind="mergesort")
+    df = df.sort_values("seq", kind="mergesort")
 
-    rows = []
+    by_user: dict = {}
     for rec in df.to_dict("records"):
         clean, changed = redact.scrub(rec["message"], nlp=nlp)
         if clean is None:
             continue
-        # A message that clears the pre-redaction filter can still collapse
-        # into noise: "Juan Perez" (a bare name, no self-identification frame
-        # for Layer 2 to drop) survives scrub as a one-token "[nombre]"
-        # placeholder. Re-check post-redaction so a placeholder-only row
-        # doesn't ship as if it were content.
         if _is_low_content_message(clean):
             continue
+        by_user.setdefault(rec["user_id"], []).append(
+            {**rec, "text_redacted": clean, "redaction_applied": changed})
+
+    rows = []
+    for user_id, msgs in by_user.items():
+        first = msgs[0]
         rows.append({
-            "message_id": rec["message_id"],
-            "user_id": rec["user_id"],
-            "cluster_id": rec["cluster_id"],
-            "subcluster_id": rec["subcluster_id"],
-            "subcluster_name": rec["subcluster_name"],
-            "sentiment_label": TONE_DISPLAY.get(rec["sentiment_label"], rec["sentiment_label"]),
-            "age_num": rec["age_num"],
-            "city_canon": rec["city_canon"],
-            "ts": rec["ts"],
-            "text_redacted": clean,
-            "redaction_applied": changed,
+            "user_id": user_id,
+            "cluster_id": first["cluster_id"],
+            "subcluster_id": first["subcluster_id"],
+            "subcluster_name": first["subcluster_name"],
+            "dominant_sentiment": _dominant_sentiment(
+                TONE_DISPLAY.get(m["sentiment_label"], m["sentiment_label"])
+                for m in msgs),
+            "age_num": first["age_num"],
+            "city_canon": first["city_canon"],
+            "n_messages": len(msgs),
+            "ts_first": msgs[0]["ts"],
+            "ts_last": msgs[-1]["ts"],
+            "conversation_text": CONVERSATION_SEPARATOR.join(
+                m["text_redacted"] for m in msgs),
+            "redaction_applied": any(m["redaction_applied"] for m in msgs),
         })
 
-    out = pd.DataFrame(rows, columns=FACT_MESSAGE_FULL_COLUMNS)
-    return out.reset_index(drop=True)
+    out = pd.DataFrame(rows, columns=FACT_CONVERSATION_FULL_COLUMNS)
+    return out.sort_values("user_id", kind="mergesort").reset_index(drop=True)
 
 
 # Ratings for which the v2 "¿Por qué la información entregada no fue útil?"
@@ -571,15 +590,38 @@ def build_agg_language(responses: pd.DataFrame) -> pd.DataFrame:
          .groupby(["Language", "user_instrument_version"])["user_id"]
          .nunique().reset_index())
     g.columns = cols
+    _translate(g, "language", canon.language_display)
     return g.sort_values(["instrument_version", "n_users"],
                          ascending=[True, False]).reset_index(drop=True)
 
 
-def build_agg_entities_by_kind(messages: pd.DataFrame) -> pd.DataFrame:
-    by_kind = taxonomy.entity_counts_by_kind(messages["message"])
-    rows = [{"kind": kind, "entity": ent, "n": int(n)}
-            for kind, s in by_kind.items() for ent, n in s.items()]
-    return pd.DataFrame(rows, columns=["kind", "entity", "n"])
+FACT_MESSAGE_ENTITIES_COLUMNS = ["message_id", "kind", "entity"]
+
+
+def build_fact_message_entities(messages: pd.DataFrame) -> pd.DataFrame:
+    """Message-grain entity hits: one row per (message, entity) mention.
+
+    Supersedes the retired `agg_entities_by_kind`, which collapsed every
+    mention across the whole corpus into a single (kind, entity, n) row and so
+    carried no key any dashboard filter could reach -- no user, city, date or
+    cluster. This table relates to `fact_message[message_id]` instead, which
+    already relates to `dim_user`/`dim_city`/`dim_date`/`dim_cluster`, so a DAX
+    `SUMMARIZE` over it reproduces the old table's unfiltered total while also
+    responding to every page filter.
+    """
+    if "message_id" not in messages.columns:
+        messages = messages.copy()
+        messages["message_id"] = [message_key(u, s, m) for u, s, m
+                                  in zip(messages["user_id"], messages["seq"],
+                                         messages["message"])]
+    rows = []
+    for mid, text in zip(messages["message_id"], messages["message"]):
+        if text is None or (isinstance(text, float) and pd.isna(text)):
+            continue
+        for ent in taxonomy.extract_entities(text):
+            rows.append({"message_id": mid, "kind": taxonomy.ENTITY_KIND[ent],
+                        "entity": ent})
+    return pd.DataFrame(rows, columns=FACT_MESSAGE_ENTITIES_COLUMNS)
 
 
 def build_nlp_entity_candidates(messages: pd.DataFrame) -> pd.DataFrame:
@@ -610,6 +652,20 @@ def build_agg_weekly_cluster(messages: pd.DataFrame) -> pd.DataFrame:
 
 def build_agg_daily_volume(messages: pd.DataFrame) -> pd.DataFrame:
     d = messages.dropna(subset=["ts"]).set_index("ts").resample("D").size()
+    return d.reset_index(name="n").rename(columns={"ts": "day"})
+
+
+def build_agg_daily_meal(fact_meal: pd.DataFrame) -> pd.DataFrame:
+    """Daily count of MEAL survey responses -- the survey-timeline chart's
+    other line, alongside `agg_daily_volume`'s message count, so a reader can
+    see days with heavy message traffic and few or no surveys completed.
+
+    Same day-grain, same resample shape as `build_agg_daily_volume`, over
+    `fact_meal[ts]` instead of the message corpus. At 115 total responses
+    spread over a ~4.5-month window most days are 0 or 1 -- that sparseness
+    is the actual shape of the data, not a bug to smooth over.
+    """
+    d = fact_meal.dropna(subset=["ts"]).set_index("ts").resample("D").size()
     return d.reset_index(name="n").rename(columns={"ts": "day"})
 
 
@@ -1019,9 +1075,9 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
     Counts only, never text: `fact_bot_turn` structurally excludes user/bot
     text (a bot reply quotes the user's own details back), so this is the one
     way the "what were the gaps about" chart (NB2 Figure 8) can reach the
-    dashboard -- aggregated the same way `build_agg_entities_by_kind` already
-    aggregates the main corpus, keyed by the same institution/procedure
-    dictionary so the two charts stay comparable.
+    dashboard -- aggregated with `taxonomy.entity_counts_by_kind`, the same
+    dictionary `build_fact_message_entities` uses on the main corpus, so the
+    two charts stay comparable.
 
     Entities below `GAP_ENTITY_MENTION_FLOOR` total mentions are dropped: a
     rate over a handful of mentions is noise, not a finding (NB2 applies the
@@ -1047,7 +1103,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "11") -> pd.DataFrame:
+                   schema_version: str = "14") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

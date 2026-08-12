@@ -284,7 +284,7 @@ def main(argv=None) -> int:
         _ner = redact.load_ner()
         fact_message_sample = export.build_fact_message_sample(
             SD.messages, fact_message, nlp=_ner)
-        fact_message_full = export.build_fact_message_full(
+        fact_conversation_full = export.build_fact_conversation_full(
             SD.messages, fact_message, nlp=_ner)
 
     with pr.stage("bot replies + coverage gap"):
@@ -303,17 +303,18 @@ def main(argv=None) -> int:
             "dim_user": dim_user,
             "fact_message": fact_message,
             "fact_message_sample": fact_message_sample,
-            "fact_message_full": fact_message_full,
+            "fact_conversation_full": fact_conversation_full,
             "fact_meal": fact_meal,
             "dim_city": export.build_dim_city(),
             "dim_quadrant": export.build_dim_quadrant(),
             "agg_funnel": export.build_agg_funnel(SD.responses, SD.messages, SD.meal),
             "agg_registration_funnel": export.build_agg_registration_funnel(SD.responses),
             "agg_language": export.build_agg_language(SD.responses),
-            "agg_entities_by_kind": export.build_agg_entities_by_kind(SD.messages),
+            "fact_message_entities": export.build_fact_message_entities(SD.messages),
             "nlp_entity_candidates": ent_candidates,
             "agg_weekly_cluster": export.build_agg_weekly_cluster(SD.messages),
             "agg_daily_volume": export.build_agg_daily_volume(SD.messages),
+            "agg_daily_meal": export.build_agg_daily_meal(fact_meal),
             "agg_weekly_rating": export.build_agg_weekly_rating(fact_meal),
             "agg_priority_matrix": export.build_agg_priority_matrix(
                 SD.messages, fact_meal, dim_user, dim_cluster,

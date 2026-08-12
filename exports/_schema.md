@@ -7,7 +7,30 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "11"`** (bumped from `"10"` for `agg_bot_gap_entities` —
+**`schema_version = "14"`** (bumped from `"13"` for `agg_daily_meal` — daily
+MEAL survey response counts, same shape as `agg_daily_volume` but over
+`fact_meal[ts]`, added so the MEAL Analysis page can show a survey-response
+timeline alongside the message-volume line. See that table's entry below.
+
+Schema `"13"` (bumped from `"12"` for `fact_conversation_full` —
+one row per user, their whole conversation concatenated in `seq` order,
+replacing the message-grain `fact_message_full`. The old table fed only the
+Data page's one-row-per-message table and nothing else in the report; the
+new table is what that page now shows. Same per-message redaction and
+low-content filtering as before, just regrouped by user instead of shipped
+one row per message — see that table's entry below. `sentiment_label` has no
+single value once messages are joined into one block of text, so
+`dominant_sentiment` (the most frequent label across the user's surviving
+messages) replaces it, explicitly named as an aggregate.
+
+Schema `"12"` (bumped from `"11"` for `fact_message_entities` —
+message-grain entity hits, replacing `agg_entities_by_kind`. The retired
+table's (kind, entity, n) rows had no key any dashboard filter could reach;
+the new table carries `message_id` instead, so Top Institutions / Top
+Procedures can be filtered by date, city, gender, cluster, etc. via the
+existing `fact_message` relationships — see that table's entry below.
+
+Schema `"11"` (bumped from `"10"`) added `agg_bot_gap_entities` —
 counts of institution/procedure entity mentions in the bot log, split by
 whether that turn hit a coverage gap, so NB2 Figure 8's "where the gaps
 concentrate" topic breakdown can be built in Power BI. `fact_bot_turn`
@@ -247,31 +270,37 @@ Feeds: NB2 §1 cluster share, §2 volume/cluster time series; NB3
 negative-by-cluster, sentiment distribution, voices; the Power-BI-native
 sentiment-by-cluster charts.
 
-### `fact_message_full` — 1 row per message, redacted (new in schema v10)
+### `fact_conversation_full` — 1 row per user, whole conversation (new in schema v13)
 Source: `SD.messages`, joined to `fact_message` for cluster/subcluster/tone,
 same join `fact_message_sample` uses so the tables cannot drift apart.
+Supersedes the retired message-grain `fact_message_full` (schema v10–v12) —
+same underlying redaction and content filtering, regrouped by user instead of
+shipped one row per message.
 
 | column | notes |
 |---|---|
-| `message_id`, `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `ts` | see `fact_message` |
-| `sentiment_label` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the one table in this export where tone is not lowercase; see the schema-v10 note above |
-| `age_num` | the message-owning user's age, straight from `SD.messages` |
-| `text_redacted` | the message, run through `redact.scrub` — names dropped or the whole row dropped if a name cannot be cleanly removed (same rule as `fact_message_sample`) |
-| `redaction_applied` | whether `text_redacted` differs from the original |
+| `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `age_num` | see `fact_message` — all already constant per user upstream, so they carry over from the user's first surviving message unchanged |
+| `dominant_sentiment` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the most frequent `sentiment_label` across the user's surviving messages, ties broken alphabetically for a deterministic result. `sentiment_label` is per-message and has no single value once messages are joined into one block of text; this is an explicit aggregate, not a per-message truth |
+| `n_messages` | how many of the user's messages survived redaction and the low-content filter and are represented in `conversation_text` |
+| `ts_first`, `ts_last` | timestamp of the user's first and last surviving message |
+| `conversation_text` | the user's surviving messages, each run through `redact.scrub`, joined in `seq` order (not `ts` — messages sent in the same second would otherwise join in an arbitrary order) with `"\n\n"` as the separator |
+| `redaction_applied` | `True` if *any* of the user's messages needed redaction |
 
-**Coverage is not 100% of `fact_message`.** Two things drop a row, both
-counted against coverage rather than shipping a bad one: a message `redact.scrub`
-cannot cleanly redact (self-identification, a gazetteer name, or an
-unresolvable overlapping name span), and a message `export._is_low_content_message`
-flags as carrying no content of its own — a single word, a bare greeting
-("Hola", "Buenas tardes"), a greeting or thanks padded with filler
-("Muchas gracias", "Ok gracias", "Gracias Sami", "No gracias."), or nothing
-but a city name answering the platform's own prompt ("Bogotá", "Bogotá
-Soacha"). The low-content filter is whole-message, not contains: a greeting
-attached to real content ("Buenas, necesito ayuda con mi PPT") survives, and
-filler alone with no actual greeting/thanks word ("no si") is not treated as
-a greeting. Row count in `_manifest.csv` is the number that survived both
-filters.
+**Coverage is not 100% of `fact_message`.** Two things drop a message from
+`conversation_text` (and can drop a user entirely, if it was their only
+message), both counted against coverage rather than shipping a bad one: a
+message `redact.scrub` cannot cleanly redact (self-identification, a
+gazetteer name, or an unresolvable overlapping name span), and a message
+`export._is_low_content_message` flags as carrying no content of its own —
+a single word, a bare greeting ("Hola", "Buenas tardes"), a greeting or
+thanks padded with filler ("Muchas gracias", "Ok gracias", "Gracias Sami",
+"No gracias."), or nothing but a city name answering the platform's own
+prompt ("Bogotá", "Bogotá Soacha"). The low-content filter is whole-message,
+not contains: a greeting attached to real content ("Buenas, necesito ayuda
+con mi PPT") survives, and filler alone with no actual greeting/thanks word
+("no si") is not treated as a greeting. Row count in `_manifest.csv` is the
+number of *users* with at least one surviving message, not the number of
+messages — `n_messages` on each row is what states message-level coverage.
 
 ### `fact_meal` — 1 row per MEAL survey respondent (115 rows; user grain)
 Source: `SD.meal`, deduplicated to the most recent response per user. The
@@ -455,6 +484,14 @@ line). Feeds NB2 §2 cluster-volume time series; map `cluster_id` through
 ### `agg_daily_volume` — 1 row per day (126 rows)
 Cols: `day`, `n`. Daily message counts. Feeds NB2 §2 volume line.
 
+### `agg_daily_meal` — 1 row per day (new in schema v14)
+Cols: `day`, `n`. Daily MEAL survey response counts, same shape as
+`agg_daily_volume` but over `fact_meal[ts]`. Feeds the MEAL Analysis survey
+timeline, paired with `agg_daily_volume` on a shared date axis so a reader
+can see days with heavy message traffic and few or no surveys completed. At
+115 total responses over a ~4.5-month window most days are 0 or 1 — sparse by
+nature, not a bug.
+
 ### `agg_weekly_rating` — 1 row per week (19 rows)
 Cols: `week`, `mean_rating`, `n`. Weekly MEAL usefulness mean. Feeds NB2 §5.
 
@@ -569,9 +606,16 @@ message-level volume to plot), so every row resolves to a real, named cluster.
 columns, which mirror `metrics.priority_matrix_frame`'s actual (richer)
 output — this file reflects what's actually written.*
 
-### `agg_entities_by_kind` — 1 row per (kind, entity) (18 rows)
-Cols: `kind`, `entity`, `n`. Extracted-entity mentions (orgs, documents, etc.)
-by kind. Feeds NB2 §1 entity chart.
+### `fact_message_entities` — 1 row per (message, entity) mention
+Cols: `message_id`, `kind`, `entity`. Message-grain entity hits — supersedes
+`agg_entities_by_kind` (retired in schema v12), which collapsed every mention
+across the whole corpus into one row per (kind, entity) and so carried no key
+any dashboard filter could reach. This table relates to
+`fact_message[message_id]`, which already relates to
+`dim_user`/`dim_city`/`dim_date`/`dim_cluster` — a DAX `SUMMARIZE` over it
+reproduces the old table's unfiltered total (`n` = row count per kind/entity)
+while also responding to every page filter. Feeds NB2 §1 entity chart (Top
+Institutions / Top Procedures).
 
 ---
 
@@ -638,7 +682,7 @@ Editing `taxonomy.COVERAGE_GAP_PROBE` invalidates all of these numbers.
 Cols: `kind`, `entity`, `gap_count`, `total_count`, `pct_gap`.
 
 Feeds NB2 Figure 8's "where the gaps concentrate" panel: for each
-institution/procedure entity (same dictionary `agg_entities_by_kind` uses on
+institution/procedure entity (same dictionary `fact_message_entities` uses on
 the main corpus), how many of its mentions in the bot log landed in a turn
 `fact_bot_turn.gap_flag` marked, versus its total mentions. `pct_gap = 100 *
 gap_count / total_count`.
