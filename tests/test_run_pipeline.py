@@ -36,14 +36,16 @@ def test_fact_message_sample_wired_into_pipeline():
     assert "redact.load_ner()" in text
 
 
-def test_fact_message_full_wired_into_pipeline_reusing_the_same_ner_load():
-    """The full-corpus message table (schema v10) must be wired in too, and it
-    must reuse the one `redact.load_ner()` call the sampler already pays for --
-    a second `load_ner()` would double the spaCy model-load cost for no reason."""
+def test_fact_conversation_full_wired_into_pipeline_reusing_the_same_ner_load():
+    """The whole-conversation table (schema v13, superseding message-grain
+    fact_message_full) must be wired in too, and it must reuse the one
+    `redact.load_ner()` call the sampler already pays for -- a second
+    `load_ner()` would double the spaCy model-load cost for no reason."""
     src = Path(__file__).resolve().parents[1] / "run_pipeline.py"
     text = src.read_text(encoding="utf-8")
-    assert '"fact_message_full"' in text
-    assert "export.build_fact_message_full(" in text
+    assert '"fact_conversation_full"' in text
+    assert "export.build_fact_conversation_full(" in text
+    assert "fact_message_full" not in text
     assert text.count("redact.load_ner()") == 1
 
 

@@ -1,116 +1,116 @@
 user_id,ts,usefulness_rating,rating_num,would_recommend,recommendation_text,discovery_channel,no_usefulness_reason,reason_is_valid
-6491eceed718,2026-03-26 00:47:35.583,Very useful,5,Yes,,Referral from an NGO,Excelente,False
+6491eceed718,2026-03-26 00:47:35.583,Very useful,5,Yes,,An NGO,Excelente,False
 25f72e684000,2026-03-26 10:12:14.030,Not useful,1,Prefer not to say,,Other,"Ayuda, no se cómo activar mi línea nueva Tigo y mi internet",True
-90f9b9d9f534,2026-03-27 03:36:50.975,Moderately useful,3,Prefer not to say,,Referral from an NGO,No,True
+90f9b9d9f534,2026-03-27 03:36:50.975,Moderately useful,3,Prefer not to say,,An NGO,No,True
 f35294957acf,2026-03-27 11:47:53.350,Not useful,1,Prefer not to say,,Other,No recibí información,True
-ebf63a1e9924,2026-03-27 14:01:17.826,Useful,4,Yes,,Referral from an NGO,Todo bien gracias 😌🫂,False
-41662a74fa3e,2026-04-13 23:01:36.202,Not useful,1,Prefer not to say,,Referral from another migrant,Ayudas en Bucaramanga,True
-0556605b2d5c,2026-04-14 12:54:34.983,Moderately useful,3,Yes,,Poster at a service point,Me necesito hablo con persona ! Esto es urgencia !!!!,True
-21d253a16688,2026-04-19 19:49:21.138,Very useful,5,Yes,,Referral from an NGO,Será que hay un punto de atención para los migrante vía cali,False
+ebf63a1e9924,2026-03-27 14:01:17.826,Useful,4,Yes,,An NGO,Todo bien gracias 😌🫂,False
+41662a74fa3e,2026-04-13 23:01:36.202,Not useful,1,Prefer not to say,,Another migrant,Ayudas en Bucaramanga,True
+0556605b2d5c,2026-04-14 12:54:34.983,Moderately useful,3,Yes,,Service point poster,Me necesito hablo con persona ! Esto es urgencia !!!!,True
+21d253a16688,2026-04-19 19:49:21.138,Very useful,5,Yes,,An NGO,Será que hay un punto de atención para los migrante vía cali,False
 719105037cd3,2026-04-21 22:15:36.610,Very useful,5,Yes,,Other,No,False
 24e2b3678d0d,2026-04-22 01:21:25.169,Not useful,1,Yes,,Social media,Que respondan todas las dudas,True
-0a2869cfe664,2026-04-22 20:45:36.902,Moderately useful,3,Prefer not to say,,Poster at a service point,Actualizar la dirección de Migración Colombia en Cúcuta,True
-cf027211d091,2026-04-28 12:09:23.344,Very useful,5,Yes,,Referral from another migrant,Q dan informaciónes buenas,False
-ec0808a120ca,2026-04-28 13:00:00.148,Moderately useful,3,Yes,,Referral from an NGO,No,True
-72481892be9f,2026-04-29 13:29:29.029,Useful,4,Yes,,Referral from an NGO,No,False
-c5850b168b1b,2026-05-04 19:20:28.976,Slightly useful,2,Prefer not to say,,Poster at a service point,Llegue al punto a la una de la tarde y estaba cerrado el punto de atencion en la terminal del norte. Favor no cerrar los puntos,True
-c70fc546cae1,2026-05-05 16:58:03.247,Useful,4,Prefer not to say,,Referral from an NGO,Poder responder a la pregunta hecha cuando cambia el tema,False
-43f2bfa84b23,2026-05-05 21:42:56.569,Very useful,5,Yes,,Referral from another migrant,No,False
-d881a73f0891,2026-05-06 13:59:49.873,Not useful,1,Yes,,Referral from an NGO,necesito saber la dirección de un refugio en cali,True
+0a2869cfe664,2026-04-22 20:45:36.902,Moderately useful,3,Prefer not to say,,Service point poster,Actualizar la dirección de Migración Colombia en Cúcuta,True
+cf027211d091,2026-04-28 12:09:23.344,Very useful,5,Yes,,Another migrant,Q dan informaciónes buenas,False
+ec0808a120ca,2026-04-28 13:00:00.148,Moderately useful,3,Yes,,An NGO,No,True
+72481892be9f,2026-04-29 13:29:29.029,Useful,4,Yes,,An NGO,No,False
+c5850b168b1b,2026-05-04 19:20:28.976,Slightly useful,2,Prefer not to say,,Service point poster,Llegue al punto a la una de la tarde y estaba cerrado el punto de atencion en la terminal del norte. Favor no cerrar los puntos,True
+c70fc546cae1,2026-05-05 16:58:03.247,Useful,4,Prefer not to say,,An NGO,Poder responder a la pregunta hecha cuando cambia el tema,False
+43f2bfa84b23,2026-05-05 21:42:56.569,Very useful,5,Yes,,Another migrant,No,False
+d881a73f0891,2026-05-06 13:59:49.873,Not useful,1,Yes,,An NGO,necesito saber la dirección de un refugio en cali,True
 f11283a6845d,2026-05-12 05:20:44.899,Useful,4,Yes,,Other,"Si , actualizar la información",False
-92c04276b972,2026-05-12 20:40:48.069,Not useful,1,Yes,,Referral from an NGO,No,True
-c4b3d829b70c,2026-05-12 23:03:03.062,Very useful,5,Yes,,Referral from another migrant,No,False
-4c7490179e9b,2026-05-15 21:57:15.605,Very useful,5,Yes,,Referral from an NGO,Todo esta perfecto,False
-5af71ce15ba4,2026-05-19 15:56:49.186,Very useful,5,Yes,,Referral from another migrant,Perfecto,False
+92c04276b972,2026-05-12 20:40:48.069,Not useful,1,Yes,,An NGO,No,True
+c4b3d829b70c,2026-05-12 23:03:03.062,Very useful,5,Yes,,Another migrant,No,False
+4c7490179e9b,2026-05-15 21:57:15.605,Very useful,5,Yes,,An NGO,Todo esta perfecto,False
+5af71ce15ba4,2026-05-19 15:56:49.186,Very useful,5,Yes,,Another migrant,Perfecto,False
 58e3ec0e8efa,2026-05-22 11:02:08.011,Very useful,5,Yes,,Social media,El servicio es muy excelente,False
-bb33b846c2c5,2026-05-25 19:46:04.239,Slightly useful,2,Yes,,Referral from an NGO,No,True
+bb33b846c2c5,2026-05-25 19:46:04.239,Slightly useful,2,Yes,,An NGO,No,True
 5a525086d92f,2026-05-25 20:11:30.972,Very useful,5,Yes,,Other,No por el momento,False
 06433e895ee5,2026-05-26 00:13:40.908,Useful,4,Yes,,Social media,Si,False
 512018e4b670,2026-05-26 14:16:32.932,Very useful,5,Yes,,Other,Ninguna,False
-0a5b92f117c1,2026-05-26 15:04:25.393,Useful,4,Yes,,Referral from an NGO,No,False
-5a37c2627cfe,2026-05-27 17:06:01.244,Very useful,5,Yes,,Referral from another migrant,Lo veo muy exelente,False
-dd16a0f184e1,2026-05-28 21:24:22.181,Very useful,5,Yes,,Poster at a service point,No este servicio es mui bueno,False
+0a5b92f117c1,2026-05-26 15:04:25.393,Useful,4,Yes,,An NGO,No,False
+5a37c2627cfe,2026-05-27 17:06:01.244,Very useful,5,Yes,,Another migrant,Lo veo muy exelente,False
+dd16a0f184e1,2026-05-28 21:24:22.181,Very useful,5,Yes,,Service point poster,No este servicio es mui bueno,False
 1c6098ca81dd,2026-05-28 21:27:57.474,Not useful,1,Prefer not to say,,Social media,No,True
 ebd77a80a358,2026-05-28 21:54:50.788,Useful,4,Yes,,Social media,Todo bien,False
-6c3f6488d293,2026-05-29 14:50:23.604,Not useful,1,Prefer not to say,,Referral from another migrant,Como sacar un petróleo tutor,True
-866fdeb1a0de,2026-06-02 15:17:06.167,Useful,4,Prefer not to say,,Poster at a service point,No,False
+6c3f6488d293,2026-05-29 14:50:23.604,Not useful,1,Prefer not to say,,Another migrant,Como sacar un petróleo tutor,True
+866fdeb1a0de,2026-06-02 15:17:06.167,Useful,4,Prefer not to say,,Service point poster,No,False
 3b7c53152a59,2026-06-02 15:35:44.469,Useful,4,Yes,,Social media,No,False
-38ca49bafc59,2026-06-03 16:35:19.626,Very useful,5,Yes,,Referral from an NGO,Hasta el momento todo a estado bien,False
+38ca49bafc59,2026-06-03 16:35:19.626,Very useful,5,Yes,,An NGO,Hasta el momento todo a estado bien,False
 626dfbcaff20,2026-06-05 03:47:56.650,Very useful,5,Yes,,Other,Como hago para verificar la confirmacion de mi Cita.,False
-ca80d27637a1,2026-06-09 14:24:59.809,Moderately useful,3,Yes,,Referral from another migrant,Mo,True
-a8bb402a432a,2026-06-09 18:22:58.813,Very useful,5,Yes,,Referral from another migrant,Si .e dieron este. Número,False
-cc43888d2b0f,2026-06-09 20:42:14.699,Very useful,5,Yes,,Referral from another migrant,No todo está excelente,False
+ca80d27637a1,2026-06-09 14:24:59.809,Moderately useful,3,Yes,,Another migrant,Mo,True
+a8bb402a432a,2026-06-09 18:22:58.813,Very useful,5,Yes,,Another migrant,Si .e dieron este. Número,False
+cc43888d2b0f,2026-06-09 20:42:14.699,Very useful,5,Yes,,Another migrant,No todo está excelente,False
 1a83a3c7f37a,2026-06-10 19:45:59.637,Slightly useful,2,Yes,,Social media,,False
 0af1b20e629c,2026-06-11 14:20:41.557,Very useful,5,Yes,,Other,No,False
-8e550e7fc89a,2026-06-16 02:13:22.630,Very useful,5,Yes,,Referral from another migrant,No,False
+8e550e7fc89a,2026-06-16 02:13:22.630,Very useful,5,Yes,,Another migrant,No,False
 dad67fee72e3,2026-06-20 02:02:05.277,Very useful,5,Yes,,Other,Ningúna,False
-c102a05bc7bd,2026-06-22 16:33:12.922,Moderately useful,3,Yes,,Referral from another migrant,No,True
-a59fcec78cc4,2026-06-22 16:35:03.201,Very useful,5,Yes,,Referral from another migrant,No,False
-6b9263923d4f,2026-06-22 16:37:39.513,Very useful,5,Yes,,Referral from another migrant,Si,False
+c102a05bc7bd,2026-06-22 16:33:12.922,Moderately useful,3,Yes,,Another migrant,No,True
+a59fcec78cc4,2026-06-22 16:35:03.201,Very useful,5,Yes,,Another migrant,No,False
+6b9263923d4f,2026-06-22 16:37:39.513,Very useful,5,Yes,,Another migrant,Si,False
 6c99e1a0bd00,2026-06-22 16:41:44.405,Very useful,5,Yes,,Other,No,False
-e846935965c0,2026-06-22 18:27:46.860,Very useful,5,Yes,,Referral from an NGO,No,False
-4544c32a7977,2026-06-22 18:56:53.074,Very useful,5,Yes,,Referral from another migrant,Ninguna todo está muy bien,False
+e846935965c0,2026-06-22 18:27:46.860,Very useful,5,Yes,,An NGO,No,False
+4544c32a7977,2026-06-22 18:56:53.074,Very useful,5,Yes,,Another migrant,Ninguna todo está muy bien,False
 c779e342fd14,2026-06-22 19:47:01.783,Very useful,5,Yes,,Other,Si,False
-481568c9e082,2026-06-24 02:21:32.799,Useful,4,Yes,,Referral from another migrant,No,False
+481568c9e082,2026-06-24 02:21:32.799,Useful,4,Yes,,Another migrant,No,False
 e4bb3d69fa67,2026-06-24 03:51:37.741,Useful,4,Yes,,Other,No,False
 eba15300ac71,2026-06-24 20:03:39.636,Slightly useful,2,Prefer not to say,,Other,Que me respondan,True
 c87ec7e92f39,2026-06-25 11:55:09.458,Not useful,1,Prefer not to say,,Social media,Mejoren el servicio,True
 4e549487225a,2026-06-27 17:53:22.336,Very useful,5,Yes,,Social media,No,False
 5d68d7d36dbf,2026-06-29 06:38:48.182,Very useful,5,Yes,,Social media,Quería preguntarte para inmigrante una adontologia gratuita,False
-42070e3f07d1,2026-06-29 16:48:26.493,Useful,4,Yes,,Poster at a service point,No,False
-a02ba6b93372,2026-06-30 14:13:28.017,Very useful,5,Yes,,Referral from another migrant,Dirección,False
-4f524af45e30,2026-06-30 16:28:10.681,Very useful,5,Yes,,Referral from another migrant,Todo excelente 👌,False
+42070e3f07d1,2026-06-29 16:48:26.493,Useful,4,Yes,,Service point poster,No,False
+a02ba6b93372,2026-06-30 14:13:28.017,Very useful,5,Yes,,Another migrant,Dirección,False
+4f524af45e30,2026-06-30 16:28:10.681,Very useful,5,Yes,,Another migrant,Todo excelente 👌,False
 e0759bd92787,2026-07-01 14:24:15.408,Moderately useful,3,Yes,,Social media,Nob,True
-5e4e11b7a1b0,2026-07-04 21:34:18.536,Very useful,5,No,,Referral from another migrant,No,False
-30d8ffd038d6,2026-07-05 17:12:01.354,Very useful,5,Yes,,Poster at a service point,Esta perfecto,False
-07a493b2ddeb,2026-07-06 05:30:11.553,Very useful,5,Yes,,Referral from another migrant,No,False
+5e4e11b7a1b0,2026-07-04 21:34:18.536,Very useful,5,No,,Another migrant,No,False
+30d8ffd038d6,2026-07-05 17:12:01.354,Very useful,5,Yes,,Service point poster,Esta perfecto,False
+07a493b2ddeb,2026-07-06 05:30:11.553,Very useful,5,Yes,,Another migrant,No,False
 566014fe1472,2026-07-08 16:13:30.930,Useful,4,Yes,,Other,No,False
-1e01c7d59f5c,2026-07-08 17:18:17.396,Not useful,1,Yes,,Poster at a service point,Poraora no.,True
-fcf527dbf6de,2026-07-08 17:50:09.166,Useful,4,Yes,,Referral from another migrant,No,False
+1e01c7d59f5c,2026-07-08 17:18:17.396,Not useful,1,Yes,,Service point poster,Poraora no.,True
+fcf527dbf6de,2026-07-08 17:50:09.166,Useful,4,Yes,,Another migrant,No,False
 e2c9eb5825cb,2026-07-08 18:30:07.347,Not useful,1,Prefer not to say,,Social media,"Pero si a la final no prestan ayuda que puedo decirle,, necesito ayuda para mujer embarazada sola",True
-c336a1971655,2026-07-08 21:35:49.443,Very useful,5,Yes,,Referral from an NGO,No,False
-e06423c70b3e,2026-07-09 01:18:17.029,Slightly useful,2,No,,Referral from an NGO,No,True
-2757dc3ce28d,2026-07-09 19:37:49.050,Very useful,5,Yes,,Referral from another migrant,No,False
-662f81114f99,2026-07-10 14:45:21.652,Useful,4,Yes,,Poster at a service point,Ninguna,False
-2984a7622736,2026-07-10 16:00:13.806,Very useful,5,Yes,,Referral from another migrant,Me parece todo bien,False
-b2635e9a6a7f,2026-07-10 18:50:13.284,Very useful,5,Yes,,Referral from an NGO,No,False
+c336a1971655,2026-07-08 21:35:49.443,Very useful,5,Yes,,An NGO,No,False
+e06423c70b3e,2026-07-09 01:18:17.029,Slightly useful,2,No,,An NGO,No,True
+2757dc3ce28d,2026-07-09 19:37:49.050,Very useful,5,Yes,,Another migrant,No,False
+662f81114f99,2026-07-10 14:45:21.652,Useful,4,Yes,,Service point poster,Ninguna,False
+2984a7622736,2026-07-10 16:00:13.806,Very useful,5,Yes,,Another migrant,Me parece todo bien,False
+b2635e9a6a7f,2026-07-10 18:50:13.284,Very useful,5,Yes,,An NGO,No,False
 75c9dbc84410,2026-07-10 19:19:28.629,Useful,4,Yes,,Social media,No todo bien,False
 a14634aae815,2026-07-11 22:30:36.895,Very useful,5,Yes,,Social media,No,False
 ef3c1dfce67c,2026-07-14 16:02:58.735,Not useful,1,Prefer not to say,,Social media,.,True
 6c911cdfc79b,2026-07-14 21:35:57.972,Very useful,5,Yes,,Social media,Sami quisiera saber en dnd puedo participar en una ruta de emprendimiento,False
-d70599256661,2026-07-14 22:06:14.243,Not useful,1,Prefer not to say,,Referral from another migrant,Nop,True
-7d7d7dd617bf,2026-07-14 23:38:56.140,Moderately useful,3,Prefer not to say,,Referral from another migrant,Que den información más precisa,True
-533f8aeb1f13,2026-07-15 00:11:26.862,Useful,4,Yes,,Poster at a service point,No,False
+d70599256661,2026-07-14 22:06:14.243,Not useful,1,Prefer not to say,,Another migrant,Nop,True
+7d7d7dd617bf,2026-07-14 23:38:56.140,Moderately useful,3,Prefer not to say,,Another migrant,Que den información más precisa,True
+533f8aeb1f13,2026-07-15 00:11:26.862,Useful,4,Yes,,Service point poster,No,False
 bb994c5bd396,2026-07-15 03:06:26.689,Useful,4,Yes,,Social media,Necesito que me ayuden para estar acá en Colombia legal,False
 18c313934434,2026-07-15 13:21:58.417,Very useful,5,Yes,,Other,no,False
-cf8a9ac2cbfb,2026-07-15 13:39:03.222,Very useful,5,Yes,,Poster at a service point,No.,False
-dfed16440fa7,2026-07-15 16:03:23.286,Very useful,5,Yes,,Referral from an NGO,Todo bien,False
-730e17119e5d,2026-07-15 16:25:15.637,Useful,4,Yes,,Referral from an NGO,No,False
+cf8a9ac2cbfb,2026-07-15 13:39:03.222,Very useful,5,Yes,,Service point poster,No.,False
+dfed16440fa7,2026-07-15 16:03:23.286,Very useful,5,Yes,,An NGO,Todo bien,False
+730e17119e5d,2026-07-15 16:25:15.637,Useful,4,Yes,,An NGO,No,False
 67e2bbaedc66,2026-07-17 11:21:04.072,Not useful,1,Yes,,Social media,No,True
-6a96577d2770,2026-07-21 12:14:22.931,Very useful,5,Yes,,Poster at a service point,No,False
-f3266bd148e4,2026-07-21 17:02:04.904,Moderately useful,3,Yes,,Referral from another migrant,No,True
-995ce800305d,2026-07-22 10:30:28.886,Very useful,5,Yes,,Poster at a service point,No,False
-7d9370b38112,2026-07-23 07:16:35.228,Useful,4,Yes,,Referral from another migrant,No por ahora no de repente más información y números de contactos o correos,False
+6a96577d2770,2026-07-21 12:14:22.931,Very useful,5,Yes,,Service point poster,No,False
+f3266bd148e4,2026-07-21 17:02:04.904,Moderately useful,3,Yes,,Another migrant,No,True
+995ce800305d,2026-07-22 10:30:28.886,Very useful,5,Yes,,Service point poster,No,False
+7d9370b38112,2026-07-23 07:16:35.228,Useful,4,Yes,,Another migrant,No por ahora no de repente más información y números de contactos o correos,False
 f8df33a0bed7,2026-07-23 11:45:46.363,Very useful,5,Yes,,Other,Que salgan mas ayuda,False
 58003bf0152d,2026-07-24 14:36:45.071,Useful,4,,,Social media,,False
-cfa7562d8642,2026-07-24 19:38:13.568,Very useful,5,,,Poster at a service point,,False
+cfa7562d8642,2026-07-24 19:38:13.568,Very useful,5,,,Service point poster,,False
 0b98d3009cee,2026-07-24 20:45:23.167,Very useful,5,,,Social media,,False
-f19c866c9fd5,2026-07-24 22:32:07.418,Very useful,5,,,Referral from an NGO,,False
+f19c866c9fd5,2026-07-24 22:32:07.418,Very useful,5,,,An NGO,,False
 5db00e51f03d,2026-07-25 02:02:43.012,Moderately useful,3,,,Social media,All,True
 178c78255064,2026-07-25 14:52:21.942,Very useful,5,,,Social media,,False
-5e65b3f3ebf6,2026-07-25 15:31:27.637,Very useful,5,,,Por un afiche que esta pegado a la pared,,False
+5e65b3f3ebf6,2026-07-25 15:31:27.637,Very useful,5,,,Other,,False
 96cae25a3eb7,2026-07-25 16:01:39.415,Useful,4,,,Social media,,False
 8d99fc65f5d8,2026-07-26 19:25:24.777,Very useful,5,,,Social media,,False
-48e2f5351af7,2026-07-27 09:24:11.390,Moderately useful,3,,,Referral from an NGO,Everything,True
-258089dc336d,2026-07-27 16:02:54.553,Useful,4,,,Por intégrate,,False
-221fa9dcfc72,2026-07-27 16:57:24.112,Very useful,5,,,Centro integrate,,False
-a5dadd4e8d83,2026-07-27 17:16:26.959,Very useful,5,,,Referral from another migrant,,False
-3599f0b9b4e9,2026-07-27 19:26:35.169,Moderately useful,3,,,Referral from another migrant,Porque esperaba más opciones pero al parecer son las mismas que todos donde e preguntado me han dado pensé que abría algo más relevante,True
+48e2f5351af7,2026-07-27 09:24:11.390,Moderately useful,3,,,An NGO,Everything,True
+258089dc336d,2026-07-27 16:02:54.553,Useful,4,,,Other,,False
+221fa9dcfc72,2026-07-27 16:57:24.112,Very useful,5,,,Other,,False
+a5dadd4e8d83,2026-07-27 17:16:26.959,Very useful,5,,,Another migrant,,False
+3599f0b9b4e9,2026-07-27 19:26:35.169,Moderately useful,3,,,Another migrant,Porque esperaba más opciones pero al parecer son las mismas que todos donde e preguntado me han dado pensé que abría algo más relevante,True
 5f86a3974516,2026-07-27 20:07:52.615,Useful,4,,,Social media,,False
-1195052a2705,2026-07-28 00:33:29.128,Moderately useful,3,,,Por un amigo que trabaja en la icbf,muy  til,True
+1195052a2705,2026-07-28 00:33:29.128,Moderately useful,3,,,Other,muy  til,True
 2f1d63920637,2026-07-28 03:01:42.583,Useful,4,,,Social media,,False
-702f81b87973,2026-07-28 04:13:43.363,Very useful,5,,,Poster at a service point,,False
-adc62f73647f,2026-07-28 09:18:12.483,Useful,4,,,Referral from an NGO,,False
-b05d491de4b3,2026-07-28 11:17:03.671,Useful,4,,,Referral from an NGO,,False
-5616952a922d,2026-07-28 12:34:34.931,Very useful,5,,,Referral from an NGO,,False
-b259227734f4,2026-07-28 13:13:03.544,Very useful,5,,,Poster at a service point,,False
+702f81b87973,2026-07-28 04:13:43.363,Very useful,5,,,Service point poster,,False
+adc62f73647f,2026-07-28 09:18:12.483,Useful,4,,,An NGO,,False
+b05d491de4b3,2026-07-28 11:17:03.671,Useful,4,,,An NGO,,False
+5616952a922d,2026-07-28 12:34:34.931,Very useful,5,,,An NGO,,False
+b259227734f4,2026-07-28 13:13:03.544,Very useful,5,,,Service point poster,,False
