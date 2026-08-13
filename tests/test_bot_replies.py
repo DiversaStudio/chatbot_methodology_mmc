@@ -282,6 +282,46 @@ def test_agg_bot_gap_entities_empty_log_keeps_headers():
     assert len(empty) == 0
 
 
+# ---- fact_bot_turn_entities: row-level (schema v16), relates to fact_bot_turn ----
+
+def test_fact_bot_turn_entities_carries_turn_and_user_id(tmp_path):
+    out = export.build_fact_bot_turn_entities(_turns(tmp_path, PPT_ROWS))
+    assert list(out.columns) == export.FACT_BOT_TURN_ENTITIES_COLUMNS
+    ppt_rows = out[out["entity"] == "PPT"]
+    assert len(ppt_rows) == 5   # every PPT-mentioning turn, gap or not
+    assert ppt_rows["user_id"].nunique() == 5
+    assert "user_message" not in out.columns
+
+
+def test_fact_bot_turn_entities_reproduces_agg_bot_gap_entities_via_native_count(tmp_path):
+    """Joining on turn_id to a gap_flag column and doing a plain Count should
+    reproduce agg_bot_gap_entities' numbers -- the whole point of the regrain."""
+    turns = _turns(tmp_path, PPT_ROWS)
+    ents = export.build_fact_bot_turn_entities(turns)
+    agg = export.build_agg_bot_gap_entities(turns)
+
+    gap_turns = set(turns.loc[turns["gap_flag"], "turn_id"])
+    ppt = ents[ents["entity"] == "PPT"]
+    live_gap_count = ppt["turn_id"].isin(gap_turns).sum()
+    live_total_count = len(ppt)
+
+    row = agg[(agg.kind == "procedure") & (agg.entity == "PPT")].iloc[0]
+    assert live_gap_count == row.gap_count
+    assert live_total_count == row.total_count
+
+
+def test_fact_bot_turn_entities_empty_log_keeps_headers():
+    empty = export.build_fact_bot_turn_entities(
+        pd.DataFrame(columns=["turn_id", "user_id", "gap_flag", "user_message"]))
+    assert list(empty.columns) == export.FACT_BOT_TURN_ENTITIES_COLUMNS
+    assert len(empty) == 0
+
+
+def test_fact_bot_turn_entities_passes_the_pii_gate(tmp_path):
+    out = export.build_fact_bot_turn_entities(_turns(tmp_path, PPT_ROWS))
+    assert qa.pii_scan(out) == []
+
+
 # ---- the shipped gold set ----
 def test_shipped_gold_set_clears_the_precision_gate():
     """Guards the real measurement, not a fixture.

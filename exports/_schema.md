@@ -7,7 +7,43 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
-**`schema_version = "14"`** (bumped from `"13"` for `agg_daily_meal` — daily
+**`schema_version = "16"`** (bumped from `"15"` for full dashboard filter
+wiring, 2026-08-12: every plot needs to respond to the seven global filters
+— Date, Nationality, City, Category, Gender, Destination, Presence of
+Children — and several tables were pre-aggregated in a way that had no key
+any of those filters could reach. Regrained to carry `user_id` (or
+`message_id`/`turn_id`, which already relate onward to it) so a plain
+relationship to `dim_user` in Power BI, not a DAX rewrite, restores
+filterability: `agg_daily_volume`, `agg_weekly_cluster`, `agg_daily_meal`,
+`agg_weekly_rating`, `agg_funnel`, `agg_registration_funnel`, `agg_language`,
+`agg_priority_matrix`, `nlp_voices`, `nlp_cluster_terms`,
+`nlp_subcluster_terms`, and `nlp_tone_confusion` all changed shape — see each
+table's entry below for its new columns, and `docs/POWERBI_GUIDE_WAVE9.md`
+for the full column/relationship/field-well change list. One new table,
+`fact_bot_turn_entities` (turn_id, user_id, kind, entity), mirrors
+`fact_message_entities` for the bot log; `agg_bot_gap_entities` is kept
+unchanged as a static reference. `agg_priority_matrix[unmet_need]` is now a
+per-user, fixed-baseline z-score contribution (`export._user_unmet_need_axes`)
+rather than a per-cluster value, chosen specifically so Power BI's native
+Average aggregation reconstructs a live, filter-responsive number with zero
+DAX — see that function's docstring for why a *fixed* baseline is still
+correct. Two things stay deliberately unfiltered: `agg_coverage_gap`'s
+`precision`/`recall`/`is_floor`/`rate_quotable` columns (properties of the
+validated probe method, not a population count) and `nlp_entity_candidates`
+(a QA worklist, not a report visual). `fact_bot_turn` now relates to
+`dim_user` — an accepted reversal of the earlier "never relate" rule, since
+it silently re-bases the coverage-gap denominator to the 88 (of 216) bot-log
+users with a survey record whenever a demographic filter is active; the
+guide requires a live user-count label next to the KPI so that re-basing is
+visible, not hidden.
+
+**`schema_version = "15"`** (bumped from `"14"` for `dim_user[age_range]` /
+new `age_range_order` — `age_range` now computed from `age_num` into MMC's
+own six brackets, replacing the raw survey's own coarser self-reported
+bucket. See `dim_user`'s entry below for the full caveat, including the
+`age_flag`/`0-17` overlap.
+
+Schema `"14"` (bumped from `"13"` for `agg_daily_meal` — daily
 MEAL survey response counts, same shape as `agg_daily_volume` but over
 `fact_meal[ts]`, added so the MEAL Analysis page can show a survey-response
 timeline alongside the message-volume line. See that table's entry below.
@@ -153,7 +189,8 @@ stated answer into a refusal label would misreport those 3 people. Note this
 reverses the earlier decision recorded here to keep the two apart; the reasoning
 did not change, the cell sizes did. The analysis frames (`SD.responses`, `SD.meal`) keep the Spanish source
 values; only the exports are translated. Proper nouns (city, department,
-nationality, `age_range`) are unchanged.
+nationality) are unchanged. `age_range` is the exception as of schema v15 —
+see its own entry below; it's computed from `age_num`, not passed through.
 
 **Non-response is a named bucket, not a blank.** Both ordered duration scales
 (`away_duration_*`, `city_duration_*`) carry **`Did not respond`** with order
@@ -204,7 +241,7 @@ of their earliest record — the survey they actually answered.
 |---|---|
 | `user_id` | key |
 | `instrument_version` | `v1` / `v2` — which registration survey the user answered. **New in schema v3.** See "Questionnaire cohorts" below; not all columns in this table may be pooled across the two values — check `src/sami/cohort.py` |
-| `gender_clean`, `age_num`, `age_flag`, `age_range`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Other or prefer not to say (empty for unfinished registrations), `minors` is Yes / No — its own `Prefer not to say` is a different question and is untouched by the gender merge |
+| `gender_clean`, `age_num`, `age_flag`, `age_range`, `age_range_order`, `minors` | profile; `gender_clean` is the closed EN set Woman / Man / LGBTQ+ / Other or prefer not to say (empty for unfinished registrations), `minors` is Yes / No — its own `Prefer not to say` is a different question and is untouched by the gender merge. **`age_range` changed in schema v15**: computed from `age_num` into MMC's own brackets (`0-17` / `18-24` / `25-34` / `35-44` / `45-54` / `55+` / `Not specified`), replacing the raw survey's own coarser self-reported bucket (`0-17` / `18-35` / `36-50` / `50 and above`), which couldn't be split into MMC's six bands after the fact. `age_range_order` is new, same sort-by-column pattern as `away_duration_order`/`city_duration_order`. **The `0-17` bucket is exactly the population `age_flag == "unreliable_sub18"` already distrusts** (50 users, both counts match) — any chart built on `age_range` needs to visibly caveat or exclude that band, not present it as clean data |
 | `registered_at` | earliest response record for the user (new in schema v4). **Never null.** Distinct from `first_seen`, which is the first *message* and is null for the 194 users who registered without writing — a "new users" count must filter on `registered_at`, or it drops those people and disagrees with a plain user count for an invisible reason |
 | `city_canon`, `department` | current-city geo |
 | `nationality_canon` | **cohort-SPLIT — see warning below; do not pool v1 and v2**. Junk survey values (numeric codes, free-text sentences like `"Soy Colombovenezolana"`) fold to `Desconocida` alongside real non-response — see the gold-layer note above. Some spellings changed between runs (e.g. `Brasil`/`Haití` → `Brazil`/`Haiti`); a report built against an older export may not match on this column |
@@ -473,27 +510,31 @@ Feeds: the spec 3 dashboard drill-down (category → subcategory); not yet wired
 
 ## Time series (resampled once — not re-derived in DAX)
 
-### `agg_weekly_cluster` — week × cluster (108 rows in the 2026-08-03 run)
-Cols: `week`, `cluster_id`, `n`. One weekly series per **real** cluster (the
-`-1` "No conversation text" bucket, which has no message-level volume, is not
-included, and there is no "other" rollup — every real cluster gets its own
-line). Feeds NB2 §2 cluster-volume time series; map `cluster_id` through
-`dim_cluster[name]` / `[color_hex]` for the legend. Replaces
-`agg_weekly_category` (retired in schema v5).
+### `agg_weekly_cluster` — week × cluster × user (schema v16; was week × cluster)
+Cols: `week`, `cluster_id`, `user_id`, `n` — one row per user's message count in
+a cluster that week, not one pre-summed row per (week, cluster). **Regrained in
+schema v16** so the table relates to `dim_user` and every dashboard filter
+reaches it; Sum(n) by week (legend = cluster_id, via `dim_cluster`) reproduces
+the old chart exactly when unfiltered, and now also reproduces it filtered.
+Replaces `agg_weekly_category` (retired in schema v5).
 
-### `agg_daily_volume` — 1 row per day (126 rows)
-Cols: `day`, `n`. Daily message counts. Feeds NB2 §2 volume line.
+### `agg_daily_volume` — 1 row per (day, user) (schema v16; was 1 row per day)
+Cols: `day`, `user_id`, `n`. Sum(n) by day reproduces the old daily message
+count line; regrained in schema v16 for the same filterability reason as
+`agg_weekly_cluster` above.
 
-### `agg_daily_meal` — 1 row per day (new in schema v14)
-Cols: `day`, `n`. Daily MEAL survey response counts, same shape as
-`agg_daily_volume` but over `fact_meal[ts]`. Feeds the MEAL Analysis survey
-timeline, paired with `agg_daily_volume` on a shared date axis so a reader
-can see days with heavy message traffic and few or no surveys completed. At
-115 total responses over a ~4.5-month window most days are 0 or 1 — sparse by
+### `agg_daily_meal` — 1 row per (day, user) response (schema v14, regrained v16)
+Cols: `day`, `user_id`, `n` (always 1). Daily MEAL survey response counts, same
+shape as `agg_daily_volume` but over `fact_meal[ts]`. Feeds the MEAL Analysis
+survey timeline, paired with `agg_daily_volume` on a shared date axis. At 115
+total responses over a ~4.5-month window most days are 0 or 1 — sparse by
 nature, not a bug.
 
-### `agg_weekly_rating` — 1 row per week (19 rows)
-Cols: `week`, `mean_rating`, `n`. Weekly MEAL usefulness mean. Feeds NB2 §5.
+### `agg_weekly_rating` — 1 row per (week, user) rating (schema v16; was 1 pre-averaged row per week)
+Cols: `week`, `user_id`, `mean_rating`, `n` (always 1). `mean_rating` now holds
+that USER's own `rating_num` for that response, not a mean — Power BI's
+Summarize-by must be set to Average for it to read as before. Weekly MEAL
+usefulness mean, feeds NB2 §5.
 
 ---
 
@@ -543,12 +584,16 @@ do not wire cross-filtering from it.
 
 ## Registration & language (new in schema v3)
 
-### `agg_registration_funnel` — 1 row per (cohort, stage) (10 rows: 5 stages × 2 cohorts)
-Cols: `instrument_version`, `stage_order`, `stage`, `n`, `pct_of_started`. Ordered
-pre-conversation funnel (`registration started → registration completed /
-abandoned / in progress / other`) built from the v2 registration fields
-(`Registration Status`, `Registration Started`). Feeds NB1's new registration
-section.
+### `agg_registration_funnel` — 1 row per (user, stage reached) (schema v16; was 1 row per (cohort, stage))
+Cols: `user_id`, `instrument_version`, `stage_order`, `stage` — every started
+record contributes two rows, "registration started" and its resolved status.
+**Regrained in schema v16** for filterability: a Funnel visual with Count
+(Distinct) of `user_id` split by `stage`/`instrument_version` reproduces the
+old `n`/`pct_of_started` columns (dropped — Power BI's own Funnel visual
+computes the "% of first stage" drop natively). Ordered pre-conversation
+funnel (`registration started → registration completed / abandoned / in
+progress / other`) built from the v2 registration fields (`Registration
+Status`, `Registration Started`). Feeds NB1's new registration section.
 
 **⚠️ Split by `instrument_version` — never sum across cohorts.** v1's rows are
 migrated data and are 100% complete by construction: the legacy platform never
@@ -559,11 +604,14 @@ that carry no drop-off information at all. Measured: v1 reads **99.9%** complete
 is assigned per user (the user's earliest record's cohort), matching `dim_user`
 and `agg_language`, so per-cohort user counts reconcile across all three tables.
 
-### `agg_language` — 1 row per (language, cohort) (4 rows)
-Cols: `language, instrument_version, n_users`. Distinct users per interface
-language, split by cohort because the language selector is v2-only (a pooled
-count would read as ~100% Spanish only because the question didn't exist for
-v1 users). Feeds NB1's new language section.
+### `agg_language` — 1 row per (user, language used) (schema v16; was 1 row per (language, cohort))
+Cols: `user_id, language, instrument_version`. **Regrained in schema v16**:
+`n_users` dropped — a bar chart with Count (Distinct) of `user_id` by
+`language` (split by `instrument_version`) reproduces it, and now responds to
+every dashboard filter via the `user_id` relationship to `dim_user`. Split by
+cohort because the language selector is v2-only (a pooled count would read as
+~100% Spanish only because the question didn't exist for v1 users). Feeds
+NB1's new language section.
 
 **⚠️ `n_users` counts users who *ever* used a language, not users assigned to
 one.** A multilingual user contributes to more than one row, so
@@ -576,27 +624,34 @@ English-language users total).
 
 ## Computed frames (not reproducible in DAX)
 
-### `agg_funnel` — 1 row per funnel stage (5 rows)
-Cols: `stage_order`, `stage`, `n`, `conversion_from_prev`. Feeds NB2 §4
-onboarding/usage funnel. Not to be confused with `agg_registration_funnel`
-above — this is the *usage* funnel (asked a question → got a response → …),
-not the *sign-up* funnel.
+### `agg_funnel` — 1 row per (user, stage reached) (schema v16; was 1 row per funnel stage)
+Cols: `user_id`, `stage_order`, `stage`. **Regrained in schema v16**: `n` /
+`conversion_from_prev` dropped — a Funnel visual with Count (Distinct) of
+`user_id` by `stage` reproduces them via Power BI's own built-in stage-to-
+stage drop. Feeds NB2 §4 onboarding/usage funnel. Not to be confused with
+`agg_registration_funnel` above — this is the *usage* funnel (asked a
+question → got a response → …), not the *sign-up* funnel.
 
-### `agg_priority_matrix` — 1 row per real cluster (6 rows in the 2026-08-03 run)
-Cols: `cluster_id`, `messages`, `users`, `pct_repeat`, `mean_rating`, `meal_n`,
-`rating_is_fallback`, `pct_negative`, `n_axes`, `unmet_need`, `name`,
-`top_terms`, `color_hex`. Feeds NB2 §6 priority matrix (volume × unmet-need ×
-tone); bubble annotations use `top_terms`.
+### `agg_priority_matrix` — 1 row per (real cluster, user) (schema v16; was 1 row per real cluster)
+Cols: `cluster_id`, `user_id`, `messages`, `users` (always 1), `unmet_need`,
+`name`, `top_terms`, `color_hex`. **Regrained in schema v16** so the table
+relates to `dim_user` — `pct_repeat`/`mean_rating`/`meal_n`/
+`rating_is_fallback`/`pct_negative`/`n_axes` (all inherently cluster-level)
+are dropped; `unmet_need` is now each user's own FIXED-BASELINE z-score
+contribution (`export._user_unmet_need_axes`), designed so Power BI's native
+**Average** aggregation reconstructs a live, filter-responsive number with no
+DAX — the z-score baseline itself (mean/std across this run's clusters) stays
+fixed, the same way a z-score needs a fixed reference to mean anything.
+Feeds NB2 §6 priority matrix (volume × unmet-need × tone); bubble annotations
+use `top_terms`. `messages`=Sum, `users`=Sum (or Count of rows),
+`unmet_need`=Average.
 
-> `pct_negative` here is one of the z-scored axes combined into `unmet_need`.
-
-**Keyed on `cluster_id`, not `category` — schema v5.** Retired category columns
-(`category`, `category_en`) are gone; `name` and `top_terms` are carried on the
-row instead of looked up, because this table has **no relationship** to
-`dim_cluster` in the Power BI model — the dashboard previously recovered a
-category label with a DAX `LOOKUPVALUE`, which returns BLANK for an unknown key
-and so drew an unlabelled bubble instead of failing. `build_agg_priority_matrix`
-still raises on any cluster missing from the source data, for the same reason.
+**Now relates to `dim_user` on `user_id`** — this reverses the earlier "no
+relationship" rule (schema v5). `name`/`top_terms`/`color_hex` are still
+carried on every row rather than looked up, for the same reason as before: a
+broken `LOOKUPVALUE` returns BLANK and draws an unlabelled bubble instead of
+failing loudly. `build_agg_priority_matrix` still raises on any cluster
+missing from `dim_cluster`.
 
 The `-1` "No conversation text" bucket is excluded from this table (it has no
 message-level volume to plot), so every row resolves to a real, named cluster.
@@ -695,6 +750,22 @@ a handful of mentions is noise, not a finding — NB2's own version of this
 chart applies the identical floor. Degrades with the log: no bot log present
 → empty table with headers, same as `fact_bot_turn` / `agg_coverage_gap`.
 
+**Kept as-is in schema v16, alongside the new `fact_bot_turn_entities`
+below.** This table stays a static reference; the dashboard chart should
+rebind to the row-level table for live filtering.
+
+### `fact_bot_turn_entities` — 1 row per (turn, entity) mention (new in schema v16)
+
+Cols: `turn_id`, `user_id`, `kind`, `entity`. The bot-log analogue of
+`fact_message_entities`: relates to `fact_bot_turn[turn_id]` (and, through it,
+to `dim_user`), so a Count of `turn_id` filtered/split by
+`fact_bot_turn[gap_flag]` — or "Show value as % of Grand Total" — reproduces
+`agg_bot_gap_entities`'s `gap_count`/`total_count`/`pct_gap`, including the
+`GAP_ENTITY_MENTION_FLOOR` floor as a visual-level filter, with no DAX. No
+message or reply text, same structural reason as `fact_bot_turn` and
+`agg_bot_gap_entities` above. Degrades with the log: no bot log present →
+empty table with headers.
+
 ---
 
 ## NLP (GPU-accelerated, CPU-capable)
@@ -734,12 +805,19 @@ Row counts below are from the current export.
 Cols: `user_id`, `x`, `y`, `cluster_id`. 2D UMAP projection of user embeddings.
 Feeds NB3 §2 embedding scatter.
 
-### `nlp_cluster_terms` — 1 row per (cluster, term) (240 rows)
-Cols: `cluster_id`, `rank`, `term`, `weight`. Top c-TF-IDF terms per cluster.
-Feeds NB3 word clouds.
+### `nlp_cluster_terms` — 1 row per (cluster, user, term) (schema v16; was 1 row per (cluster, term))
+Cols: `cluster_id`, `user_id`, `term`, `weight` — `rank` dropped. **Regrained
+in schema v16**: `weight` is now that user's own term occurrences scaled by
+the term's fixed, corpus-wide c-TF-IDF weight, so the table relates to
+`dim_user` and a native Word Cloud visual's own Sum-based ranking (no `rank`
+column needed) reproduces a filter-responsive ranking. This is NOT a live
+corpus-relative TF-IDF recompute — the per-term rarity weight stays fixed at
+what the unfiltered corpus measured, only the raw frequency moves with the
+filter. See `export._terms_frame_by_user`. Feeds NB3 word clouds.
 
-### `nlp_subcluster_terms` — 1 row per (subcluster, term) (new in schema v6)
-Cols: `subcluster_id`, `rank`, `term`, `weight`. Top terms per subcategory, from
+### `nlp_subcluster_terms` — 1 row per (subcluster, user, term) (schema v16, was 1 row per (subcluster, term), new in schema v6)
+Cols: `subcluster_id`, `user_id`, `term`, `weight`. Same regrain and reasoning
+as `nlp_cluster_terms` above. Top terms per subcategory, from
 `subclusters.exclusive_terms`.
 
 **These are not the same kind of thing as `nlp_cluster_terms`'s terms — read
@@ -767,14 +845,23 @@ stuck-in-a-procedure, human handoff, fraud, connectivity). These probes are not
 a classifier — see `taxonomy.CANDIDATE_INTENT_PROBES`. Feeds NB3 §3 coverage
 gaps.
 
-### `nlp_tone_confusion` — 1 row per (human label, model label) (4 rows)
-Cols: `human_label`, `model_label`, `n`. Long-form count of messages by each
-combination of the two label columns. Feeds NB3 §4 confusion matrix.
+### `nlp_tone_confusion` — 1 row per gold-labelled message (schema v16; was 1 row per (human label, model label))
+Cols: `message_id`, `human_label`, `model_label` — `n` dropped. **Regrained in
+schema v16** so the table relates to `dim_user` through `fact_message`: a
+Matrix visual (Rows=human_label, Columns=model_label, Values=Count of
+message_id) reproduces the old crosstab exactly when unfiltered, and now
+reflects any filtered subset of the 378-message gold set too. Cells can get
+small under a demographic filter — accepted by owner ruling 2026-08-12, given
+the corpus is pseudonymised with no other identifiers. Feeds NB3 §4 confusion
+matrix.
 
-### `nlp_voices` — 1 row per cluster exemplar (6 rows)
-Cols: `cluster_id`, `name`, `matched_term`, `message`. One representative quote
-per real cluster (the `-1` "No conversation text" bucket has no message to
-quote). Feeds NB3 §5 qualitative voices.
+### `nlp_voices` — 1 row per cluster exemplar (6 rows; `user_id` added in schema v16)
+Cols: `cluster_id`, `name`, `matched_term`, `message`, `user_id`. One
+representative quote per real cluster (the `-1` "No conversation text" bucket
+has no message to quote). **`user_id` added in schema v16** so the table
+relates to `dim_user` — a filter that excludes this one quote's author blanks
+that cluster's panel rather than picking a different quote; there is no live
+re-search of the corpus inside Power BI. Feeds NB3 §5 qualitative voices.
 
 The quote is chosen by searching that cluster's messages (60–190 characters) for
 a term distinctive to it, in this order: the naming marker, then `top_terms` that

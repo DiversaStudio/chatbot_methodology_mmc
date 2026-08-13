@@ -419,6 +419,42 @@ def language_display(raw):
     return "Not specified"
 
 
+# MMC's standard age brackets. Replaces the raw survey's own self-reported
+# bucket ("Age Ranges": 0-17 / 18-35 / 36-50 / 50 and above), which is
+# coarser than these six bands and can't be split into them after the fact --
+# the source has to move to the continuous `age_num` field, not a relabeling
+# of the existing categorical answer.
+AGE_RANGE_BINS = [0, 18, 25, 35, 45, 55, 150]
+AGE_RANGE_LABELS = ["0-17", "18-24", "25-34", "35-44", "45-54", "55+"]
+AGE_RANGE_NOT_SPECIFIED = "Not specified"
+AGE_RANGE_ORDER = {label: i for i, label in enumerate(AGE_RANGE_LABELS)}
+AGE_RANGE_ORDER[AGE_RANGE_NOT_SPECIFIED] = len(AGE_RANGE_LABELS)
+
+
+def age_range_bucket(age_num):
+    """MMC bracket for a numeric age; missing/out-of-range ages become
+    'Not specified' rather than an empty slice with no label.
+
+    NOTE: `age_flag == "unreliable_sub18"` marks every age under 18 as
+    self-report noise the pipeline does not trust (see `load.py`) -- exactly
+    the population that lands in the '0-17' bucket here. This function does
+    not filter on that flag; whoever builds a chart on this bucket must
+    decide whether to exclude or visibly caveat those ~50 users, the same
+    way every other known-unreliable field in this export is handled (stated
+    on the chart, not silently dropped or silently trusted)."""
+    if age_num is None or pd.isna(age_num):
+        return AGE_RANGE_NOT_SPECIFIED
+    age = float(age_num)
+    for lo, hi, label in zip(AGE_RANGE_BINS[:-1], AGE_RANGE_BINS[1:], AGE_RANGE_LABELS):
+        if lo <= age < hi:
+            return label
+    return AGE_RANGE_NOT_SPECIFIED
+
+
+def age_range_order_of(label) -> int:
+    return AGE_RANGE_ORDER.get(label, len(AGE_RANGE_LABELS))
+
+
 def yes_no_display(raw) -> str:
     """EN label for a Sí/No survey answer; unrecognized values pass through."""
     key = fold(raw)
