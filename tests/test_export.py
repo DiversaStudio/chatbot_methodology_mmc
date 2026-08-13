@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "14"
+    assert kv["schema_version"] == "16"
 
 
 def test_meta_run_carries_report_version():
@@ -210,8 +210,9 @@ def test_fact_meal_rating_num(SD):
 
 def test_agg_funnel_top_equals_users(SD):
     f = export.build_agg_funnel(SD.responses, SD.messages, SD.meal)
-    assert list(f.columns[:3]) == ["stage_order", "stage", "n"]
-    assert int(f["n"].iloc[0]) == SD.responses["user_id"].nunique()
+    assert list(f.columns) == ["user_id", "stage_order", "stage"]
+    arrived = f[f["stage"] == "Arrived"]["user_id"].nunique()
+    assert arrived == SD.responses["user_id"].nunique()
 
 
 def test_fact_message_entities(SD):
@@ -232,14 +233,14 @@ def test_fact_message_entities(SD):
 
 def test_agg_daily_volume(SD):
     d = export.build_agg_daily_volume(SD.messages)
-    assert set(d.columns) == {"day", "n"}
+    assert set(d.columns) == {"day", "user_id", "n"}
     assert d["n"].sum() == SD.messages["ts"].notna().sum()
 
 
 def test_agg_daily_meal(SD):
     fmeal = export.build_fact_meal(SD.meal)
     d = export.build_agg_daily_meal(fmeal)
-    assert set(d.columns) == {"day", "n"}
+    assert set(d.columns) == {"day", "user_id", "n"}
     assert d["n"].sum() == fmeal["ts"].notna().sum()
 
 
@@ -261,6 +262,26 @@ def test_nlp_cluster_terms_synthetic():
     assert t[(t.cluster_id == 0) & (t["rank"] == 0)]["term"].iloc[0] == "cita"
 
 
+def test_nlp_cluster_terms_per_user_regrain():
+    """Regrained (schema v16): supplying msgs_lab decomposes each term's
+    weight by which user's own messages contain it, so the table relates to
+    dim_user and SUM(weight) still ranks 'cita' first within cluster 0."""
+    terms = {0: pd.Series({"cita": 0.9, "pasaporte": 0.7})}
+    msgs_lab = pd.DataFrame({
+        "archetype": [0, 0, 0],
+        "user_id": ["u1", "u1", "u2"],
+        "message": ["necesito una cita", "otra cita urgente", "mi pasaporte vence"],
+    })
+    t = export.build_nlp_cluster_terms(terms, msgs_lab=msgs_lab)
+    assert list(t.columns) == ["cluster_id", "user_id", "term", "weight"]
+    # u1 mentions "cita" twice -> weight = 2 * 0.9
+    u1_cita = t[(t.user_id == "u1") & (t.term == "cita")]["weight"].iloc[0]
+    assert u1_cita == pytest.approx(2 * 0.9)
+    # SUM(weight) by term still ranks cita above pasaporte, as the original did.
+    by_term = t.groupby("term")["weight"].sum()
+    assert by_term["cita"] > by_term["pasaporte"]
+
+
 def test_nlp_tone_confusion_synthetic():
     cats = ["negative", "not_negative"]
     cm = pd.DataFrame([[5, 2], [3, 90]], index=cats, columns=cats)
@@ -270,6 +291,25 @@ def test_nlp_tone_confusion_synthetic():
     assert set(c.columns) == {"human_label", "model_label", "n"}
     assert int(c[(c.human_label == "negative") & (c.model_label == "negative")]["n"].iloc[0]) == 5
     assert c["n"].sum() == 100
+
+
+def test_nlp_tone_confusion_message_grain_reproduces_the_crosstab():
+    """Regrained (schema v16): message_ids/human/model supplied -> one row per
+    message, relatable to fact_message/dim_user. Re-crosstabbing it (Count of
+    message_id by human_label x model_label, the dashboard's native Matrix
+    visual) must reproduce the old pre-aggregated crosstab exactly."""
+    message_ids = ["m1", "m2", "m3", "m4"]
+    human = ["negative", "negative", "neutral", "positive"]
+    model = ["negative", "neutral", "neutral", "positive"]
+    c = export.build_nlp_tone_confusion({}, message_ids=message_ids,
+                                        human=human, model=model)
+    assert list(c.columns) == ["message_id", "human_label", "model_label"]
+    assert len(c) == 4
+    assert set(c["human_label"]) <= {"negative", "not_negative"}
+    resummed = c.groupby(["human_label", "model_label"]).size()
+    assert resummed[("negative", "negative")] == 1
+    assert resummed[("negative", "not_negative")] == 1
+    assert resummed[("not_negative", "not_negative")] == 2
 
 
 def test_nlp_emergent_themes(SD):
@@ -329,10 +369,11 @@ def test_nlp_voices_picks_marker_quote():
     msgs_lab = pd.DataFrame({"archetype": [cid, cid], "user_id": ["u1", "u2"],
                              "seq": [0, 1], "message": [msg, "corto"]})
     v = export.build_nlp_voices(msgs_lab, resolved)
-    assert list(v.columns) == ["cluster_id", "name", "matched_term", "message"]
+    assert list(v.columns) == ["cluster_id", "name", "matched_term", "message", "user_id"]
     assert v.loc[0, "message"] == msg
     assert v.loc[0, "name"] == resolved[cid]["name"]
     assert v.loc[0, "matched_term"] == marker
+    assert v.loc[0, "user_id"] == "u1"
 
 
 def test_nlp_voices_falls_through_to_the_next_distinctive_term():
@@ -450,13 +491,14 @@ def test_write_all_aborts_on_pii(tmp_path):
 def test_agg_weekly_rating(SD):
     fm = export.build_fact_meal(SD.meal)
     w = export.build_agg_weekly_rating(fm)
-    assert set(w.columns) == {"week", "mean_rating", "n"}
-    # resample("W") emits a row per week in range — empty weeks have n=0, mean NaN.
-    assert w["mean_rating"].dropna().between(1, 5).all()
-    assert (w["n"] >= 0).all()
-    # counts sum to the rated-and-dated MEAL responses
+    assert set(w.columns) == {"week", "user_id", "mean_rating", "n"}
+    # one row per rated-and-dated response, so Average(mean_rating)/Sum(n)
+    # reproduce the old weekly mean/count in Power BI.
+    assert w["mean_rating"].between(1, 5).all()
+    assert (w["n"] == 1).all()
     rated = fm.dropna(subset=["ts", "rating_num"])
-    assert int(w["n"].sum()) == len(rated)
+    assert len(w) == len(rated)
+    assert abs(w["mean_rating"].mean() - rated["rating_num"].mean()) < 1e-9
 
 
 def _spine():
@@ -601,6 +643,33 @@ def test_dim_user_carries_the_new_v2_fields():
     assert d.set_index("user_id").loc["u2", "language"] == "English"
 
 
+def test_dim_user_age_range_uses_mmc_brackets_not_the_raw_survey_bucket():
+    """age_range must come from age_num via canon.age_range_bucket, not the
+    raw 'Age Ranges' survey column (which is coarser -- 18-35 rather than
+    18-24/25-34 -- and can't be split into MMC's six bands after the fact)."""
+    df = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3"],
+        "ts": pd.to_datetime(["2026-04-01", "2026-04-01", "2026-04-01"]),
+        "gender_clean": ["Mujer", "Hombre", "Mujer"],
+        "age_num": [16.0, 30.0, None],
+        "city_canon": ["Medellín", "Medellín", "Medellín"],
+        "n_questions": [1, 1, 1],
+        "Age Ranges": ["0-17", "18-35", "18-35"],  # deliberately misleading raw bucket
+    })
+    messages = pd.DataFrame({
+        "user_id": ["u1", "u2", "u3"], "ts": pd.to_datetime(["2026-04-01"] * 3),
+        "message": ["a", "b", "c"], "seq": [0, 0, 0], "n_msgs_user": [1, 1, 1],
+    })
+    d = export.build_dim_user(df, messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                              sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    got = d.set_index("user_id")["age_range"]
+    assert got["u1"] == "0-17"
+    assert got["u2"] == "25-34"          # not the raw "18-35" bucket
+    assert got["u3"] == "Not specified"  # no age_num
+    order = d.set_index("user_id")["age_range_order"]
+    assert order["u1"] < order["u2"] < order["u3"]
+
+
 def test_every_dim_user_column_has_a_cohort_policy():
     """The guard is only a guard if it cannot fall behind the schema."""
     d = export.build_dim_user(_responses_two_cohorts(), _messages_two_users(), lab=_empty_lab(), sub_lab=_empty_sub_lab(),
@@ -686,44 +755,49 @@ def _responses_registration():
     })
 
 
+def _reg_counts(f: pd.DataFrame) -> pd.DataFrame:
+    """DISTINCT-user counts per (cohort, stage) -- what the old pre-aggregated
+    table reported, reconstructed from the new per-user row-level table the
+    same way the dashboard's Funnel visual would (Count Distinct user_id)."""
+    return f.groupby(["instrument_version", "stage"])["user_id"].nunique()
+
+
 def test_agg_registration_funnel_stages_and_counts():
     f = export.build_agg_registration_funnel(_responses_registration())
+    assert "user_id" in f.columns
+    counts = _reg_counts(f)
     # v2 rows: u1, u2 (completed), u3 (abandoned)
-    v2_f = f[f["instrument_version"] == "v2"]
-    v2_counts = dict(zip(v2_f["stage"], v2_f["n"]))
-    assert v2_counts["registration started"] == 3
-    assert v2_counts["registration completed"] == 2
-    assert v2_counts["abandoned"] == 1
-    assert v2_counts["in progress"] == 0
-    assert v2_counts["other"] == 0
+    assert counts[("v2", "registration started")] == 3
+    assert counts[("v2", "registration completed")] == 2
+    assert counts[("v2", "abandoned")] == 1
     # v1 rows: u4 (in progress)
-    v1_f = f[f["instrument_version"] == "v1"]
-    v1_counts = dict(zip(v1_f["stage"], v1_f["n"]))
-    assert v1_counts["registration started"] == 1
-    assert v1_counts["registration completed"] == 0
-    assert v1_counts["in progress"] == 1
+    assert counts[("v1", "registration started")] == 1
+    assert counts[("v1", "in progress")] == 1
 
 
 def test_agg_registration_funnel_is_ordered():
+    """Every `stage` maps to exactly one `stage_order` -- what lets Power BI
+    sort the funnel's DISTINCT-user-count-by-stage table correctly, even
+    though rows themselves are no longer emitted in stage order (each user's
+    two rows -- 'registration started' and their resolved status -- land
+    together instead)."""
     f = export.build_agg_registration_funnel(_responses_registration())
-    # Order should be consistent within each cohort
-    for cohort_val in ["v1", "v2"]:
-        cohort_f = f[f["instrument_version"] == cohort_val]
-        if len(cohort_f) > 0:
-            assert list(cohort_f["stage_order"]) == sorted(cohort_f["stage_order"])
+    order_by_stage = f.drop_duplicates("stage").set_index("stage")["stage_order"]
+    assert order_by_stage.is_unique
+    assert (f.groupby("stage")["stage_order"].nunique() == 1).all()
 
 
 def test_agg_registration_funnel_pct_is_relative_to_started():
     f = export.build_agg_registration_funnel(_responses_registration())
+    counts = _reg_counts(f)
     # v2 completion rate: 2 out of 3 = 66.67%
-    v2_row = f[(f["instrument_version"] == "v2") & (f["stage"] == "registration completed")].iloc[0]
-    assert abs(v2_row["pct_of_started"] - 66.7) < 0.2  # Allow small rounding difference
+    pct = 100 * counts[("v2", "registration completed")] / counts[("v2", "registration started")]
+    assert abs(pct - 66.7) < 0.2  # Allow small rounding difference
 
 
 def test_agg_language_splits_by_instrument_version():
     f = export.build_agg_language(_responses_registration())
-    got = {(r.language, r.instrument_version): r.n_users
-           for r in f.itertuples()}
+    got = f.groupby(["language", "instrument_version"])["user_id"].nunique().to_dict()
     assert got[("Spanish", "v2")] == 2
     assert got[("English", "v2")] == 1
     assert got[("Spanish", "v1")] == 1
@@ -755,21 +829,17 @@ def test_agg_registration_funnel_splits_by_cohort_and_guards_pooling():
     })
 
     f = export.build_agg_registration_funnel(df)
-
-    # Split by cohort
-    v1_f = f[f["instrument_version"] == "v1"]
-    v2_f = f[f["instrument_version"] == "v2"]
+    counts = _reg_counts(f)
 
     # v1: 2 complete (100%)
-    assert (v1_f[v1_f["stage"] == "registration completed"]["n"] == 2).all()
-    v1_completion = v1_f[v1_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
-    assert v1_completion == 100.0
+    assert counts[("v1", "registration completed")] == 2
+    assert counts[("v1", "registration started")] == 2
 
     # v2: 1 complete, 1 abandoned, 1 in progress (33.3% complete, not 100%)
-    assert (v2_f[v2_f["stage"] == "registration completed"]["n"] == 1).all()
-    assert (v2_f[v2_f["stage"] == "abandoned"]["n"] == 1).all()
-    assert (v2_f[v2_f["stage"] == "in progress"]["n"] == 1).all()
-    v2_completion = v2_f[v2_f["stage"] == "registration completed"]["pct_of_started"].iloc[0]
+    assert counts[("v2", "registration completed")] == 1
+    assert counts[("v2", "abandoned")] == 1
+    assert counts[("v2", "in progress")] == 1
+    v2_completion = 100 * counts[("v2", "registration completed")] / counts[("v2", "registration started")]
     assert abs(v2_completion - 33.3) < 0.2  # 1 out of 3
 
     # Pooled (if it were computed): 3 complete out of 5 = 60% — neither 100% nor 33%
@@ -790,19 +860,19 @@ def test_agg_registration_funnel_stages_sum_to_started_invariant():
         "Registration Started": ["2026-07-25T09:00:00Z"] * 5,
     })
     f = export.build_agg_registration_funnel(df)
-    counts = dict(zip(f["stage"], f["n"]))
+    counts = f.groupby("stage")["user_id"].nunique()
     # Stages should sum to "registration started"
-    stage_sum = (counts["registration completed"] + counts["abandoned"] +
-                 counts["in progress"] + counts["other"])
+    stage_sum = (counts.get("registration completed", 0) + counts.get("abandoned", 0)
+                 + counts.get("in progress", 0) + counts.get("other", 0))
     assert stage_sum == counts["registration started"]
-    assert counts["other"] == 2  # the unknown_state and the null
+    assert counts.get("other", 0) == 2  # the unknown_state and the null
 
 
 def test_agg_language_empty_without_the_column():
     """A v1-only archive export has no language selector."""
     df = pd.DataFrame({"user_id": ["u1"], "ts": pd.to_datetime(["2026-04-01"])})
     f = export.build_agg_language(df)
-    assert list(f.columns) == ["language", "instrument_version", "n_users"]
+    assert list(f.columns) == ["user_id", "language", "instrument_version"]
     assert len(f) == 0
 
 
@@ -843,9 +913,8 @@ def test_agg_language_reconciles_with_dim_user_per_cohort():
     dim_v2 = (du["instrument_version"] == "v2").sum()
 
     # agg_language per-cohort distinct users must match dim_user per-cohort
-    # With single-language users, the sum of n_users per cohort = distinct users per cohort
-    lg_v1_total = lg[lg["instrument_version"] == "v1"]["n_users"].sum()
-    lg_v2_total = lg[lg["instrument_version"] == "v2"]["n_users"].sum()
+    lg_v1_total = lg[lg["instrument_version"] == "v1"]["user_id"].nunique()
+    lg_v2_total = lg[lg["instrument_version"] == "v2"]["user_id"].nunique()
 
     assert lg_v1_total == dim_v1, "v1 per-cohort distinct users must match dim_user"
     assert lg_v2_total == dim_v2, "v2 per-cohort distinct users must match dim_user"
@@ -888,11 +957,9 @@ def test_agg_language_counts_multilingual_users_per_language():
 
     # agg_language: same user appears in both es/v2 and en/v2 rows
     assert len(lg) == 2  # two language rows
-    assert lg["n_users"].sum() == 2  # sum is 2 (user counted twice), but only 1 distinct user
+    assert lg["user_id"].nunique() == 1  # both rows are the same 1 distinct user
     assert (lg["instrument_version"] == "v2").all()  # both rows are v2
     assert set(lg["language"]) == {"Spanish", "English"}
-    # Per-cohort distinct users still matches dim_user (max n_users per cohort)
-    assert lg[lg["instrument_version"] == "v2"]["n_users"].max() == 1
 
 
 def test_every_dim_user_column_has_a_cohort_policy(SD):
@@ -1038,7 +1105,7 @@ def test_agg_weekly_cluster_is_long_with_an_integer_key():
                              "cluster_id": [0, 1, 0, 2, 3, 4],
                              "ts": ts, "message": list("abcdef")})
     w = export.build_agg_weekly_cluster(messages)
-    assert list(w.columns) == ["week", "cluster_id", "n"]
+    assert list(w.columns) == ["week", "cluster_id", "user_id", "n"]
     assert w["n"].sum() == len(messages)
     # Five clusters, none folded away -- the key must stay joinable to dim_cluster.
     assert set(w["cluster_id"]) == {0, 1, 2, 3, 4}
@@ -1050,7 +1117,8 @@ def test_agg_priority_matrix_happy_path_excludes_no_text_bucket(prof, resolved):
     with the old category-keyed priority-matrix tests: exercises the
     NO_CLUSTER_ID filter at export.py's `real = messages[...]` line (the input
     deliberately contains a -1 row), and checks that a successful return is
-    fully labelled from dim_cluster and reports the 2-axis (no-sentiment) score."""
+    fully labelled from dim_cluster and carries a live-averageable unmet-need
+    contribution per user."""
     dim_cluster = export.build_dim_cluster(prof, resolved)
     messages = pd.DataFrame({
         "user_id": ["u1", "u2", "u3"], "cluster_id": [0, 1, export.NO_CLUSTER_ID],
@@ -1058,12 +1126,16 @@ def test_agg_priority_matrix_happy_path_excludes_no_text_bucket(prof, resolved):
         "ts": pd.to_datetime(["2026-06-01", "2026-06-02", "2026-06-03"])})
     fact_meal = pd.DataFrame({"user_id": ["u1", "u2"], "rating_num": [4.0, 3.0]})
     dim_user = pd.DataFrame({"user_id": ["u1", "u2", "u3"],
-                             "cluster_id": [0, 1, export.NO_CLUSTER_ID]})
+                             "cluster_id": [0, 1, export.NO_CLUSTER_ID],
+                             "is_repeat_asker": [False, False, False]})
     pm = export.build_agg_priority_matrix(messages, fact_meal, dim_user, dim_cluster)
 
+    assert list(pm.columns) == ["cluster_id", "user_id", "messages", "users",
+                                "unmet_need", "name", "top_terms", "color_hex"]
     assert export.NO_CLUSTER_ID not in set(pm["cluster_id"])  # the -1 row never reaches the matrix
+    assert set(pm["user_id"]) == {"u1", "u2"}                 # one row per real user
     assert pm[["name", "top_terms", "color_hex"]].notna().all().all()
-    assert (pm["n_axes"] <= 2).all()  # no sentiment axis supplied
+    assert pm["unmet_need"].notna().all()
 
 
 def test_agg_priority_matrix_rejects_a_cluster_absent_from_dim_cluster(prof, resolved):
@@ -1148,10 +1220,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v14():
+def test_meta_run_reports_schema_v15():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "14"
+    assert val["schema_version"] == "16"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1412,10 +1484,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_14():
+def test_meta_run_defaults_to_schema_version_16():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "14"
+    assert out.set_index("key").loc["schema_version", "value"] == "16"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])

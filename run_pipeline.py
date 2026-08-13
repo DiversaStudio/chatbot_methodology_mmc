@@ -97,6 +97,10 @@ def _nlp_tables(SD, pr):
     with pr.stage("archetype profiles + tone validation + stability"):
         prof = clusters.archetype_profiles(lab, SD.responses, SD.messages, terms=terms)
         msgs_lab = SD.messages.merge(lab, left_on="user_id", right_index=True, how="inner")
+        # For the word-cloud tables' per-user regrain (schema v16) -- see
+        # export._terms_frame_by_user.
+        msgs_sub_lab = SD.messages.merge(sub_lab.rename("sub_lab"),
+                                         left_on="user_id", right_index=True, how="inner")
         # The gold set is two independent blind passes, not one: an analyst
         # labelled 178 messages; a reviewer, blind to both the analyst's labels
         # and the model's predictions, independently re-labelled those 178 plus
@@ -117,8 +121,8 @@ def _nlp_tables(SD, pr):
         # align_gold matches on message_id and raises if any label is unresolvable.
         # The previous `sent.loc[analyst["message_id"]]` was a POSITIONAL lookup
         # that silently compared unrelated messages -- see validation.align_gold.
-        report = validation.validation_report(
-            human, validation.align_gold(gold_ids, SD.messages, sent))
+        aligned_model = validation.align_gold(gold_ids, SD.messages, sent)
+        report = validation.validation_report(human, aligned_model)
         stab = clusters.stability_ari(X, K, n_boot=50, random_state=RANDOM_STATE)
         dev = nlp.device_report()
 
@@ -129,10 +133,12 @@ def _nlp_tables(SD, pr):
         "dim_cluster": dim_cluster,
         "dim_subcluster": dim_subcluster,
         "nlp_umap": export.build_nlp_umap(XY, labels, docs["user_id"].values),
-        "nlp_cluster_terms": export.build_nlp_cluster_terms(terms),
-        "nlp_subcluster_terms": export.build_nlp_subcluster_terms(sub_terms),
+        "nlp_cluster_terms": export.build_nlp_cluster_terms(terms, msgs_lab=msgs_lab),
+        "nlp_subcluster_terms": export.build_nlp_subcluster_terms(
+            sub_terms, msgs_sub_lab=msgs_sub_lab),
         "nlp_emergent_themes": export.build_nlp_emergent_themes(SD.messages),
-        "nlp_tone_confusion": export.build_nlp_tone_confusion(report),
+        "nlp_tone_confusion": export.build_nlp_tone_confusion(
+            report, message_ids=gold_ids, human=human, model=aligned_model),
         "nlp_voices": export.build_nlp_voices(
             msgs_lab, resolved,
             terms_by_cluster=dict(zip(dim_cluster["cluster_id"],
@@ -181,7 +187,9 @@ def _bot_tables(path, dim_user) -> tuple[dict, dict]:
     """
     empty = {"fact_bot_turn": pd.DataFrame(columns=export.FACT_BOT_TURN_COLUMNS),
              "agg_coverage_gap": pd.DataFrame(columns=export.AGG_COVERAGE_GAP_COLUMNS),
-             "agg_bot_gap_entities": pd.DataFrame(columns=export.AGG_BOT_GAP_ENTITIES_COLUMNS)}
+             "agg_bot_gap_entities": pd.DataFrame(columns=export.AGG_BOT_GAP_ENTITIES_COLUMNS),
+             "fact_bot_turn_entities": pd.DataFrame(
+                 columns=export.FACT_BOT_TURN_ENTITIES_COLUMNS)}
     if path is None:
         return empty, {"bot_log_present": False, "gap_gold_present": False,
                        "coverage_gap_quotable": False}
@@ -202,6 +210,7 @@ def _bot_tables(path, dim_user) -> tuple[dict, dict]:
         "fact_bot_turn": export.build_fact_bot_turn(turns, dim_user),
         "agg_coverage_gap": export.build_agg_coverage_gap(turns, gap_probe=probe),
         "agg_bot_gap_entities": export.build_agg_bot_gap_entities(turns),
+        "fact_bot_turn_entities": export.build_fact_bot_turn_entities(turns),
     }
     meta = {
         "bot_log_present": True,
@@ -318,7 +327,7 @@ def main(argv=None) -> int:
             "agg_weekly_rating": export.build_agg_weekly_rating(fact_meal),
             "agg_priority_matrix": export.build_agg_priority_matrix(
                 SD.messages, fact_meal, dim_user, dim_cluster,
-                neg_by_cluster=neg_by_cluster),
+                neg_by_cluster=neg_by_cluster, sentiment=sent),
             "meta_run": export.build_meta_run(
                 SD.run_meta,
                 nlp_meta={**nlp_meta,
