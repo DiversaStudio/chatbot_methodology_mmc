@@ -11,6 +11,7 @@ import warnings
 from collections import Counter
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters, redact
@@ -126,7 +127,9 @@ _PROFILE_COLS = [
     "city_duration_canon", "city_duration_order", "n_questions",
 ]
 # Raw survey columns that carry into dim_user under friendlier names.
-_RAW_RENAME = {"Minors": "minors", "Age Ranges": "age_range",
+# "Age Ranges" (the survey's own self-reported bucket) is deliberately absent
+# here -- `age_range` is computed from `age_num` instead, see build_dim_user.
+_RAW_RENAME = {"Minors": "minors",
                "Destination_Country": "destination_country",
                "Language": "language",
                "Registration Status": "registration_status",
@@ -162,6 +165,15 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
     for raw, new in _RAW_RENAME.items():
         if raw in r.columns:
             agg[new] = r.groupby("user_id")[raw].first()
+    # MMC's standard age brackets, computed from age_num -- see
+    # canon.age_range_bucket for why this replaces the raw survey's own
+    # coarser self-reported "Age Ranges" answer. age_num can be absent
+    # entirely (a v1-only archive export, same guard as session_minutes
+    # above), in which case every user is "Not specified".
+    age_num = agg["age_num"] if "age_num" in agg.columns else pd.Series(
+        pd.NA, index=agg.index, dtype="object")
+    agg["age_range"] = age_num.map(canon.age_range_bucket)
+    agg["age_range_order"] = agg["age_range"].map(canon.age_range_order_of)
     # KPI2 feeds off this column. A user with several response records has
     # several sessions; the longest is taken, so the value is one real observed
     # session rather than a sum across days. Null wherever load could not trust
@@ -477,9 +489,44 @@ def build_fact_meal(meal: pd.DataFrame) -> pd.DataFrame:
 # comments in this file and in build_dim_user before pooling any data.
 
 def build_agg_funnel(responses, messages, meal) -> pd.DataFrame:
-    f = metrics.funnel_stages(responses, messages, meal).reset_index(drop=True)
-    f.insert(0, "stage_order", range(len(f)))
-    return f
+    """One row per (user, stage reached) instead of one row per stage.
+
+    Regrained (schema v16) so the table carries `user_id`. The first four
+    stages sit on `metrics.funnel_stages`' nested message-volume axis, so a
+    user who reached "Sent 2 or more messages" contributes a row for every
+    stage up to and including that one -- a native Power BI Funnel visual
+    counting DISTINCT `user_id` per `stage` (Power BI's own built-in "% of
+    first stage" drop, no DAX) reproduces the exact same funnel, and now
+    responds to any `dim_user` filter, since every row carries `user_id`. The
+    fifth stage, "Answered the survey", is NOT nested in the first four (see
+    `metrics.funnel_stages`), so it is emitted independently per MEAL
+    respondent, not conditioned on message count.
+    """
+    stages = metrics.funnel_stages(responses, messages, meal)
+    order = {row["stage"]: i for i, row in stages.reset_index(drop=True).iterrows()}
+
+    msgs_per_user = messages.groupby("user_id")["n_msgs_user"].first()
+    has_msgs = bool(msgs_per_user.notna().any())
+    heavy_min = int(np.ceil(msgs_per_user.quantile(0.90))) if has_msgs else 2
+    heavy_stage = f"Sent {heavy_min} or more messages"
+
+    rows = []
+    for uid in responses["user_id"].unique():
+        rows.append({"user_id": uid, "stage_order": order["Arrived"], "stage": "Arrived"})
+        n = msgs_per_user.get(uid, 0)
+        if n >= 1:
+            rows.append({"user_id": uid, "stage_order": order["Sent a message"],
+                        "stage": "Sent a message"})
+        if n >= 2:
+            rows.append({"user_id": uid, "stage_order": order["Sent 2 or more messages"],
+                        "stage": "Sent 2 or more messages"})
+        if n >= heavy_min:
+            rows.append({"user_id": uid, "stage_order": order[heavy_stage],
+                        "stage": heavy_stage})
+    for uid in meal["user_id"].unique():
+        rows.append({"user_id": uid, "stage_order": order["Answered the survey"],
+                    "stage": "Answered the survey"})
+    return pd.DataFrame(rows, columns=["user_id", "stage_order", "stage"])
 
 
 # Registration is the stage BEFORE `agg_funnel`'s "arrived": the v1 platform
@@ -490,12 +537,17 @@ _REG_STAGES = ("registration started", "registration completed",
 
 
 def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
-    """Ordered pre-conversation funnel from the v2 registration fields, split by cohort.
+    """One row per (user, stage reached) instead of one row per (cohort, stage).
 
-    Empty (with the right columns) when the export predates those fields, so a
-    v1-only archive still writes a well-formed table. The "other" bucket holds
-    rows with unrecognized status values (new states, typos, nulls), ensuring
-    stages always sum to started by construction.
+    Regrained (schema v16) so the table carries `user_id` and relates to
+    `dim_user`. Empty (with the right columns) when the export predates the
+    v2 registration fields, so a v1-only archive still writes a well-formed
+    table. Every started record contributes exactly two rows: "registration
+    started" (the funnel's own denominator) and its resolved status
+    (completed / abandoned / in progress / other) -- a native Power BI Funnel
+    visual counting DISTINCT `user_id` per `stage`, split by
+    `instrument_version`, reproduces the old per-cohort counts exactly and now
+    responds to `dim_user` filters too.
 
     CRITICAL: Split by instrument_version. v1 rows are complete by construction
     (migrated from a platform that never tracked partial registration), so their
@@ -503,96 +555,72 @@ def build_agg_registration_funnel(responses: pd.DataFrame) -> pd.DataFrame:
     rate is meaningless and must never be shown. Keep v1 rows to document that
     the legacy data carries no drop-off information; do not filter them out.
 
-    NOTE: This builder stays RECORD-level (each record is a distinct registration
-    attempt). Cohort is assigned per-user (user's earliest record's cohort).
+    NOTE: A user with several registration attempts contributes multiple rows
+    (one pair per attempt) -- this stays RECORD-level, same as before.
     """
-    cols = ["instrument_version", "stage_order", "stage", "n", "pct_of_started"]
+    cols = ["user_id", "instrument_version", "stage_order", "stage"]
     if "Registration Status" not in responses.columns:
         return pd.DataFrame(columns=cols)
 
-    # Assign each user ONE instrument_version (earliest record's cohort)
+    order = {stage: i for i, stage in enumerate(_REG_STAGES)}
     r = responses.sort_values("ts", kind="stable")
     r = r.assign(instrument_version=cohort.instrument_version(r).values)
     user_cohort = r.groupby("user_id")["instrument_version"].first()
     r = r.merge(user_cohort.rename("user_instrument_version"), left_on="user_id", right_index=True)
 
     status = r["Registration Status"].astype("string").str.strip().str.lower()
+    recognized = {"completed", "abandoned", "in progress"}
+    status_stage = status.where(status.isin(recognized), "other").map({
+        "completed": "registration completed", "abandoned": "abandoned",
+        "in progress": "in progress", "other": "other"})
+
+    started = (r["Registration Started"].notna()
+               if "Registration Started" in r.columns
+               else pd.Series(True, index=r.index))
+
     rows = []
-
-    # Build rows for each cohort separately
-    for cohort_val in ["v1", "v2"]:
-        cohort_mask = r["user_instrument_version"] == cohort_val
-        cohort_r = r[cohort_mask]
-        cohort_status = status[cohort_mask]
-
-        # Count rows where Registration Started is non-null as the true denominator
-        if "Registration Started" in r.columns:
-            started = int(cohort_r["Registration Started"].notna().sum())
-        else:
-            started = len(cohort_r)
-
-        if started == 0:
-            continue  # Skip cohorts with no records
-
-        counts = {
-            "registration started": started,
-            "registration completed": int((cohort_status == "completed").sum()),
-            "abandoned": int((cohort_status == "abandoned").sum()),
-            "in progress": int((cohort_status == "in progress").sum()),
-        }
-        # Count unrecognized statuses in "other"
-        recognized = {"completed", "abandoned", "in progress"}
-        counts["other"] = int((~cohort_status.isin(recognized)).sum())
-
-        for i, stage in enumerate(_REG_STAGES):
-            rows.append({
-                "instrument_version": cohort_val,
-                "stage_order": i,
-                "stage": stage,
-                "n": counts[stage],
-                "pct_of_started": (round(100 * counts[stage] / started, 1)
-                                   if started else 0.0)
-            })
+    for uid, cohort_val, is_started, stage in zip(
+            r["user_id"], r["user_instrument_version"], started, status_stage):
+        if not is_started:
+            continue
+        rows.append({"user_id": uid, "instrument_version": cohort_val,
+                    "stage_order": order["registration started"],
+                    "stage": "registration started"})
+        rows.append({"user_id": uid, "instrument_version": cohort_val,
+                    "stage_order": order[stage], "stage": stage})
 
     return pd.DataFrame(rows, columns=cols)
 
 
 def build_agg_language(responses: pd.DataFrame) -> pd.DataFrame:
-    """Distinct users per interface language, split by instrument version.
+    """One row per (user, language they used) instead of one pre-counted
+    (language, cohort, n_users) row.
 
-    Split because the language selector is v2-only: a pooled count would read
-    as 99% Spanish when the question simply did not exist for v1 users.
+    Regrained (schema v16) so the table carries `user_id` and relates to
+    `dim_user`. Split by instrument_version because the language selector is
+    v2-only: a pooled count would read as 99% Spanish when the question
+    simply did not exist for v1 users.
 
-    SEMANTICS: instrument_version is a per-user attribute (which registration
-    survey the user answered); language is per-record (the same person can use
-    multiple languages). Each user is assigned to ONE cohort (their earliest
-    record's instrument_version). A user who used multiple languages appears in
-    multiple rows. Therefore, n_users does NOT sum to the total user count — a
-    multilingual user is counted under each language they used. This is correct
-    and intentional.
-
-    Per-cohort user counts still reconcile with dim_user on per-cohort basis
-    (e.g., v1 users = count of distinct users with v1 instrument_version across
-    all languages they used).
+    SEMANTICS unchanged from before: instrument_version is a per-user
+    attribute (their earliest record's cohort); language is per-record, so a
+    multilingual user contributes one row per distinct language they used. A
+    bar chart with DISTINCTCOUNT(user_id) by language (Power BI's own "Count
+    (Distinct)" summarization, no DAX) reproduces the old `n_users` exactly,
+    and now also reproduces it for any `dim_user`-filtered subset.
     """
-    cols = ["language", "instrument_version", "n_users"]
+    cols = ["user_id", "language", "instrument_version"]
     if "Language" not in responses.columns:
         return pd.DataFrame(columns=cols)
-    # Assign each user one instrument_version (their earliest record's cohort).
     r = responses.sort_values("ts", kind="stable")
     r = r.assign(instrument_version=cohort.instrument_version(r).values)
     user_cohort = r.groupby("user_id")["instrument_version"].first()
-    # Join per-user cohort onto the full record-level frame.
     r = r.merge(user_cohort.rename("user_instrument_version"), left_on="user_id", right_index=True)
-    # Group by (Language, user_instrument_version) at the RECORD level,
-    # counting distinct users. A multilingual user appears in multiple rows.
     g = (r.dropna(subset=["Language"])
-         .groupby(["Language", "user_instrument_version"])["user_id"]
-         .nunique().reset_index())
+         .groupby(["user_id", "Language", "user_instrument_version"])
+         .size().reset_index()[["user_id", "Language", "user_instrument_version"]])
     g.columns = cols
     _translate(g, "language", canon.language_display)
-    return g.sort_values(["instrument_version", "n_users"],
-                         ascending=[True, False]).reset_index(drop=True)
+    return g.sort_values(["instrument_version", "user_id"]).reset_index(drop=True)
 
 
 FACT_MESSAGE_ENTITIES_COLUMNS = ["message_id", "kind", "entity"]
@@ -644,73 +672,174 @@ def build_nlp_entity_candidates(messages: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_agg_weekly_cluster(messages: pd.DataFrame) -> pd.DataFrame:
-    wk = metrics.weekly_cluster_counts(messages)
-    return (wk.reset_index()
-            .melt(id_vars="week_start", var_name="cluster_id", value_name="n")
-            .rename(columns={"week_start": "week"}))
+    """One row per (week, cluster, user) instead of one row per (week, cluster).
+
+    Regrained (schema v16) so the table carries `user_id` and can be related
+    to `dim_user` -- the old cluster-only grain had no key any demographic
+    filter could reach. Summing `n` per (week, cluster_id) still reproduces
+    the old table exactly when nothing is filtered; the point of the extra
+    grain is that it also reproduces the *filtered* total, since Power BI's
+    native Sum only counts the rows a slicer leaves behind. The dashboard
+    line chart is unchanged -- still Sum(n) by week, legend by cluster_id.
+    """
+    m = messages.dropna(subset=["ts"]).copy()
+    m["week"] = m["ts"].dt.to_period("W-SUN").dt.start_time
+    return (m.groupby(["week", "cluster_id", "user_id"]).size()
+            .reset_index(name="n"))
 
 
 def build_agg_daily_volume(messages: pd.DataFrame) -> pd.DataFrame:
-    d = messages.dropna(subset=["ts"]).set_index("ts").resample("D").size()
-    return d.reset_index(name="n").rename(columns={"ts": "day"})
+    """One row per (day, user) instead of one row per day -- same reasoning
+    as `build_agg_weekly_cluster` above: Sum(n) by day reproduces the old
+    chart unfiltered, and now also reproduces it under any `dim_user` filter."""
+    m = messages.dropna(subset=["ts"]).copy()
+    m["day"] = m["ts"].dt.floor("D")
+    return m.groupby(["day", "user_id"]).size().reset_index(name="n")
 
 
 def build_agg_daily_meal(fact_meal: pd.DataFrame) -> pd.DataFrame:
-    """Daily count of MEAL survey responses -- the survey-timeline chart's
-    other line, alongside `agg_daily_volume`'s message count, so a reader can
-    see days with heavy message traffic and few or no surveys completed.
-
-    Same day-grain, same resample shape as `build_agg_daily_volume`, over
-    `fact_meal[ts]` instead of the message corpus. At 115 total responses
-    spread over a ~4.5-month window most days are 0 or 1 -- that sparseness
-    is the actual shape of the data, not a bug to smooth over.
-    """
-    d = fact_meal.dropna(subset=["ts"]).set_index("ts").resample("D").size()
-    return d.reset_index(name="n").rename(columns={"ts": "day"})
+    """One row per (day, user) MEAL response -- same regrain as
+    `build_agg_daily_volume`, over `fact_meal[ts]` instead of the message
+    corpus. `n` is always 1 (`fact_meal` is already one row per user); kept as
+    a column, not dropped, so the existing Sum(n) chart binding is unchanged."""
+    m = fact_meal.dropna(subset=["ts"]).copy()
+    m["day"] = m["ts"].dt.floor("D")
+    out = m[["day", "user_id"]].copy()
+    out["n"] = 1
+    return out
 
 
 def build_agg_weekly_rating(fact_meal: pd.DataFrame) -> pd.DataFrame:
-    m = (fact_meal.dropna(subset=["ts", "rating_num"]).set_index("ts")
-         .resample("W")["rating_num"].agg(["mean", "count"]))
-    return m.reset_index().rename(columns={"ts": "week", "mean": "mean_rating",
-                                           "count": "n"})
+    """One row per (week, user) rating instead of one pre-averaged row per week.
+
+    `mean_rating` now holds that USER's own `rating_num` for that response
+    (not a mean) and `n` is always 1 -- the column names are unchanged so the
+    existing chart keeps its field-well bindings; only the field's
+    Summarize-by needs to change from a passthrough value to Average (for
+    `mean_rating`) / Sum (for `n`), a one-click Power BI edit, not DAX. Both
+    still reproduce the old unfiltered weekly mean/count exactly, and now also
+    reproduce it for any `dim_user`-filtered subset.
+    """
+    m = fact_meal.dropna(subset=["ts", "rating_num"]).copy()
+    m["week"] = m["ts"].dt.to_period("W-SUN").dt.start_time
+    out = m[["week", "user_id", "rating_num"]].rename(columns={"rating_num": "mean_rating"})
+    out["n"] = 1
+    return out
 
 
 def build_agg_priority_matrix(messages, fact_meal, dim_user, dim_cluster,
-                              neg_by_cluster: "pd.Series | None" = None) -> pd.DataFrame:
-    """Per-cluster priority frame, labelled with each cluster's own terms.
+                              neg_by_cluster: "pd.Series | None" = None,
+                              sentiment: "pd.DataFrame | None" = None) -> pd.DataFrame:
+    """Priority frame, regrained (schema v16) to one row per (cluster, user).
 
     Only real clusters are plotted: the NO_CLUSTER_ID bucket has no text, so it
     has no unmet-need signal to place on either axis.
 
-    READING THE AXES. x is the share of conversation volume a cluster's users
-    generate, NOT how much demand exists for a topic — clusters are assigned per
-    user, so every message a user writes counts under their one cluster. The
-    `top_terms` column is carried onto the frame so a bubble can be read as the
-    needs behind the segment rather than mistaken for a topic.
+    READING THE AXES. `messages` (per row: this user's own message count in
+    their cluster) sums to the cluster's share of conversation volume, NOT how
+    much demand exists for a topic. `users` is always 1 per row so a Count/Sum
+    of it reproduces the cluster head-count. `unmet_need` is this user's own
+    FIXED-BASELINE z-score contribution -- see `_user_unmet_need_axes` below
+    for why averaging it over any `dim_user`-filtered subset reproduces a live,
+    meaningful unmet-need reading without any DAX. The bubble chart is
+    unchanged: x = Sum(messages), size = Sum(users) [or Count of rows],
+    y = Average(unmet_need) -- only that last aggregation type needs to change
+    from "value" to "Average" in Power BI, a one-click field-well edit.
+
+    `sentiment`, if supplied, must be index-aligned to `messages` (as
+    `nlp.sentiment_messages` returns) -- needed to compute each user's own
+    negative-message share. Without it the negative axis is skipped for the
+    per-user contribution, same as when `neg_by_cluster` is None.
     """
     real = messages[messages["cluster_id"] != NO_CLUSTER_ID]
     meal_cl = fact_meal.merge(
         dim_user[["user_id", "cluster_id"]].drop_duplicates("user_id"),
         on="user_id", how="left")
     pm = metrics.priority_matrix_frame(real, meal_cl, neg_by_cluster=neg_by_cluster)
-    out = pm.reset_index()
 
-    # Resolve the label and colour here, from the dim_cluster this same run
-    # built, so an unknown key raises at export instead of plotting as an
-    # unlabelled bubble. The dashboard used to recover the label with a DAX
-    # LOOKUPVALUE, which returns BLANK for a key it cannot find and therefore
-    # failed silently.
     cl = dim_cluster.set_index("cluster_id")
-    unknown = sorted(set(out["cluster_id"]) - set(cl.index))
+    unknown = sorted(set(pm.index) - set(cl.index))
     if unknown:
         raise KeyError(
             f"priority matrix has clusters absent from dim_cluster: {unknown}. "
             "dim_cluster and the labels must come from the same clustering run.")
+
+    contrib = _user_unmet_need_axes(real, fact_meal, dim_user, pm,
+                                    neg_by_cluster=neg_by_cluster, sentiment=sentiment)
+
+    msg_count = real.groupby("user_id").size()
+    user_cluster = real.groupby("user_id")["cluster_id"].first()
+
+    out = pd.DataFrame({
+        "cluster_id": user_cluster,
+        "messages": msg_count,
+        "unmet_need": contrib.reindex(user_cluster.index),
+    }).reset_index().rename(columns={"index": "user_id"})
+    out["users"] = 1
     out["name"] = out["cluster_id"].map(cl["name"])
     out["top_terms"] = out["cluster_id"].map(cl["top_terms"])
     out["color_hex"] = out["cluster_id"].map(cl["color_hex"])
-    return out
+    return out[["cluster_id", "user_id", "messages", "users", "unmet_need",
+               "name", "top_terms", "color_hex"]]
+
+
+def _user_unmet_need_axes(real, fact_meal, dim_user, pm,
+                          neg_by_cluster=None, sentiment=None) -> pd.Series:
+    """Per-user unmet-need contribution, on a FIXED z-score baseline.
+
+    `pm` is `metrics.priority_matrix_frame`'s per-cluster output for the
+    CURRENT run. Its own axes are cluster-level (mean of a per-user/message
+    quantity, z-scored across the run's clusters); this decomposes each axis
+    back to a per-user number such that AVERAGE(contribution) over ALL users
+    of a cluster reproduces `pm.loc[cluster, "unmet_need"]` exactly.
+
+    The z-score baseline (each axis's mean/std ACROSS CLUSTERS) is fixed at
+    what this run's full, unfiltered population measured -- deliberately not
+    recomputed against whatever subset a dashboard filter leaves, the same
+    way a z-score always needs a fixed reference to mean anything. Because
+    z-scoring and averaging are both linear, this still lets Power BI's
+    native AVERAGE aggregation reconstruct a live, correctly-moving number
+    for any filtered subset, with zero DAX.
+
+    DEVIATION on the negative axis: `pm["pct_negative"]` is MESSAGE-weighted
+    (share of messages negative). Here it is USER-weighted (mean of each
+    user's own negative-message share), so it can live on the same per-user
+    row as the other two axes. The two agree exactly only when every user in
+    a cluster sends the same number of messages; treat this column as "which
+    users skew negative," not a re-derivation of the cluster figure.
+
+    DEVIATION on the rating axis: a user who never answered MEAL takes their
+    cluster's own (already fallback-resolved) `mean_rating` as a neutral
+    stand-in, so they don't silently drop out of the average.
+    """
+    def _z(mean, std):
+        return (lambda v: (v - mean) / std if std and np.isfinite(std) and std > 0
+                else 0.0)
+
+    repeat_flag = dim_user.set_index("user_id")["is_repeat_asker"].astype(float)
+    z_repeat = _z(pm["pct_repeat"].mean(), pm["pct_repeat"].std(ddof=0))
+    axis1 = repeat_flag.reindex(real["user_id"].unique()).map(z_repeat)
+    axes = [axis1]
+
+    if neg_by_cluster is not None and sentiment is not None and "pct_negative" in pm.columns:
+        neg_flag = (sentiment.loc[real.index, "label"] == "negative").astype(float)
+        user_neg_share = neg_flag.groupby(real["user_id"]).mean()
+        z_neg = _z(pm["pct_negative"].mean(), pm["pct_negative"].std(ddof=0))
+        axis2 = user_neg_share.reindex(axis1.index).map(z_neg)
+        axes.append(axis2)
+
+    if pm["mean_rating"].notna().any():
+        rating_neg = -pm["mean_rating"]
+        z_rating = _z(rating_neg.mean(), rating_neg.std(ddof=0))
+        own_rating = fact_meal.set_index("user_id")["rating_num"]
+        cluster_fallback = real.groupby("user_id")["cluster_id"].first().map(
+            -pm["mean_rating"])
+        user_rating_neg = (-own_rating).reindex(axis1.index)
+        user_rating_neg = user_rating_neg.where(user_rating_neg.notna(), cluster_fallback)
+        axis3 = user_rating_neg.map(z_rating)
+        axes.append(axis3)
+
+    return pd.concat(axes, axis=1).mean(axis=1)
 
 
 def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
@@ -871,18 +1000,73 @@ def _terms_frame(terms: dict, key: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=[key, "rank", "term", "weight"])
 
 
-def build_nlp_cluster_terms(terms: dict) -> pd.DataFrame:
-    return _terms_frame(terms, "cluster_id")
+def _terms_frame_by_user(terms: dict, key: str, msgs_lab: pd.DataFrame,
+                         label_col: str) -> pd.DataFrame:
+    """One row per (`key`, user, term) instead of one row per (`key`, term).
+
+    Regrained (schema v16) so the word-cloud tables carry `user_id` and relate
+    to `dim_user`. `weight` here is that USER's own term occurrences across
+    their messages, scaled by the term's original corpus-relative c-TF-IDF
+    weight (a FIXED constant per term, computed once from the whole corpus,
+    same as before) -- SUM(weight) by term reproduces a ranking proportional
+    to the original unfiltered word cloud, and now also produces a live,
+    meaningful ranking for any `dim_user`-filtered subset, entirely through
+    Power BI's native Sum aggregation. This is deliberately NOT a live
+    corpus-relative TF-IDF recompute (that would need the whole document set
+    at query time, which Power BI cannot do) -- the per-term rarity weight
+    stays fixed at whatever the unfiltered corpus measured; only each term's
+    raw frequency moves with the filter.
+
+    `label_col` is the grouping label already on `msgs_lab` (`"archetype"` for
+    clusters, `"sub_lab"` for subclusters -- passed in rather than hardcoded
+    since the two callers use different column names for the same role).
+    """
+    rows = []
+    for cid, s in terms.items():
+        in_group = msgs_lab[msgs_lab[label_col] == cid]
+        if not len(in_group) or not len(s):
+            continue
+        for term, weight in s.items():
+            hits = in_group[in_group["message"].str.contains(
+                term, case=False, na=False, regex=False)]
+            if not len(hits):
+                continue
+            per_user = hits.groupby("user_id").size()
+            for uid, n in per_user.items():
+                rows.append({key: cid, "user_id": uid, "term": term,
+                            "weight": float(n) * float(weight)})
+    return pd.DataFrame(rows, columns=[key, "user_id", "term", "weight"])
 
 
-def build_nlp_subcluster_terms(terms: dict) -> pd.DataFrame:
+def build_nlp_cluster_terms(terms: dict, msgs_lab: "pd.DataFrame | None" = None) -> pd.DataFrame:
+    """Word-cloud source table.
+
+    Regrained (schema v16) to (cluster_id, user_id, term, weight) when
+    `msgs_lab` (messages merged with their `archetype` cluster label) is
+    supplied -- see `_terms_frame_by_user` for why this is still a valid,
+    live-filterable term ranking despite each term's rarity weight staying
+    fixed. `msgs_lab=None` keeps the old (cluster_id, rank, term, weight)
+    shape, for callers (tests, ad-hoc analysis) that only have the curated
+    term dict and no message spine to decompose it against.
+    """
+    if msgs_lab is None:
+        return _terms_frame(terms, "cluster_id")
+    return _terms_frame_by_user(terms, "cluster_id", msgs_lab, "archetype")
+
+
+def build_nlp_subcluster_terms(terms: dict, msgs_sub_lab: "pd.DataFrame | None" = None) -> pd.DataFrame:
     """Top SIBLING-EXCLUSIVE terms per subcategory.
 
-    A separate table rather than a re-graining of `nlp_cluster_terms`: the
-    dashboard's "Main Needs" word cloud is bound to that table at parent grain
-    and must keep working.
+    Regrained (schema v16) to (subcluster_id, user_id, term, weight) when
+    `msgs_sub_lab` (messages merged with their `sub_lab` subcluster label) is
+    supplied -- same reasoning as `build_nlp_cluster_terms`. A separate table
+    rather than a re-graining of `nlp_cluster_terms` itself: the dashboard's
+    "Main Needs" word cloud is bound to that table at parent grain and must
+    keep working unchanged.
     """
-    return _terms_frame(terms, "subcluster_id")
+    if msgs_sub_lab is None:
+        return _terms_frame(terms, "subcluster_id")
+    return _terms_frame_by_user(terms, "subcluster_id", msgs_sub_lab, "sub_lab")
 
 
 def build_nlp_emergent_themes(messages: pd.DataFrame) -> pd.DataFrame:
@@ -896,12 +1080,39 @@ def build_nlp_emergent_themes(messages: pd.DataFrame) -> pd.DataFrame:
             .reset_index(drop=True))
 
 
-def build_nlp_tone_confusion(report: dict) -> pd.DataFrame:
-    cm = report["confusion"]
-    long = (cm.reset_index()
-            .melt(id_vars=cm.index.name, var_name=cm.columns.name, value_name="n"))
-    return long.rename(columns={cm.index.name: "human_label",
-                                cm.columns.name: "model_label"})
+def build_nlp_tone_confusion(report: dict, message_ids=None, human=None,
+                             model=None) -> pd.DataFrame:
+    """The tone-gate confusion matrix.
+
+    Regrained (schema v16) to (message_id, human_label, model_label) -- one
+    row per gold-labelled message -- when `message_ids`/`human`/`model` are
+    supplied, so it relates to `fact_message` and, through it, to `dim_user`.
+    A Matrix visual with Rows=human_label, Columns=model_label, Values=Count
+    of message_id (native Count, no DAX) reproduces `report["confusion"]`'s
+    2x2 cell counts exactly when unfiltered, and now also reflects any
+    `dim_user`-filtered subset of the 378-message gold set. Cells can get
+    very small under a demographic filter -- accepted tradeoff, per owner
+    ruling, given the corpus is pseudonymised with no other identifiers.
+
+    Falls back to the old pre-aggregated (human_label, model_label, n) shape
+    when the per-message arrays aren't supplied (synthetic/unit tests that
+    only have `report["confusion"]`).
+    """
+    if message_ids is None:
+        cm = report["confusion"]
+        long = (cm.reset_index()
+                .melt(id_vars=cm.index.name, var_name=cm.columns.name, value_name="n"))
+        return long.rename(columns={cm.index.name: "human_label",
+                                    cm.columns.name: "model_label"})
+
+    from . import validation
+    h = validation.binarize(pd.Series(human).reset_index(drop=True))
+    m = validation.binarize(pd.Series(model).reset_index(drop=True))
+    return pd.DataFrame({
+        "message_id": list(message_ids),
+        "human_label": h.values,
+        "model_label": m.values,
+    })
 
 
 def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
@@ -955,17 +1166,24 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
                       + [t for t in rest if t not in shared]
                       + [t for t in rest if t in shared])
 
-        message, matched = "—", None
+        message, matched, quote_user = "—", None, None
         for term in candidates:
             g = in_cluster[in_cluster["message"].str.contains(
                 term, case=False, na=False, regex=False)].sort_values(
                 ["user_id", "seq"], kind="stable")
             if len(g):
                 message, matched = g["message"].iloc[0], term
+                quote_user = g["user_id"].iloc[0]
                 break
 
+        # user_id of the quoted message -- added (schema v16) so this table can
+        # relate to dim_user. A filter that excludes this one user hides the
+        # panel rather than picking a different quote (there is no live
+        # re-search of the corpus in Power BI); that is an accepted limit of
+        # a single curated exemplar per cluster, not a bug.
         rows.append({"cluster_id": int(cid), "name": meta["name"],
-                     "matched_term": matched, "message": message})
+                     "matched_term": matched, "message": message,
+                     "user_id": quote_user})
     return pd.DataFrame(rows)
 
 
@@ -1067,17 +1285,48 @@ def build_agg_coverage_gap(turns: pd.DataFrame,
 # own floor for this exact chart (NB2 "SAMI's own words" topic breakdown).
 GAP_ENTITY_MENTION_FLOOR = 5
 AGG_BOT_GAP_ENTITIES_COLUMNS = ["kind", "entity", "gap_count", "total_count", "pct_gap"]
+FACT_BOT_TURN_ENTITIES_COLUMNS = ["turn_id", "user_id", "kind", "entity"]
+
+
+def build_fact_bot_turn_entities(turns: pd.DataFrame) -> pd.DataFrame:
+    """One row per (turn, entity) mention -- the bot-log analogue of
+    `build_fact_message_entities`.
+
+    Regrained (schema v16): the old `agg_bot_gap_entities` collapsed every
+    mention into one (kind, entity) row with no key a filter could reach.
+    This table carries `turn_id` (relates to `fact_bot_turn`, and through it
+    to `dim_user` -- an accepted tradeoff, see `build_fact_bot_turn`) and
+    `user_id` directly. `gap_count`/`total_count`/`pct_gap` are no longer
+    precomputed: a Count of `turn_id` filtered/split by `fact_bot_turn[gap_flag]`
+    (native visual filter, or "Show value as % of Grand Total" -- no DAX)
+    reproduces them, including the `GAP_ENTITY_MENTION_FLOOR` floor as a
+    visual-level filter.
+
+    Counts only reach the dashboard through this row-per-mention shape, never
+    raw text -- `fact_bot_turn` structurally excludes it for the same reason
+    given there (a bot reply quotes the user's own details back).
+    """
+    if turns.empty:
+        return pd.DataFrame(columns=FACT_BOT_TURN_ENTITIES_COLUMNS)
+    rows = []
+    for tid, uid, text in zip(turns["turn_id"], turns["user_id"], turns["user_message"]):
+        if text is None or (isinstance(text, float) and pd.isna(text)):
+            continue
+        for ent in taxonomy.extract_entities(text):
+            rows.append({"turn_id": tid, "user_id": uid,
+                        "kind": taxonomy.ENTITY_KIND[ent], "entity": ent})
+    return pd.DataFrame(rows, columns=FACT_BOT_TURN_ENTITIES_COLUMNS)
 
 
 def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
     """Entity mentions split by whether the turn hit a coverage gap.
 
-    Counts only, never text: `fact_bot_turn` structurally excludes user/bot
-    text (a bot reply quotes the user's own details back), so this is the one
-    way the "what were the gaps about" chart (NB2 Figure 8) can reach the
-    dashboard -- aggregated with `taxonomy.entity_counts_by_kind`, the same
-    dictionary `build_fact_message_entities` uses on the main corpus, so the
-    two charts stay comparable.
+    Kept as a static, pre-aggregated fallback/reference table alongside the
+    new row-level `fact_bot_turn_entities` (which is what the dashboard chart
+    should actually bind to for live filtering) -- aggregated with
+    `taxonomy.entity_counts_by_kind`, the same dictionary
+    `build_fact_message_entities` uses on the main corpus, so the two charts
+    stay comparable.
 
     Entities below `GAP_ENTITY_MENTION_FLOOR` total mentions are dropped: a
     rate over a handful of mentions is noise, not a finding (NB2 applies the
@@ -1103,7 +1352,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "14") -> pd.DataFrame:
+                   schema_version: str = "16") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

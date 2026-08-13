@@ -74,6 +74,7 @@ POLICY: dict[str, Policy] = {
     "age_num": Policy.POOLABLE,
     "age_flag": Policy.POOLABLE,
     "age_range": Policy.POOLABLE,
+    "age_range_order": Policy.POOLABLE,
     "minors": Policy.POOLABLE,
     "destination_country": Policy.POOLABLE,
     "intends_to_stay": Policy.POOLABLE,

@@ -251,3 +251,27 @@ def test_language_display_covers_es_en_fr_and_defaults_to_not_specified():
     assert canon.language_display(None) == "Not specified"
     import pandas as pd
     assert canon.language_display(float("nan")) == "Not specified"
+
+
+def test_age_range_bucket_matches_mmc_brackets_at_every_boundary():
+    """0-17, 18-24, 25-34, 35-44, 45-54, 55+ -- check both edges of every
+    bracket so an off-by-one in the bin list is caught, not just the middle
+    of each band."""
+    cases = {
+        0: "0-17", 17: "0-17",
+        18: "18-24", 24: "18-24",
+        25: "25-34", 34: "25-34",
+        35: "35-44", 44: "35-44",
+        45: "45-54", 54: "45-54",
+        55: "55+", 87: "55+",
+    }
+    for age, expected in cases.items():
+        assert canon.age_range_bucket(age) == expected, age
+    assert canon.age_range_bucket(None) == "Not specified"
+    assert canon.age_range_bucket(float("nan")) == "Not specified"
+
+
+def test_age_range_order_of_sorts_youngest_to_oldest_then_not_specified():
+    labels = ["0-17", "18-24", "25-34", "35-44", "45-54", "55+", "Not specified"]
+    orders = [canon.age_range_order_of(l) for l in labels]
+    assert orders == sorted(orders)
