@@ -69,7 +69,7 @@ def test_fact_message_no_text(SD):
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "16"
+    assert kv["schema_version"] == "18"
 
 
 def test_meta_run_carries_report_version():
@@ -1220,10 +1220,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v15():
+def test_meta_run_reports_schema_v18():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "16"
+    assert val["schema_version"] == "18"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1484,10 +1484,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_16():
+def test_meta_run_defaults_to_schema_version_18():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "16"
+    assert out.set_index("key").loc["schema_version", "value"] == "18"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
@@ -1538,7 +1538,9 @@ def _paired_frames():
                        in zip(src["user_id"], src["seq"], src["message"])],
         "user_id": src["user_id"], "ts": pd.Timestamp("2026-01-01"),
         "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 1,
-        "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
+        "sentiment_label": src["tone"], "emotion_label": "others",
+        "emotion_display": "neutral",
+        "cluster_id": src["sub"] // 10,
         "subcluster_id": src["sub"], "subcluster_name": "n",
     })
     return src, fm

@@ -183,6 +183,11 @@ def _run_nlp_tables_with_fixture(monkeypatch):
                              "score": [1.0] * len(messages_df)},
                             index=messages_df.index)
 
+    def fake_emotion(messages_df, batch_size=64):
+        return pd.DataFrame({"label": ["others"] * len(messages_df),
+                             "score": [1.0] * len(messages_df)},
+                            index=messages_df.index)
+
     def fake_read_csv(path, *a, **kw):
         # The real repo's validation/ carries both files; this must resolve
         # each on name alone rather than assuming only the analyst path is
@@ -194,13 +199,14 @@ def _run_nlp_tables_with_fixture(monkeypatch):
 
     monkeypatch.setattr(nlp, "embed_documents", fake_embed)
     monkeypatch.setattr(nlp, "sentiment_messages", fake_sentiment)
+    monkeypatch.setattr(nlp, "emotion_messages", fake_emotion)
     monkeypatch.setattr(pd, "read_csv", fake_read_csv)
     monkeypatch.setattr(clusters, "choose_k", lambda *a, **kw: 4)
     monkeypatch.setattr(subclusters, "subcluster_all",
                         functools.partial(subclusters.subcluster_all,
                                           min_users=_MIN_USERS))
 
-    pr = progress.Progress(6, enabled=False)
+    pr = progress.Progress(7, enabled=False)
     return run_pipeline._nlp_tables(SD, pr)
 
 
@@ -224,7 +230,7 @@ def test_nlp_tables_subcluster_wiring(monkeypatch):
     """
     from sami import subclusters
 
-    tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names = \
+    tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names = \
         _run_nlp_tables_with_fixture(monkeypatch)
 
     # (a) sub_names is total over sub_lab's domain, including the sentinel.

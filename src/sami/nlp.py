@@ -20,8 +20,14 @@ EMBED_MODEL = "intfloat/multilingual-e5-large"
 EMBED_REVISION = "3d7cfbdacd47fdda877c5cd8a79fbcc4f2a574f3"
 SENTIMENT_MODEL = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
 SENTIMENT_REVISION = "f2f1202b1bdeb07342385c3f807f9c07cd8f5cf8"
+# Spanish-native (RoBERTuito), 7-class: others, joy, sadness, anger, surprise,
+# disgust, fear. A richer axis than the 3-class tone above -- added 2026-08-14,
+# unvalidated (no gold set yet; see meta_run["emotion_validated"]).
+EMOTION_MODEL = "pysentimiento/robertuito-emotion-analysis"
+EMOTION_REVISION = "bcd6835f4d1ab1a061bd7437c9d762623c8437ad"
 
 SENTIMENT_LABELS = ("negative", "neutral", "positive")
+EMOTION_LABELS = ("others", "joy", "sadness", "anger", "surprise", "disgust", "fear")
 
 _WS = re.compile(r"\s+")
 
@@ -144,6 +150,48 @@ def sentiment_messages(messages: pd.DataFrame, batch_size: int = 64) -> pd.DataF
     return pd.DataFrame({"label": labels, "score": scores}, index=messages.index)
 
 
+def emotion_messages(messages: pd.DataFrame, batch_size: int = 64) -> pd.DataFrame:
+    """Per-message emotion, index-aligned to the message spine.
+
+    Same shape and empty-message handling as `sentiment_messages`, but a 7-way
+    emotion label (EMOTION_LABELS) instead of 3-way tone. Empty messages get
+    label 'others' (that model's neutral-equivalent bucket).
+    """
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    texts = messages["message"].map(normalize_text).tolist()
+    keep = [i for i, t in enumerate(texts) if t != ""]
+
+    tok = AutoTokenizer.from_pretrained(EMOTION_MODEL, revision=EMOTION_REVISION)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        EMOTION_MODEL, revision=EMOTION_REVISION
+    )
+    device = _device()
+    model.to(device).eval()
+
+    id2label = {i: model.config.id2label[i].lower() for i in range(model.config.num_labels)}
+    labels = np.array(["others"] * len(texts), dtype=object)
+    scores = np.full(len(texts), np.nan, dtype=float)
+
+    # RoBERTuito's max_position_embeddings is 130 (unlike the 512-position
+    # sentiment model above) -- 256 silently indexes past the position
+    # embedding table and crashes deep in the forward pass, not at tokenize
+    # time. 128 stays under that with room for the special tokens.
+    with torch.no_grad():
+        for start in range(0, len(keep), batch_size):
+            idx = keep[start : start + batch_size]
+            batch = [texts[i] for i in idx]
+            enc = tok(batch, padding=True, truncation=True, max_length=128, return_tensors="pt")
+            enc = {k: v.to(device) for k, v in enc.items()}
+            probs = torch.softmax(model(**enc).logits, dim=-1).cpu().numpy()
+            for j, i in enumerate(idx):
+                labels[i] = id2label[int(probs[j].argmax())]
+                scores[i] = float(probs[j].max())
+
+    return pd.DataFrame({"label": labels, "score": scores}, index=messages.index)
+
+
 def device_report() -> dict:
     """Reproducibility identity card: device, versions, pinned model revisions."""
     import torch
@@ -157,4 +205,6 @@ def device_report() -> dict:
         "embed_revision": EMBED_REVISION,
         "sentiment_model": SENTIMENT_MODEL,
         "sentiment_revision": SENTIMENT_REVISION,
+        "emotion_model": EMOTION_MODEL,
+        "emotion_revision": EMOTION_REVISION,
     }

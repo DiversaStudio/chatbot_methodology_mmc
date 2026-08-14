@@ -1,14 +1,14 @@
 subcluster_id,cluster_id,subcluster_name,top_terms,n_users,n_messages,display_order,color_hex,is_split,name_is_provisional
-0,0,Starting a business,"emprendimiento, emprendimientos, negocio, empleabilidad, emprender, específica",60,148,50,#c78fa4,True,False
-1,0,Looking for work and training,"buscando, conseguir, buscar, seguro, segura, económicamente",38,60,51,#d3a8b8,True,False
-10,1,Biometrics and minors' documents,"biométrico, hijos, entregar, saqué, xfavor, aprobado",148,622,20,#62c8ce,True,False
-11,1,Brigades and paperwork steps,"jornada, adultos, sacarle, dice, preguntar, procesos",69,121,21,#85d4d9,True,False
-20,2,Family nationality options,"conmigo, carta, tenemos, hija, entonces, sino",134,740,10,#671e42,True,False
-21,2,Regularising status abroad,"españa, regularizar, legalizarme, estatus, estadía, irregular",85,203,11,#88506c,True,False
-22,2,Apostilles and birth records,"apostillado, acta, mamá, civil, partida, padre",84,349,12,#aa8195,True,False
-30,3,Visas and travel abroad,"canadá, visitante, extranjeria, pago, quedaron, correo",118,267,30,#a3557a,True,False
-31,3,Expiring permits and renewals,"tramite, prórroga, salvó, venció, sede, acnur",46,127,31,#b77a97,True,False
-40,4,Health access and registration,"nuevo, registrarme, hospital, sisben, urgente, acceso",157,1208,0,#009ba4,True,False
-41,4,Food and shelter from organisations,"migrantes, alimentación, organización, mercado, norte, mujer",153,646,1,#38b1b8,True,False
-50,5,Services and integration,"atención, danes, regular, especial, cerca, educación",106,172,40,#000031,False,False
+0,0,Starting a business,"emprendimiento, emprendimientos, capital, negocio, empleos, apoyo",101,244,50,#c78fa4,False,False
+10,1,Visas and travel abroad,"canadá, visitante, encuesta, quedaron, tarjeta, sistema",137,301,30,#a3557a,True,False
+11,1,Expiring permits and renewals,"renovar, sacarlo, permiso, salvó, sede, permanente",66,132,31,#b77a97,True,False
+20,2,Family nationality options,"conmigo, sino, medio, ciudadanía, entrar, teniendo",129,673,10,#671e42,True,False
+21,2,Apostilles and birth records,"antecedentes, apostillado, nacimiento, civil, mamá, padres",106,464,11,#88506c,True,False
+22,2,Regularising status abroad,"españa, legalizar, llevo, empezar, irregular, casi",99,244,12,#aa8195,True,False
+30,3,Biometrics and minors' documents,"biométrico, rumv, migración, afiliar, estudiar, papa",173,752,20,#62c8ce,True,False
+31,3,Brigades and paperwork steps,"duplicado, sacarle, adultos, link, salido, estando",78,135,21,#85d4d9,True,False
+40,4,Services and integration,"abierto, educación, intégrate, servicios, migratorio, especial",112,184,40,#000031,False,False
+50,5,Health access and registration,"nuevo, registrarme, hospital, villa, maicao, urgente",146,1256,0,#009ba4,True,False
+51,5,Food and shelter from organisations,"danés, fundación, alimentación, ropa, venezolanos, pasajes",126,574,1,#38b1b8,True,False
+52,5,Single mothers seeking economic support,"soltera, madre, subsidio, estable, ando, mejor",73,214,2,#70c7cc,True,False
 -10,-1,No conversation text,,,,70,#b7b7b7,False,False

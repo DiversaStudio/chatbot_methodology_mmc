@@ -21,8 +21,8 @@ def test_normalize_category_is_gone():
 
 def test_resolve_names_matches_by_marker_not_by_id():
     """A cluster keeps its name when the clustering run reshuffles the ids."""
-    first = _terms({0: ["terminal", "albergue"], 1: ["rumv", "biometrico"]})
-    swapped = _terms({0: ["rumv", "biometrico"], 1: ["terminal", "albergue"]})
+    first = _terms({0: ["terminal", "albergue"], 1: ["biométrico", "tramite"]})
+    swapped = _terms({0: ["biométrico", "tramite"], 1: ["terminal", "albergue"]})
 
     a = taxonomy.resolve_cluster_names(first)
     b = taxonomy.resolve_cluster_names(swapped)
