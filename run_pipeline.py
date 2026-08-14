@@ -33,8 +33,8 @@ from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # no
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
-# write) + 6 NLP-only + 1 optional (bot log).
-_STAGES_BASE, _STAGES_NLP = 5, 6
+# write) + 7 NLP-only + 1 optional (bot log).
+_STAGES_BASE, _STAGES_NLP = 5, 7
 
 GAP_GOLD_PATH = Path("validation/gap_gold_labels.csv")
 
@@ -56,10 +56,17 @@ def _warn_entity_coverage(coverage: float, n_candidates: int) -> None:
         stacklevel=2)
 
 
-def _nlp_tables(SD, pr):
+def _nlp_tables(SD, pr, k_override: int | None = None):
     """Run the NLP once and build every NLP-dependent table. Returns
-    (tables_dict, nlp_meta_dict, sentiment_frame, lab_series, dim_cluster_frame,
-    sub_lab_series, sub_names_dict)."""
+    (tables_dict, nlp_meta_dict, sentiment_frame, emotion_frame, lab_series,
+    dim_cluster_frame, sub_lab_series, sub_names_dict).
+
+    `k_override` pins the archetype count instead of letting the stability
+    curve choose it -- e.g. to hold the cluster count steady across a data
+    refresh when the extra resolution a bigger corpus newly supports isn't
+    wanted yet. The scan/stability curve are still computed so `nlp_meta`
+    keeps reporting the same diagnostics either way.
+    """
     docs = nlp.user_documents(SD.messages)
     with pr.stage(f"embedding {len(docs)} user documents"):
         X = nlp.embed_documents(docs["doc"].tolist())
@@ -68,7 +75,8 @@ def _nlp_tables(SD, pr):
         scan = clusters.k_scan(X, k_range=range(4, 13), random_state=RANDOM_STATE)
         stab_curve = clusters.stability_curve(X, k_range=range(3, 13), n_boot=30,
                                               random_state=RANDOM_STATE)
-        K = clusters.choose_k(scan, stability_by_k=stab_curve)
+        K = k_override if k_override is not None else clusters.choose_k(
+            scan, stability_by_k=stab_curve)
         labels = KMeans(n_clusters=K, n_init=10, random_state=RANDOM_STATE).fit(X).labels_
         lab = pd.Series(labels, index=docs["user_id"].values, name="archetype")
 
@@ -93,6 +101,9 @@ def _nlp_tables(SD, pr):
     # full spine, where embedding is only one pass over ~800 user documents.
     with pr.stage(f"sentiment over {len(SD.messages)} messages"):
         sent = nlp.sentiment_messages(SD.messages)
+
+    with pr.stage(f"emotion over {len(SD.messages)} messages"):
+        emo = nlp.emotion_messages(SD.messages)
 
     with pr.stage("archetype profiles + tone validation + stability"):
         prof = clusters.archetype_profiles(lab, SD.responses, SD.messages, terms=terms)
@@ -147,6 +158,11 @@ def _nlp_tables(SD, pr):
     split_aris = [m["stability_ari"] for m in sub_meta.values() if m["is_split"]]
     nlp_meta = {
         "embed_model": dev["embed_model"], "sentiment_model": dev["sentiment_model"],
+        "emotion_model": dev["emotion_model"],
+        # No gold set yet -- unlike tone_kappa/tone_gate_passed above, this is
+        # not withheld pending a kappa gate, just flagged as unvalidated so a
+        # reader knows the difference. See nlp.EMOTION_MODEL docstring.
+        "emotion_validated": False,
         "chosen_k": K, "stability_ari": round(stab["mean_ari"], 3),
         "tone_kappa": round(report["kappa"], 3),
         "tone_gate_passed": report["gate_passed"], "sentiment_quotable": report["gate_passed"],
@@ -165,7 +181,7 @@ def _nlp_tables(SD, pr):
         "subcluster_stability_ari": (round(float(np.mean(split_aris)), 3)
                                      if split_aris else None),
     }
-    return tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names
+    return tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names
 
 
 def _bot_tables(path, dim_user) -> tuple[dict, dict]:
@@ -246,6 +262,9 @@ def main(argv=None) -> int:
                          "row (default: newest in datasets/bot_log/). OPTIONAL: "
                          "without it the two coverage-gap tables are empty and "
                          "every other table is unaffected.")
+    ap.add_argument("--k", type=int, default=None,
+                    help="pin the archetype cluster count instead of letting "
+                         "the stability curve choose it (default: auto)")
     args = ap.parse_args(argv)
 
     ctx = preflight.Context(
@@ -273,7 +292,8 @@ def main(argv=None) -> int:
             print(f"  {role + ':':<11}{chosen}", file=sys.stderr)
         SD = load_sami(responses_path=args.responses, meal_path=args.meal)
 
-    nlp_tables, nlp_meta, sent, lab, dim_cluster, sub_lab, sub_names = _nlp_tables(SD, pr)
+    nlp_tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names = _nlp_tables(
+        SD, pr, k_override=args.k)
 
     with pr.stage("building dimension + fact tables"):
         # Every message inherits its author's cluster. This is the join that
@@ -286,7 +306,8 @@ def main(argv=None) -> int:
         dim_user = export.build_dim_user(SD.responses, SD.messages, lab=lab,
                                          sub_lab=sub_lab, sub_names=sub_names)
         fact_message = export.build_fact_message(SD.messages, sentiment=sent, lab=lab,
-                                                 sub_lab=sub_lab, sub_names=sub_names)
+                                                 sub_lab=sub_lab, sub_names=sub_names,
+                                                 emotion=emo)
         fact_meal = export.build_fact_meal(SD.meal)
         # NER is loaded once here rather than inside the sampler: the sampler is
         # called per-bucket-loop and spacy.load is expensive.

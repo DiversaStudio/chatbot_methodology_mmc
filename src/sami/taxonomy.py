@@ -355,7 +355,7 @@ CLUSTER_NAMES: list[dict[str, str]] = [
     {"marker": "nacionalidad", "name": "Nationality and family papers",
      "description": "Colombian nationality for a child born here: birth registration, "
               "apostilles, parents' documents."},
-    {"marker": "rumv", "name": "Stuck mid-procedure",
+    {"marker": "biométrico", "name": "Stuck mid-procedure",
      "description": "Already inside the RUMV/PPT pipeline and blocked: biometrics, "
               "appointments, guardianship for minors, collection."},
     {"marker": "visitante", "name": "Permits, visas and travel",
@@ -392,19 +392,20 @@ SUBCLUSTER_NAMES: list[dict[str, str]] = [
     {"marker": "buscando", "name": "Looking for work and training"},
     # -- Stuck mid-procedure --
     {"marker": "biométrico", "name": "Biometrics and minors' documents"},
-    {"marker": "jornada", "name": "Brigades and paperwork steps"},
+    {"marker": "duplicado", "name": "Brigades and paperwork steps"},
     # -- Nationality and family papers --
     {"marker": "ciudadanía", "name": "Family nationality options"},
     {"marker": "españa", "name": "Regularising status abroad"},
     {"marker": "apostillado", "name": "Apostilles and birth records"},
     # -- Permits, visas and travel --
     {"marker": "canadá", "name": "Visas and travel abroad"},
-    {"marker": "prórroga", "name": "Expiring permits and renewals"},
+    {"marker": "renovar", "name": "Expiring permits and renewals"},
     # -- Urgent humanitarian needs --
     {"marker": "hospital", "name": "Health access and registration"},
     {"marker": "alimentación", "name": "Food and shelter from organisations"},
+    {"marker": "soltera", "name": "Single mothers seeking economic support"},
     # -- Settling in (did not split; this child is the whole parent) --
-    {"marker": "danes", "name": "Services and integration"},
+    {"marker": "integrate", "name": "Services and integration"},
 ]
 
 

@@ -217,16 +217,42 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
 _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
                   "seq", "n_msgs_user"]
 
+#: `emotion_label`'s "others" bucket (~93% of messages -- most of this
+#: corpus is plain informational Q&A) collapses `sentiment_label` away.
+#: Splitting it by the sentiment already sitting on the same row turns one
+#: dead bucket into three real ones, without inventing any new signal --
+#: named from what's actually in each split (word-cloud check against the
+#: real message text, 2026-08-14): negative reads as passport/permit/
+#: health-coverage/immigration-paperwork anxiety, positive reads as
+#: appreciation for support received. Neutral stays "neutral" -- no
+#: emotional valence to name.
+OTHERS_SENTIMENT_DISPLAY = {"negative": "preocupación", "positive": "satisfacción",
+                            "neutral": "neutral"}
+
+
+def _emotion_display(emotion_label, sentiment_label) -> str:
+    if pd.isna(emotion_label):
+        return pd.NA
+    if emotion_label != "others":
+        return emotion_label
+    return OTHERS_SENTIMENT_DISPLAY.get(sentiment_label, "neutral")
+
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
                        *, lab: pd.Series, sub_lab: pd.Series,
-                       sub_names: dict) -> pd.DataFrame:
+                       sub_names: dict, emotion: "pd.DataFrame | None" = None) -> pd.DataFrame:
     f = messages.copy()
     f["message_id"] = [message_key(u, s, m) for u, s, m
                        in zip(f["user_id"], f["seq"], f["message"])]
     f = f[[c for c in _FACT_MSG_COLS if c in f.columns]].copy()
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)
+    # Unvalidated (no gold set) -- see meta_run["emotion_validated"]. A richer
+    # 7-class axis alongside the gated 3-class tone above, not a replacement.
+    f["emotion_label"] = (emotion.loc[messages.index, "label"].values
+                          if emotion is not None else pd.NA)
+    f["emotion_display"] = [_emotion_display(e, s) for e, s in
+                            zip(f["emotion_label"], f["sentiment_label"])]
     f["cluster_id"] = f["user_id"].map(lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
     f["subcluster_id"] = (f["user_id"].map(sub_lab.to_dict())
                           .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
@@ -240,8 +266,8 @@ SAMPLE_PER_BUCKET = 6
 SAMPLE_LEN_MIN, SAMPLE_LEN_MAX = 60, 190
 FACT_MESSAGE_SAMPLE_COLUMNS = [
     "message_id", "user_id", "cluster_id", "subcluster_id", "subcluster_name",
-    "sentiment_label", "city_canon", "ts", "char_len", "text_redacted",
-    "redaction_applied",
+    "sentiment_label", "emotion_label", "emotion_display", "city_canon", "ts",
+    "char_len", "text_redacted", "redaction_applied",
 ]
 
 
@@ -295,6 +321,8 @@ def build_fact_message_sample(messages: pd.DataFrame, fact_message: pd.DataFrame
                 "subcluster_id": rec["subcluster_id"],
                 "subcluster_name": rec["subcluster_name"],
                 "sentiment_label": rec["sentiment_label"],
+                "emotion_label": rec["emotion_label"],
+                "emotion_display": rec["emotion_display"],
                 "city_canon": rec["city_canon"],
                 "ts": rec["ts"],
                 "char_len": rec["char_len"],
@@ -1352,7 +1380,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "16") -> pd.DataFrame:
+                   schema_version: str = "18") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
