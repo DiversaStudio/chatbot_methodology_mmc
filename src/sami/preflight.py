@@ -201,10 +201,11 @@ def check_models(ctx: Context) -> Result:
     wanted = {
         nlp.EMBED_MODEL: "models--" + nlp.EMBED_MODEL.replace("/", "--"),
         nlp.SENTIMENT_MODEL: "models--" + nlp.SENTIMENT_MODEL.replace("/", "--"),
+        nlp.EMOTION_MODEL: "models--" + nlp.EMOTION_MODEL.replace("/", "--"),
     }
     absent = [name for name, d in wanted.items() if not (cache / d).exists()]
     if not absent:
-        return Result("models", OK, f"both models cached in {cache}")
+        return Result("models", OK, f"all {len(wanted)} models cached in {cache}")
     if _network_ok():
         return Result("models", WARN,
                       f"{len(absent)} model(s) not cached — will download "
