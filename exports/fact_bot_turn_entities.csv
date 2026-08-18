@@ -38,8 +38,8 @@ c08a8884bb4debce,512e8fb3d785,procedure,Regularización
 9078a74308a30dc0,6902dba30d30,procedure,PPT
 b73f53c3de753db1,5e65b3f3ebf6,procedure,Refugio/Asilo
 52b3c430940caa9c,178c78255064,procedure,Salvoconducto
-52b3c430940caa9c,178c78255064,procedure,PPT
 52b3c430940caa9c,178c78255064,procedure,Refugio/Asilo
+52b3c430940caa9c,178c78255064,procedure,PPT
 7ab75123bda696f3,178c78255064,procedure,Salvoconducto
 befe8909a1843e96,178c78255064,procedure,Trabajo/Empleo
 ee588b42cf6bbd58,178c78255064,procedure,Salvoconducto
@@ -77,15 +77,15 @@ d9d835151c47d71e,452c08220fe8,procedure,Salud/EPS
 9b8b740ef507a7a1,452c08220fe8,procedure,Salud/EPS
 d83dc8108963b318,0982baceacfa,procedure,PPT
 1638b6e0e59c4b0e,0a225e949939,procedure,PPT
-3ab57841c2e02d7d,13c2983256df,institution,Migración Colombia
 3ab57841c2e02d7d,13c2983256df,procedure,Regularización
+3ab57841c2e02d7d,13c2983256df,institution,Migración Colombia
 7cda6e0103b4c847,5616952a922d,procedure,PPT
 17052ccfe6419b7a,6ae6862863cc,procedure,Salvoconducto
 a5b952bcfb5b721f,b259227734f4,procedure,Trabajo/Empleo
 a5b952bcfb5b721f,b259227734f4,procedure,PPT
 04f9474f2b2517c9,6ae6862863cc,procedure,Salvoconducto
-c78dba97c440d375,0982baceacfa,procedure,Nacionalidad/Naturalización
 c78dba97c440d375,0982baceacfa,procedure,Visa
+c78dba97c440d375,0982baceacfa,procedure,Nacionalidad/Naturalización
 285ed9b516cadd87,48b29e9b74b3,procedure,Emprendimiento
 b477d4c2b78415d5,258089dc336d,procedure,Cédula
 00eb6ec3af00d60c,6ae6862863cc,procedure,Salvoconducto
@@ -124,13 +124,13 @@ ebd124e482f06137,e9007fba3801,procedure,PPT
 0cc38979a3fc710c,a5dadd4e8d83,procedure,Trabajo/Empleo
 0cc38979a3fc710c,a5dadd4e8d83,procedure,PPT
 66212d3b5d7b35a8,a5dadd4e8d83,procedure,PEP
-99cb53b1d0a70dd4,5342526ca7e7,procedure,Cédula
 99cb53b1d0a70dd4,5342526ca7e7,procedure,Salud/EPS
-99cb53b1d0a70dd4,5342526ca7e7,procedure,PPT
+99cb53b1d0a70dd4,5342526ca7e7,procedure,Cédula
 99cb53b1d0a70dd4,5342526ca7e7,procedure,Pasaporte
+99cb53b1d0a70dd4,5342526ca7e7,procedure,PPT
 5925cfe108c6d25b,5342526ca7e7,procedure,Salvoconducto
-5925cfe108c6d25b,5342526ca7e7,procedure,Cédula
 5925cfe108c6d25b,5342526ca7e7,procedure,Pasaporte
+5925cfe108c6d25b,5342526ca7e7,procedure,Cédula
 322510f498775dd4,5342526ca7e7,procedure,Salvoconducto
 002ea3ab71de3da9,b05d491de4b3,procedure,Regularización
 d1f2c3ea2ee09f55,b05d491de4b3,procedure,Regularización
@@ -167,8 +167,8 @@ cf623c3238367fa6,1478ba543589,procedure,PPT
 e7f7cac83e85acfb,1478ba543589,procedure,PPT
 208d2bf95278af41,3699dffeee89,procedure,Trabajo/Empleo
 208d2bf95278af41,3699dffeee89,procedure,PPT
-340a0b7c28bfe0e3,dd91d1e52f04,institution,Migración Colombia
 340a0b7c28bfe0e3,dd91d1e52f04,procedure,Salvoconducto
+340a0b7c28bfe0e3,dd91d1e52f04,institution,Migración Colombia
 5546dc8c7e88adf1,82e37a8b57e0,procedure,Vivienda/Arriendo
 5546dc8c7e88adf1,82e37a8b57e0,procedure,PPT
 ccaa1b7003770c58,8483c94fc824,procedure,Emprendimiento
@@ -232,8 +232,8 @@ e3daf4e0d6ae84c9,0083ec87957f,procedure,Trabajo/Empleo
 860f5664f4686e3a,8ba79bdd901a,procedure,Pasaporte
 f7b36e279c40dfee,d72beab625fc,procedure,PPT
 8072a1f7a1ded329,6779fc6ca75c,procedure,PPT
-e726f2cfbf07661b,19d1bcdf4a39,institution,Cancillería
 e726f2cfbf07661b,19d1bcdf4a39,procedure,Visa
+e726f2cfbf07661b,19d1bcdf4a39,institution,Cancillería
 3709084232545d79,ccc810f98941,procedure,PPT
 ac58fe1e3e8ab8d2,01ef5a3bd732,procedure,Trabajo/Empleo
 ac58fe1e3e8ab8d2,01ef5a3bd732,procedure,Pasaporte
@@ -297,16 +297,16 @@ e45790939e398800,d58fd4a48a69,procedure,Salvoconducto
 de578da6eb72c9ad,c6ddc37c2366,procedure,Visa
 4ca4ab24713f5b8d,c6ddc37c2366,procedure,Visa
 40f9a6ef2f55ba60,92ff5182ff53,procedure,Salud/EPS
-6c7ea0771e449a1b,c6ddc37c2366,procedure,PEP
-6c7ea0771e449a1b,c6ddc37c2366,procedure,PPT
-6c7ea0771e449a1b,c6ddc37c2366,procedure,Visa
-6c7ea0771e449a1b,c6ddc37c2366,procedure,Regularización
 6c7ea0771e449a1b,c6ddc37c2366,institution,Cancillería
 6c7ea0771e449a1b,c6ddc37c2366,institution,Migración Colombia
+6c7ea0771e449a1b,c6ddc37c2366,procedure,Visa
+6c7ea0771e449a1b,c6ddc37c2366,procedure,Regularización
+6c7ea0771e449a1b,c6ddc37c2366,procedure,PEP
+6c7ea0771e449a1b,c6ddc37c2366,procedure,PPT
 43f8ab2a91d8a172,92ff5182ff53,procedure,Salvoconducto
 43f8ab2a91d8a172,92ff5182ff53,procedure,Salud/EPS
-091de48f3576ba65,c6ddc37c2366,procedure,Educación
 091de48f3576ba65,c6ddc37c2366,procedure,Visa
+091de48f3576ba65,c6ddc37c2366,procedure,Educación
 d876974ff925eae2,70f88c68bbf5,procedure,Salud/EPS
 1fc599be749ed8ea,dc6642edcd75,procedure,Ayuda económica
 eae3e45a4e9ec156,70f88c68bbf5,procedure,PPT
@@ -326,8 +326,8 @@ e1a9fb64ce8ee7f0,31b8761c2878,procedure,Pasaporte
 9574e4120dad94c1,31b8761c2878,procedure,PPT
 97658309e0c5cdcb,92c906ae713f,procedure,Trabajo/Empleo
 86ba762f1aafea52,cf03288f22b4,procedure,Trabajo/Empleo
-86ba762f1aafea52,cf03288f22b4,procedure,Educación
 86ba762f1aafea52,cf03288f22b4,procedure,Registro civil/Apostilla
+86ba762f1aafea52,cf03288f22b4,procedure,Educación
 389923394401327a,40f8794ebb5b,procedure,Regularización
 0ff530227851dfd1,cbde42a1d9f2,procedure,Visa
 a22a9b9b0b3a5210,cbde42a1d9f2,procedure,Salud/EPS
@@ -345,8 +345,8 @@ f5488d680fb68248,7ddd567fca0b,procedure,Salud/EPS
 a0d1ca05b39ddbad,7ddd567fca0b,procedure,Cédula
 2ded37f693006e8d,a44cd0fb62fb,procedure,PPT
 36c5e5ed24a1ae67,a44cd0fb62fb,procedure,Pasaporte
-ef68f31abb2fe905,a44cd0fb62fb,procedure,PPT
 ef68f31abb2fe905,a44cd0fb62fb,procedure,Pasaporte
+ef68f31abb2fe905,a44cd0fb62fb,procedure,PPT
 033c4ea68ccc6b5e,2f1d63920637,procedure,Cédula
 3dc318af7f75c5ea,9bc3f350074c,procedure,SISBÉN
 3790e2435da3881c,78d1eb495436,procedure,Cédula
@@ -355,8 +355,8 @@ ef68f31abb2fe905,a44cd0fb62fb,procedure,Pasaporte
 2b57f35d8843010b,e0698cb52450,procedure,PPT
 0d15668089e416b1,d1c4e8d8c4d7,procedure,Emprendimiento
 463a21bf35d3048c,a44cd0fb62fb,procedure,Salud/EPS
-6408d05c88e5770f,d4bf3a47f65a,procedure,Nacionalidad/Naturalización
 6408d05c88e5770f,d4bf3a47f65a,procedure,Registro civil/Apostilla
+6408d05c88e5770f,d4bf3a47f65a,procedure,Nacionalidad/Naturalización
 9de1c44b385d0908,b05d491de4b3,institution,Migración Colombia
 9de1c44b385d0908,b05d491de4b3,procedure,PPT
 43edd30292e237de,9d99509f5976,procedure,SISBÉN
@@ -379,8 +379,8 @@ b44e8e5b83a8a417,08850488608f,procedure,Vivienda/Arriendo
 09f72e2cc5b926bb,79ac5516fd24,procedure,Salud/EPS
 01f447feb5de9437,db7bf73021d3,procedure,PPT
 c6f12523f8df0cd2,db7bf73021d3,procedure,Educación
-f984c51541bb70cf,48ab8159f144,procedure,Pasaporte
 f984c51541bb70cf,48ab8159f144,procedure,Visa
+f984c51541bb70cf,48ab8159f144,procedure,Pasaporte
 2010490a09c36562,31b8761c2878,procedure,Pasaporte
 5edfac623690cb0a,fbd40694fd86,procedure,Salud/EPS
 32d5022e573c9c9c,fbd40694fd86,procedure,Emprendimiento
@@ -399,8 +399,8 @@ c489ae9f8abd9b54,b9ff365f1be6,procedure,Emprendimiento
 37aee724d144df33,f92f97820aa4,procedure,PPT
 bb3267c3ea2e0232,f92f97820aa4,procedure,Cédula
 bb3267c3ea2e0232,f92f97820aa4,procedure,PPT
-1687a764cf28f2ec,b12b524a7968,institution,Migración Colombia
 1687a764cf28f2ec,b12b524a7968,procedure,Salvoconducto
+1687a764cf28f2ec,b12b524a7968,institution,Migración Colombia
 fad9966693563b1a,b12b524a7968,institution,Migración Colombia
 fad9966693563b1a,b12b524a7968,procedure,PPT
 b96738a4c5118ae4,5b84761ac5e2,procedure,Regularización
@@ -413,8 +413,8 @@ e3ddff24cd8a3e8c,25588123ba9f,procedure,Visa
 0281112006c73167,608f79704cbf,procedure,Ayuda humanitaria
 b7f5cbd95ba3309e,25588123ba9f,procedure,Cédula
 dcd0f3732bd38729,8ba79bdd901a,procedure,Trabajo/Empleo
-ec0155b9d23bab58,53bf7d07b4fd,procedure,Salvoconducto
 ec0155b9d23bab58,53bf7d07b4fd,procedure,Trabajo/Empleo
+ec0155b9d23bab58,53bf7d07b4fd,procedure,Salvoconducto
 0d941295e8802b9e,73105f496c9d,procedure,Trabajo/Empleo
 744946450c68b67c,bdf1985b72f0,procedure,Trabajo/Empleo
 a9147f8b1fb8b4bc,08914801c587,procedure,Regularización
