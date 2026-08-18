@@ -56,3 +56,82 @@ def test_sentiment_is_index_aligned_with_closed_label_set(spine):
     assert list(sent.index) == list(spine.index)     # empty rows kept, not dropped
     assert set(sent["label"]) <= set(nlp.SENTIMENT_LABELS)
     assert sent.loc[3:4, "score"].isna().all()       # empty messages -> NaN score
+
+
+def _probs(**by_label):
+    """A probs array in EMOTION_LABELS order, zero-filled for unnamed labels."""
+    p = np.zeros(len(nlp.EMOTION_LABELS))
+    for label, val in by_label.items():
+        p[nlp.EMOTION_LABELS.index(label)] = val
+    return p
+
+
+def test_resolve_emotion_keeps_a_confident_others():
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(others=0.9, sadness=0.1)
+    label, score = nlp._resolve_emotion(probs, id2label, "cualquier texto")
+    assert label == "others"
+    assert score == pytest.approx(0.9)
+
+
+def test_resolve_emotion_falls_back_within_margin():
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(others=0.5, sadness=0.4)      # margin 0.1 < EMOTION_OTHERS_MARGIN
+    label, score = nlp._resolve_emotion(probs, id2label, "cualquier texto")
+    assert label == "sadness"
+    assert score == pytest.approx(0.4)
+
+
+def test_resolve_emotion_marker_overrides_a_close_others():
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(others=0.9, joy=0.1)          # margin too wide for the fallback rule
+    label, _ = nlp._resolve_emotion(probs, id2label, "temo que sea una estafa")
+    assert label == "fear"
+
+
+def test_resolve_emotion_marker_is_case_insensitive():
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(others=0.9, joy=0.1)
+    label, _ = nlp._resolve_emotion(probs, id2label, "Mi esposo me MALTRATA")
+    assert label == "anger"
+
+
+def test_resolve_emotion_never_overrides_a_non_others_call():
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(joy=0.6, others=0.35)
+    label, _ = nlp._resolve_emotion(probs, id2label, "temo que sea una estafa")
+    assert label == "joy"
+
+
+@pytest.mark.parametrize("untrusted_label", ["joy", "surprise", "disgust"])
+def test_resolve_emotion_does_not_fall_back_to_untrusted_labels(untrusted_label):
+    """joy/surprise runner-ups were audited against the real corpus and found
+    to be noise (joy fires on plain "necesito X" asks, surprise on any
+    question) -- only sadness/fear/anger are trusted fallback targets."""
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(others=0.5, **{untrusted_label: 0.4})  # well within margin
+    label, score = nlp._resolve_emotion(probs, id2label, "cualquier texto")
+    assert label == "others"
+    assert score == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize("untrusted_label", ["surprise", "disgust"])
+def test_resolve_emotion_never_returns_untrusted_raw_argmax(untrusted_label):
+    """A 185-message blind gold set found 0/8 of the model's own confident
+    "surprise" calls correct, and "disgust" never fired once across ~9k real
+    messages -- both are dropped even as the model's own top pick, falling
+    through to whatever the next-ranked trusted label is."""
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(**{untrusted_label: 0.9}, joy=0.05)
+    label, score = nlp._resolve_emotion(probs, id2label, "cualquier texto")
+    assert label == "joy"
+    assert score == pytest.approx(0.05)
+
+
+def test_resolve_emotion_untrusted_raw_falls_through_to_others_margin_rule():
+    """When the next-ranked trusted label after dropping surprise/disgust is
+    "others", the usual margin+marker logic still applies on top."""
+    id2label = dict(enumerate(nlp.EMOTION_LABELS))
+    probs = _probs(surprise=0.5, others=0.45, sadness=0.40)
+    label, _ = nlp._resolve_emotion(probs, id2label, "cualquier texto")
+    assert label == "sadness"  # others(0.45) vs sadness(0.40): within margin

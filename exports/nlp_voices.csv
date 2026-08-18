@@ -1,7 +1,9 @@
 cluster_id,name,matched_term,message,user_id
-0,Building a livelihood,emprendimiento,Hola me gustaría q me diera información sobre... empleo o emprendimiento.,0b28baceb4e4
-1,"Permits, visas and travel",visitante,Hola quiero saber cuáles son los requisitos en para obtener la visa v de visitante,bdc0d2b7501c
-2,Nationality and family papers,nacionalidad,Y que documentos necesito para darle la nacionalidad venezolana a mi hija,0337f971aa05
-3,Stuck mid-procedure,biométrico,Quisiera saber cuáles son los puntos de atención de migración para el biométrico de los niños,06433e895ee5
-4,Settling in,humanitarias,Saber que ayudas humanitarias ofrecen para retornar a mi pais,9802841c02ed
-5,Urgent humanitarian needs,terminal,Cual ayuda mas recurrente da el pao en Medellín terminal del norte,460d24f18102
+0,Settling in,humanitaria,Saber que ayudas humanitarias ofrecen para retornar a mi pais,9802841c02ed
+1,Nationality and family papers,nacionalidad,Y que documentos necesito para darle la nacionalidad venezolana a mi hija,0337f971aa05
+2,Urgent humanitarian needs,terminal,Hola buenos días estoy en el terminal de medellin no tengo en donde quedarme,4f524af45e30
+3,"Permits, visas and travel",visitante,Hola quiero saber cuáles son los requisitos en para obtener la visa v de visitante,bdc0d2b7501c
+4,Stuck mid-procedure,biométrico,Quisiera saber cómo haría mi esposo para terminar de gestionar su ppt ya que no logro terminar el proceso osea el biométrico,507f2bfaddcc
+5,"Cluster 5 · colombiana, colombiano, pasaporte",colombiana,Tengo una hija de 6 años colombiana pero yo no tengo ningún permiso colombiano solo mi cedula venezolana quisiera saber como puedo estar legal aquí,025f8fa9b2ff
+6,"Cluster 6 · humanitaria, alimentos, humanitarias",humanitaria,Quisiera información de una ayuda humanitaria tengo dos niños con discapacidades múltiples,1b62f7b2e3ab
+7,Building a livelihood,emprendimiento,Hola me gustaría q me diera información sobre... empleo o emprendimiento.,0b28baceb4e4
