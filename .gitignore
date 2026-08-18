@@ -17,6 +17,7 @@ docs/
 __pycache__/
 *.pyc
 .venv/
+*.egg-info/
 
 # Secrets (pseudonymization salt)
 .env

@@ -1,14 +1,15 @@
 subcluster_id,cluster_id,subcluster_name,top_terms,n_users,n_messages,display_order,color_hex,is_split,name_is_provisional
-0,0,Starting a business,"emprendimiento, emprendimientos, capital, negocio, empleos, apoyo",101,244,50,#c78fa4,False,False
-10,1,Visas and travel abroad,"canadá, visitante, encuesta, quedaron, tarjeta, sistema",137,301,30,#a3557a,True,False
-11,1,Expiring permits and renewals,"renovar, sacarlo, permiso, salvó, sede, permanente",66,132,31,#b77a97,True,False
-20,2,Family nationality options,"conmigo, sino, medio, ciudadanía, entrar, teniendo",129,673,10,#671e42,True,False
-21,2,Apostilles and birth records,"antecedentes, apostillado, nacimiento, civil, mamá, padres",106,464,11,#88506c,True,False
-22,2,Regularising status abroad,"españa, legalizar, llevo, empezar, irregular, casi",99,244,12,#aa8195,True,False
-30,3,Biometrics and minors' documents,"biométrico, rumv, migración, afiliar, estudiar, papa",173,752,20,#62c8ce,True,False
-31,3,Brigades and paperwork steps,"duplicado, sacarle, adultos, link, salido, estando",78,135,21,#85d4d9,True,False
-40,4,Services and integration,"abierto, educación, intégrate, servicios, migratorio, especial",112,184,40,#000031,False,False
-50,5,Health access and registration,"nuevo, registrarme, hospital, villa, maicao, urgente",146,1256,0,#009ba4,True,False
-51,5,Food and shelter from organisations,"danés, fundación, alimentación, ropa, venezolanos, pasajes",126,574,1,#38b1b8,True,False
-52,5,Single mothers seeking economic support,"soltera, madre, subsidio, estable, ando, mejor",73,214,2,#70c7cc,True,False
--10,-1,No conversation text,,,,70,#b7b7b7,False,False
+0,0,Services and integration,"laboral, educación, abierto, servicios, cerca, atención",81,152,60,#a6dfe3,True,False
+1,0,"Subcluster 1 · regresar, entiendo, especial","regresar, entiendo, especial, refugio, preguntas, unidos",38,43,61,#bae6e9,True,True
+10,1,Family nationality options,"vigente, esposa, ciudadanía, estudiar, opción, teniendo",193,922,20,#62c8ce,False,False
+20,2,Health access and registration,"hospital, registrarme, sola, encontrar, medellin, urgente",221,1752,0,#009ba4,False,False
+30,3,"Subcluster 30 · estudio, visitante, pago","estudio, visitante, pago, quedaron, extranjeria, tarjeta",121,244,50,#c78fa4,True,True
+31,3,"Subcluster 31 · salvó, tramite, condición","salvó, tramite, condición, cuánto, multa, venció",50,144,51,#d3a8b8,True,True
+40,4,Biometrics and minors' documents,"biometría, traslado, biométrico, mayores, teléfono, número",110,419,40,#000031,True,False
+41,4,"Subcluster 41 · jornada, adultos, saco","jornada, adultos, saco, control, tramitar, pasos",68,108,41,#38385e,True,True
+50,5,Regularising status abroad,"legalmente, estatus, presentar, estadía, sello, españa",103,278,30,#a3557a,True,False
+51,5,Apostilles and birth records,"saime, padres, nacimiento, acta, antecedentes, siendo",82,287,31,#b77a97,True,False
+60,6,Food and shelter from organisations,"bucaramanga, alimentación, organización, mercado, ayude, contra",118,457,10,#671e42,True,False
+61,6,Single mothers seeking economic support,"soltera, madre, llega, desempleada, niños, subsidio",78,174,11,#88506c,True,False
+70,7,Starting a business,"emprendimiento, capital, emprendimientos, negocio, empleabilidad, específica",83,193,70,#eef6f5,False,False
+-10,-1,No conversation text,,,,90,#b7b7b7,False,False

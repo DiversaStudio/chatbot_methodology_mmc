@@ -7,6 +7,50 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
+**`schema_version = "19"`** (bumped from `"18"`, 2026-08-17, for emotion
+validation): `fact_message`/`fact_message_sample`'s `emotion_label` and
+`emotion_display` columns (added schema v18, never previously documented
+here) now go through a real validation gate instead of shipping unvalidated.
+`nlp.emotion_messages` gained a margin+marker re-ranking on top of the raw
+`pysentimiento/robertuito-emotion-analysis` argmax (`nlp._resolve_emotion`):
+"others" only yields to a runner-up class when the margin is below
+`nlp.EMOTION_OTHERS_MARGIN` AND that runner-up is in
+`nlp.EMOTION_TRUSTED_FALLBACKS` (`sadness`/`fear`/`anger` — an audit of every
+"others" message's runner-up on the real corpus found `joy` and `surprise`
+runner-ups are noise, not signal); `nlp.EMOTION_UNTRUSTED_RAW` additionally
+drops `surprise`/`disgust` from the model's own raw argmax entirely (0/8 of
+the model's confident `surprise` calls were correct against the gold set;
+`disgust` never fired once across ~9k messages). `emotion_label`'s `"others"`
+value is renamed to `"neutral"` at the export boundary (`build_fact_message`)
+so it shares `sentiment_label`'s vocabulary instead of mixing in the model's
+internal class name.
+
+Validated against a 429-message blind gold set, single annotator pass (no
+reviewer round yet, unlike tone's two-pass protocol) — `validation/
+emotion_sample_429.csv` + `validation/emotion_labels_agent.csv`. Measured
+kappa = 0.572, gated on `validation.EMOTION_KAPPA_GATE = 0.5` (not tone's
+`KAPPA_GATE = 0.7` — that gate is measured on a *binary* collapse
+(negative/not_negative), which structurally has a higher achievable kappa
+than genuine 7-class multiclass agreement; 0.5 is the Landis & Koch (1977)
+"fair"/"moderate" boundary, an independently-motivated cutoff rather than one
+reverse-fit to this measurement). `meta_run["emotion_kappa"]` /
+`["emotion_gate_passed"]` / `["emotion_validated"]` carry the live result each
+run. New table `nlp_emotion_confusion` (message_id, human_label, model_label
+— one row per gold-labelled message, all 7 raw classes, `"others"` renamed to
+`"neutral"` same as `fact_message`) mirrors `nlp_tone_confusion`'s per-message
+shape, relating to `fact_message`/`dim_user` the same way.
+
+Recall is still uneven by class (measured on the same gold set): `fear` 26%,
+`sadness` 48%, `anger` 58%, `joy` 90%, `others`/`neutral` 92% — implicit
+emotional content with no explicit emotion word (a health crisis or hardship
+stated as a flat fact, not "estoy triste") is largely invisible to this
+model; two alternative approaches were tested and rejected: zero-shot NLI
+classification against a custom Spanish taxonomy (worse recall on exactly
+these cases, see `docs/` design notes) and a second fine-tuned model
+(`daveni/twitter-xlm-roberta-emotion-es`, trained on a different Spanish
+corpus) both standalone (kappa 0.560) and as an ensemble fallback (kappa
+0.568) — neither beat the current approach.
+
 **`schema_version = "16"`** (bumped from `"15"` for full dashboard filter
 wiring, 2026-08-12: every plot needs to respond to the seven global filters
 — Date, Nationality, City, Category, Gender, Destination, Presence of
@@ -298,6 +342,8 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `city_canon` | |
 | `seq`, `n_msgs_user` | position in / length of the user's message sequence |
 | `sentiment_label` | **never null** — the pipeline always runs the sentiment model |
+| `emotion_label` | **New in schema v18, validated in v19.** 5-class (`neutral`/`joy`/`sadness`/`anger`/`fear` — the model's `others` is renamed to `neutral` here; `surprise`/`disgust` are excluded entirely, see below), never null. Kappa=0.572 against a 429-message blind gold set, gated on `validation.EMOTION_KAPPA_GATE=0.5` (see `meta_run["emotion_kappa"]`/`["emotion_gate_passed"]`). Recall is uneven by class — `fear` 26%, `sadness` 48%, `anger` 58%, `joy` 90%, `neutral` 92% — implicit emotional content with no explicit emotion word is largely invisible to this model; treat rare-class percentages as directional, not exact |
+| `emotion_display` | Splits the `neutral` bucket by the row's own `sentiment_label` (`preocupación`/`satisfacción`/`neutral`) so a plain-Q&A majority isn't one dead category — see `export.OTHERS_SENTIMENT_DISPLAY`. Any non-neutral `emotion_label` passes through unchanged |
 | `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The message-owning user's subcategory (see `dim_user[subcluster_id]` / `dim_subcluster`); **never null**, same `-10` / composite-id caveats as `dim_user`. `subcluster_name` is duplicated here for the same sort-by-column reason described on `dim_user` |
 
@@ -854,6 +900,15 @@ reflects any filtered subset of the 378-message gold set too. Cells can get
 small under a demographic filter — accepted by owner ruling 2026-08-12, given
 the corpus is pseudonymised with no other identifiers. Feeds NB3 §4 confusion
 matrix.
+
+### `nlp_emotion_confusion` — 1 row per gold-labelled message (new in schema v19)
+Cols: `message_id`, `human_label`, `model_label`. Same per-message shape as
+`nlp_tone_confusion` (relates to `fact_message`/`dim_user` the same way), but
+no binary collapse — all 5 classes emotion actually uses (`neutral` renamed
+from the model's `others`, same as `fact_message[emotion_label]`;
+`surprise`/`disgust` excluded, see that column's entry). 429 rows, one blind
+annotation pass (no reviewer round yet, unlike tone's two-pass protocol).
+Feeds an emotion confusion-matrix visual mirroring NB3 §4's tone one.
 
 ### `nlp_voices` — 1 row per cluster exemplar (6 rows; `user_id` added in schema v16)
 Cols: `cluster_id`, `name`, `matched_term`, `message`, `user_id`. One

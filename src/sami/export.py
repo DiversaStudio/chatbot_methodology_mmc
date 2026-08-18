@@ -217,20 +217,22 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
 _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
                   "seq", "n_msgs_user"]
 
-#: `emotion_label`'s "others" bucket (~93% of messages -- most of this
-#: corpus is plain informational Q&A) collapses `sentiment_label` away.
-#: Splitting it by the sentiment already sitting on the same row turns one
-#: dead bucket into three real ones, without inventing any new signal --
-#: named from what's actually in each split (word-cloud check against the
-#: real message text, 2026-08-14): negative reads as passport/permit/
-#: health-coverage/immigration-paperwork anxiety, positive reads as
-#: appreciation for support received. Neutral stays "neutral" -- no
-#: emotional valence to name.
+#: `emotion_label`'s "others" bucket (most of this corpus is plain
+#: informational Q&A, even after the margin+marker rescue in
+#: nlp._resolve_emotion) collapses `sentiment_label` away. Splitting it by the
+#: sentiment already sitting on the same row turns one dead bucket into three
+#: real ones, without inventing any new signal -- named from what's actually
+#: in each split (word-cloud check against the real message text, 2026-08-14):
+#: negative reads as passport/permit/health-coverage/immigration-paperwork
+#: anxiety, positive reads as appreciation for support received. Neutral stays
+#: "neutral" -- no emotional valence to name.
 OTHERS_SENTIMENT_DISPLAY = {"negative": "preocupación", "positive": "satisfacción",
                             "neutral": "neutral"}
 
 
 def _emotion_display(emotion_label, sentiment_label) -> str:
+    """Checked against the model's raw "others" -- called before
+    build_fact_message renames that value to "neutral" for storage."""
     if pd.isna(emotion_label):
         return pd.NA
     if emotion_label != "others":
@@ -247,12 +249,19 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
     f = f[[c for c in _FACT_MSG_COLS if c in f.columns]].copy()
     f["sentiment_label"] = (sentiment.loc[messages.index, "label"].values
                             if sentiment is not None else pd.NA)
-    # Unvalidated (no gold set) -- see meta_run["emotion_validated"]. A richer
-    # 7-class axis alongside the gated 3-class tone above, not a replacement.
+    # 7-class axis alongside the 3-class tone above, not a replacement. Kappa
+    # validated 2026-08-17 against a 429-message blind gold set (see
+    # meta_run["emotion_kappa"]).
     f["emotion_label"] = (emotion.loc[messages.index, "label"].values
                           if emotion is not None else pd.NA)
     f["emotion_display"] = [_emotion_display(e, s) for e, s in
                             zip(f["emotion_label"], f["sentiment_label"])]
+    # "others" is the model's internal class name (nlp.EMOTION_LABELS); renamed
+    # to "neutral" here, at the export boundary, so the stored value matches
+    # sentiment_label's own vocabulary (negative/neutral/positive) instead of
+    # mixing two different words for "no emotion". _emotion_display above
+    # already ran its "others" check before this rename.
+    f["emotion_label"] = f["emotion_label"].replace({"others": "neutral"})
     f["cluster_id"] = f["user_id"].map(lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
     f["subcluster_id"] = (f["user_id"].map(sub_lab.to_dict())
                           .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
@@ -1143,6 +1152,27 @@ def build_nlp_tone_confusion(report: dict, message_ids=None, human=None,
     })
 
 
+def build_nlp_emotion_confusion(message_ids, human, model) -> pd.DataFrame:
+    """The emotion-gate confusion matrix, one row per gold-labelled message.
+
+    Same (message_id, human_label, model_label) shape as
+    `build_nlp_tone_confusion`'s per-message form, so it relates to
+    `fact_message`/`dim_user` the same way -- but no binary collapse: emotion
+    has no single axis percentages get read off of, so all 7 raw classes are
+    kept. "others" is renamed to "neutral" in both columns, matching
+    `fact_message[emotion_label]`'s own export-time rename (see
+    build_fact_message) so a value in this table always means the same thing
+    as the matching value there.
+    """
+    h = pd.Series(human).astype(str).reset_index(drop=True).replace({"others": "neutral"})
+    m = pd.Series(model).astype(str).reset_index(drop=True).replace({"others": "neutral"})
+    return pd.DataFrame({
+        "message_id": list(message_ids),
+        "human_label": h.values,
+        "model_label": m.values,
+    })
+
+
 def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
                      terms_by_cluster: "dict | None" = None) -> pd.DataFrame:
     """One verbatim message per cluster, picked by a term distinctive to it.
@@ -1380,7 +1410,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "18") -> pd.DataFrame:
+                   schema_version: str = "19") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
