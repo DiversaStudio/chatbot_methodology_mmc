@@ -225,9 +225,11 @@ _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
 #: in each split (word-cloud check against the real message text, 2026-08-14):
 #: negative reads as passport/permit/health-coverage/immigration-paperwork
 #: anxiety, positive reads as appreciation for support received. Neutral stays
-#: "neutral" -- no emotional valence to name.
-OTHERS_SENTIMENT_DISPLAY = {"negative": "preocupación", "positive": "satisfacción",
-                            "neutral": "neutral"}
+#: "Neutral" -- no emotional valence to name. English + Title Case throughout
+#: -- this column is the dashboard-facing one (see emotion_label for the raw,
+#: lowercase, English model classes used by validation/kappa).
+OTHERS_SENTIMENT_DISPLAY = {"negative": "Concern", "positive": "Satisfaction",
+                            "neutral": "Neutral"}
 
 
 def _emotion_display(emotion_label, sentiment_label) -> str:
@@ -236,8 +238,8 @@ def _emotion_display(emotion_label, sentiment_label) -> str:
     if pd.isna(emotion_label):
         return pd.NA
     if emotion_label != "others":
-        return emotion_label
-    return OTHERS_SENTIMENT_DISPLAY.get(sentiment_label, "neutral")
+        return emotion_label.capitalize()
+    return OTHERS_SENTIMENT_DISPLAY.get(sentiment_label, "Neutral")
 
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
@@ -414,8 +416,8 @@ def _is_low_content_message(text: str) -> bool:
 
 FACT_CONVERSATION_FULL_COLUMNS = [
     "user_id", "cluster_id", "subcluster_id", "subcluster_name",
-    "dominant_sentiment", "age_num", "city_canon", "n_messages",
-    "ts_first", "ts_last", "conversation_text", "redaction_applied",
+    "dominant_sentiment", "dominant_emotion", "age_num", "city_canon",
+    "n_messages", "ts_first", "ts_last", "conversation_text", "redaction_applied",
 ]
 CONVERSATION_SEPARATOR = "\n\n"
 
@@ -444,10 +446,12 @@ def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFr
     are joined into one block of text; `dominant_sentiment` (the most
     frequent label across the user's surviving messages) is carried instead,
     explicitly named as an aggregate rather than presented as a per-message
-    truth. `cluster_id`/`subcluster_id`/`subcluster_name`/`city_canon`/
-    `age_num` are already constant per user upstream (clustering and the
-    profile fields are assigned per user, not per message), so the first
-    surviving message's values carry over unchanged.
+    truth. `dominant_emotion` is the same aggregate over `emotion_display`
+    (already English/Title Case), same reasoning, same tie-break. `cluster_id`/
+    `subcluster_id`/`subcluster_name`/`city_canon`/`age_num` are already
+    constant per user upstream (clustering and the profile fields are
+    assigned per user, not per message), so the first surviving message's
+    values carry over unchanged.
     """
     src = messages.copy()
     src["message_id"] = [message_key(u, s, m) for u, s, m
@@ -479,6 +483,8 @@ def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFr
             "dominant_sentiment": _dominant_sentiment(
                 TONE_DISPLAY.get(m["sentiment_label"], m["sentiment_label"])
                 for m in msgs),
+            "dominant_emotion": _dominant_sentiment(
+                m["emotion_display"] for m in msgs),
             "age_num": first["age_num"],
             "city_canon": first["city_canon"],
             "n_messages": len(msgs),
@@ -1410,7 +1416,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "19") -> pd.DataFrame:
+                   schema_version: str = "20") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION
