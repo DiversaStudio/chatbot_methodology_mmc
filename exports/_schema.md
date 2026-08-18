@@ -7,6 +7,20 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
+**`schema_version = "20"`** (bumped from `"19"`, 2026-08-18):
+`fact_conversation_full` gains `dominant_emotion` — the conversation-grain
+counterpart to `dominant_sentiment`, same construction (most frequent label
+across the user's surviving messages, ties broken alphabetically), built
+from `emotion_display` instead of `sentiment_label`. Requested because
+emotion is meant to be read at conversation grain like sentiment already is,
+not per message. `emotion_display` was also changed at the same time from
+Spanish/lowercase (`preocupación`/`satisfacción`/`neutral`) to English/Title
+Case (`Concern`/`Satisfaction`/`Neutral`, plus `Joy`/`Sadness`/`Fear`/`Anger`
+straight from the model) — `emotion_label` is untouched, staying
+raw/lowercase since `meta_run["emotion_kappa"]` and `nlp_emotion_confusion`
+validate against it and its own vocabulary needs to keep matching
+`sentiment_label`'s.
+
 **`schema_version = "19"`** (bumped from `"18"`, 2026-08-17, for emotion
 validation): `fact_message`/`fact_message_sample`'s `emotion_label` and
 `emotion_display` columns (added schema v18, never previously documented
@@ -364,6 +378,7 @@ shipped one row per message.
 |---|---|
 | `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `age_num` | see `fact_message` — all already constant per user upstream, so they carry over from the user's first surviving message unchanged |
 | `dominant_sentiment` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the most frequent `sentiment_label` across the user's surviving messages, ties broken alphabetically for a deterministic result. `sentiment_label` is per-message and has no single value once messages are joined into one block of text; this is an explicit aggregate, not a per-message truth |
+| `dominant_emotion` (schema v20) | Same construction as `dominant_sentiment`, over `fact_message[emotion_display]` instead — already English/Title Case (`Joy`/`Sadness`/`Fear`/`Anger`/`Concern`/`Satisfaction`/`Neutral`), no further translation needed here |
 | `n_messages` | how many of the user's messages survived redaction and the low-content filter and are represented in `conversation_text` |
 | `ts_first`, `ts_last` | timestamp of the user's first and last surviving message |
 | `conversation_text` | the user's surviving messages, each run through `redact.scrub`, joined in `seq` order (not `ts` — messages sent in the same second would otherwise join in an arbitrary order) with `"\n\n"` as the separator |
