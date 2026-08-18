@@ -1,8 +1,10 @@
 cluster_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_cluster,name_is_provisional
-5,Urgent humanitarian needs,"Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent.","terminal, alimentos, ipiales, danés, venezuela, urgente",345,2044,34.0,0,#009ba4,True,False
-2,Nationality and family papers,"Colombian nationality for a child born here: birth registration, apostilles, parents' documents.","colombia, colombiana, pasaporte, colombiano, venezuela, colombianos",334,1381,32.0,1,#671e42,True,False
-3,Stuck mid-procedure,"Already inside the RUMV/PPT pipeline and blocked: biometrics, appointments, guardianship for minors, collection.","tutor, migración, hijos, trámite, conducto, biométrico",251,887,31.0,2,#62c8ce,True,False
-1,"Permits, visas and travel","Regularising as an adult — PPT, visitor permits, salvoconductos, cédula de extranjería, extensions and onward travel.","permiso, salvoconducto, pasaporte, conducto, visa, visitante",203,433,34.0,3,#a3557a,True,False
-4,Settling in,"Housing, education, transport and regularisation — building a life here rather than meeting an emergency.","humanitarias, ipiales, humanitaria, salud, regulación, danes",112,184,32.5,4,#000031,True,False
-0,Building a livelihood,"Work, training and enterprise support — planning ahead, not in crisis.","emprendimiento, capital, emprendimientos, empleos, beneficios, negocio",101,244,38.0,5,#c78fa4,True,False
--1,No conversation text,,,,,,6,#b7b7b7,False,False
+2,Urgent humanitarian needs,"Food, shelter, disability and transport support — often at a bus terminal or border town, often stated as urgent.","hospital, ipiales, nuevo, terminal, registrarme, dinero",221,1752,36.0,0,#009ba4,True,False
+6,"Cluster 6 · humanitaria, alimentos, humanitarias",,"humanitaria, alimentos, humanitarias, terminal, bucaramanga, ayudas",196,631,33.0,1,#671e42,True,True
+1,Nationality and family papers,"Colombian nationality for a child born here: birth registration, apostilles, parents' documents.","colombiana, pasaporte, años, colombianos, colombiano, ella",193,922,32.0,2,#62c8ce,True,False
+5,"Cluster 5 · colombiana, colombiano, pasaporte",,"colombiana, colombiano, pasaporte, colombianos, venezuela, años",185,565,33.0,3,#a3557a,True,True
+4,Stuck mid-procedure,"Already inside the RUMV/PPT pipeline and blocked: biometrics, appointments, guardianship for minors, collection.","años, biometría, trámite, duplicado, rumv, traslado",178,527,30.0,4,#000031,True,False
+3,"Permits, visas and travel","Regularising as an adult — PPT, visitor permits, salvoconductos, cédula de extranjería, extensions and onward travel.","salvoconducto, conducto, pasaporte, salvo, permiso, estudio",171,388,34.0,5,#c78fa4,True,False
+0,Settling in,"Housing, education, transport and regularisation — building a life here rather than meeting an emergency.","humanitaria, casa, humanitarias, ipiales, documentos, laboral",119,195,32.5,6,#a6dfe3,True,False
+7,Building a livelihood,"Work, training and enterprise support — planning ahead, not in crisis.","emprendimiento, capital, negocio, emprendimientos, emprendedores, empleabilidad",83,193,38.0,7,#eef6f5,True,False
+-1,No conversation text,,,,,,8,#b7b7b7,False,False

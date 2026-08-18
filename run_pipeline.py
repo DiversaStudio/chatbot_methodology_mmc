@@ -134,6 +134,19 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
         # that silently compared unrelated messages -- see validation.align_gold.
         aligned_model = validation.align_gold(gold_ids, SD.messages, sent)
         report = validation.validation_report(human, aligned_model)
+
+        # Emotion's own gold set: a single blind pass (no reviewer round yet),
+        # 429 messages, labelled by an independent agent with no access to the
+        # model's predictions (see validation/emotion_labels_agent.csv and
+        # emotion_sample_429.csv). Gated on EMOTION_KAPPA_GATE, not KAPPA_GATE
+        # -- see that constant's docstring for why the two tasks (binary tone
+        # collapse vs genuine 7-class emotion) aren't comparable.
+        emotion_gold = pd.read_csv("validation/emotion_labels_agent.csv", encoding="utf-8")
+        aligned_emotion_model = validation.align_gold(
+            emotion_gold["message_id"], SD.messages, emo)
+        emotion_report = validation.emotion_validation_report(
+            emotion_gold["label_agent"], aligned_emotion_model)
+
         stab = clusters.stability_ari(X, K, n_boot=50, random_state=RANDOM_STATE)
         dev = nlp.device_report()
 
@@ -150,6 +163,9 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
         "nlp_emergent_themes": export.build_nlp_emergent_themes(SD.messages),
         "nlp_tone_confusion": export.build_nlp_tone_confusion(
             report, message_ids=gold_ids, human=human, model=aligned_model),
+        "nlp_emotion_confusion": export.build_nlp_emotion_confusion(
+            message_ids=emotion_gold["message_id"], human=emotion_gold["label_agent"],
+            model=aligned_emotion_model),
         "nlp_voices": export.build_nlp_voices(
             msgs_lab, resolved,
             terms_by_cluster=dict(zip(dim_cluster["cluster_id"],
@@ -159,10 +175,9 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
     nlp_meta = {
         "embed_model": dev["embed_model"], "sentiment_model": dev["sentiment_model"],
         "emotion_model": dev["emotion_model"],
-        # No gold set yet -- unlike tone_kappa/tone_gate_passed above, this is
-        # not withheld pending a kappa gate, just flagged as unvalidated so a
-        # reader knows the difference. See nlp.EMOTION_MODEL docstring.
-        "emotion_validated": False,
+        "emotion_kappa": round(emotion_report["kappa"], 3),
+        "emotion_gate_passed": emotion_report["gate_passed"],
+        "emotion_validated": emotion_report["gate_passed"],
         "chosen_k": K, "stability_ari": round(stab["mean_ari"], 3),
         "tone_kappa": round(report["kappa"], 3),
         "tone_gate_passed": report["gate_passed"], "sentiment_quotable": report["gate_passed"],

@@ -29,6 +29,76 @@ EMOTION_REVISION = "bcd6835f4d1ab1a061bd7437c9d762623c8437ad"
 SENTIMENT_LABELS = ("negative", "neutral", "positive")
 EMOTION_LABELS = ("others", "joy", "sadness", "anger", "surprise", "disgust", "fear")
 
+# RoBERTuito was trained on Twitter, where an absence of strong emotion is
+# rare -- so on short administrative/informational text like this corpus's,
+# "others" wins argmax even when a real emotion is a close second. Below this
+# margin over the runner-up, fall back to the runner-up instead of taking
+# "others" at face value. Unvalidated heuristic (no gold set), same posture as
+# EMOTION_MODEL itself -- see emotion_messages().
+EMOTION_OTHERS_MARGIN = 0.15
+
+# Only these runner-ups are trusted as the fallback target. A 2026-08-17 audit
+# of every "others" message's runner-up on the real corpus (~4.3k dashboard-
+# window messages) found "sadness"/"fear"/"anger" near-misses read as real on
+# manual review (e.g. "no me alcanza para la comida" -> sadness), but "joy"
+# and "surprise" did not: "joy" fires on short imperative asks ("Necesito
+# asilo", "necesito alimentos") that aren't happy, just direct requests, and
+# "surprise" fires on almost any "¿Cómo...?" question (50% of all "others"
+# messages had it as runner-up) -- neither carries real signal here, so
+# promoting them would trade a boring-but-correct "others" for a wrong label.
+EMOTION_TRUSTED_FALLBACKS = frozenset({"sadness", "fear", "anger"})
+
+# "surprise"/"disgust" are excluded even as the model's own RAW argmax, not
+# just as fallback targets: a 185-message blind gold set labelled by an
+# independent agent (validation/emotion_labels_agent.csv, 2026-08-17,
+# kappa=0.578 against the trusted-fallback model) found 0/8 of the model's
+# own confident "surprise" calls were correct -- "Cómo hago para sacar el
+# pasaporte" reads as surprise to this Twitter-trained model, not a real
+# emotion. "disgust" never fired once across ~9k real messages in two
+# separate runs. Neither carries any reliable signal in this domain at any
+# confidence, so both are dropped from the candidate set entirely before
+# ranking -- see _resolve_emotion.
+EMOTION_UNTRUSTED_RAW = frozenset({"surprise", "disgust"})
+
+# Last-resort override for messages the margin rule above still leaves as
+# "others": domain-specific emotional cues this Twitter-trained model doesn't
+# reliably associate with the right class on short WhatsApp text. Applied only
+# when the model's own (margin-adjusted) call is still "others" -- never
+# overrides a confident non-"others" prediction. Case-insensitive substring
+# match against normalized text, first hit wins. Curated from the corpus's own
+# messages (2026-08-17); extend as new patterns turn up in nlp_voices-style
+# spot checks, same maintenance posture as taxonomy.CLUSTER_NAMES.
+#
+# Tried dropping "no me han ayudado"/"no me ayudan"/"no me atienden" on
+# 2026-08-17 after the blind gold set showed some institutional-neglect
+# messages using these phrases read as "sadness" to an independent labeller,
+# not "anger". Measured, not assumed: removing them cost real anger true
+# positives (recall 92%->75%) without improving precision (44%->39%) --
+# kappa against the gold set went 0.610->0.590. Reverted; the phrases stay.
+#
+# Round 2 (250-message "others"-only blind batch, 2026-08-17) found five
+# recurring implicit patterns the base model structurally can't see because
+# there's no emotion word to weight -- serious-diagnosis mentions, bereavement,
+# displacement, explicit danger, psychosocial-support requests (see
+# emotion_gold/others_deepdive_notes.md). Added the low-ambiguity ones below;
+# skipped the institutional-stonewalling pattern (Pattern 3) since that's the
+# same shape as the "no me han ayudado" family already measured as
+# anger/sadness-ambiguous, not a safe new marker.
+EMOTION_MARKERS: tuple[tuple[str, str], ...] = (
+    ("estafa", "fear"), ("temo", "fear"), ("nervios", "fear"),  # nervioso/-a
+    ("corre peligro", "fear"), ("corre en peligro", "fear"),
+    ("maltrata", "anger"), ("maltrato", "anger"), ("chantaje", "anger"),
+    ("no me han ayudado", "anger"), ("no me ayudan", "anger"),
+    ("no me atienden", "anger"),
+    ("deprimid", "sadness"),  # deprimida/deprimido
+    ("muy dificil", "sadness"), ("muy difícil", "sadness"),
+    ("cáncer", "sadness"), ("cancer", "sadness"),
+    ("fallecid", "sadness"),  # fallecido/fallecida
+    ("desplazad", "sadness"),  # desplazado/desplazada
+    ("apoyo psicosocial", "sadness"), ("atención psicosocial", "sadness"),
+    ("dialisis", "sadness"), ("diálisis", "sadness"),
+)
+
 _WS = re.compile(r"\s+")
 
 
@@ -150,12 +220,41 @@ def sentiment_messages(messages: pd.DataFrame, batch_size: int = 64) -> pd.DataF
     return pd.DataFrame({"label": labels, "score": scores}, index=messages.index)
 
 
+def _resolve_emotion(probs: np.ndarray, id2label: dict, text: str) -> tuple[str, float]:
+    """One row's emotion label + score: margin rule, then marker override.
+
+    `probs` is the model's softmax over EMOTION_LABELS. See EMOTION_OTHERS_MARGIN
+    and EMOTION_MARKERS above for why either step can move the label off a bare
+    argmax "others".
+    """
+    order = np.argsort(probs)[::-1]
+    ranked = [(int(i), id2label[int(i)]) for i in order
+             if id2label[int(i)] not in EMOTION_UNTRUSTED_RAW]
+    idx, label = ranked[0]
+    if label == "others":
+        second_i, second_label = ranked[1]
+        if (second_label in EMOTION_TRUSTED_FALLBACKS
+                and (probs[idx] - probs[second_i]) < EMOTION_OTHERS_MARGIN):
+            idx, label = second_i, second_label
+
+    if label == "others":
+        text_low = text.lower()
+        for marker, marker_label in EMOTION_MARKERS:
+            if marker in text_low:
+                return marker_label, float(probs[idx])
+
+    return label, float(probs[idx])
+
+
 def emotion_messages(messages: pd.DataFrame, batch_size: int = 64) -> pd.DataFrame:
     """Per-message emotion, index-aligned to the message spine.
 
     Same shape and empty-message handling as `sentiment_messages`, but a 7-way
     emotion label (EMOTION_LABELS) instead of 3-way tone. Empty messages get
-    label 'others' (that model's neutral-equivalent bucket).
+    label 'others' (that model's neutral-equivalent bucket). The raw model
+    argmax is adjusted by `_resolve_emotion` (others-margin rule, then a
+    marker-list override) before being written -- see EMOTION_OTHERS_MARGIN /
+    EMOTION_MARKERS above.
     """
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -186,8 +285,7 @@ def emotion_messages(messages: pd.DataFrame, batch_size: int = 64) -> pd.DataFra
             enc = {k: v.to(device) for k, v in enc.items()}
             probs = torch.softmax(model(**enc).logits, dim=-1).cpu().numpy()
             for j, i in enumerate(idx):
-                labels[i] = id2label[int(probs[j].argmax())]
-                scores[i] = float(probs[j].max())
+                labels[i], scores[i] = _resolve_emotion(probs[j], id2label, texts[i])
 
     return pd.DataFrame({"label": labels, "score": scores}, index=messages.index)
 
