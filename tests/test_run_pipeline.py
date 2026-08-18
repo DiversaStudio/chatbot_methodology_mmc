@@ -150,19 +150,23 @@ def _build_nlp_tables_fixture():
     responses = pd.DataFrame(resp_rows)
 
     from sami import export as export_mod
-    analyst_rows, reviewer_rows = [], []
+    analyst_rows, reviewer_rows, emotion_agent_rows = [], [], []
     for u in user_ids[:10]:
         m = messages[messages["user_id"] == u].iloc[0]
         mid = export_mod.message_key(u, m["seq"], m["message"])
         analyst_rows.append({"message_id": mid, "label_analyst": "neutral"})
         reviewer_rows.append({"message_id": mid, "label_reviewer": "neutral"})
+        # "others" matches fake_emotion's fixed output below, same spirit as
+        # the tone fixture using "neutral" to match fake_sentiment's.
+        emotion_agent_rows.append({"message_id": mid, "label_agent": "others"})
     analyst = pd.DataFrame(analyst_rows)
     reviewer = pd.DataFrame(reviewer_rows)
+    emotion_agent = pd.DataFrame(emotion_agent_rows)
 
     from sami.facade import SamiData
     SD = SamiData(responses=responses, messages=messages, meal=pd.DataFrame(),
                   reconciliation=pd.DataFrame(), run_meta={})
-    return SD, analyst, reviewer, X, user_ids
+    return SD, analyst, reviewer, emotion_agent, X, user_ids
 
 
 def _run_nlp_tables_with_fixture(monkeypatch):
@@ -172,7 +176,7 @@ def _run_nlp_tables_with_fixture(monkeypatch):
     import run_pipeline
     from sami import nlp, clusters, subclusters, progress
 
-    SD, analyst, reviewer, X, user_ids = _build_nlp_tables_fixture()
+    SD, analyst, reviewer, emotion_agent, X, user_ids = _build_nlp_tables_fixture()
 
     def fake_embed(docs):
         assert len(docs) == len(user_ids)
@@ -194,6 +198,8 @@ def _run_nlp_tables_with_fixture(monkeypatch):
         # ever read, now that _nlp_tables checks for a reviewer pass too.
         if "tone_labels_reviewer" in str(path):
             return reviewer
+        if "emotion_labels_agent" in str(path):
+            return emotion_agent
         assert "tone_labels_analyst" in str(path)
         return analyst
 

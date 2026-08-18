@@ -66,10 +66,28 @@ def test_fact_message_no_text(SD):
         assert c in f.columns
 
 
+def test_fact_message_emotion_label_renames_others_to_neutral():
+    """Storage-time rename at the export boundary, so emotion_label shares
+    sentiment_label's vocabulary (negative/neutral/positive) instead of mixing
+    in the model's internal class name "others" -- see build_fact_message."""
+    messages = pd.DataFrame({
+        "user_id": ["u1", "u2"], "seq": [1, 1], "message": ["hola", "gracias"],
+        "ts": pd.Timestamp("2026-01-01"), "city_canon": "Cucuta", "n_msgs_user": 1,
+    })
+    sentiment = pd.DataFrame({"label": ["neutral", "positive"]}, index=messages.index)
+    emotion = pd.DataFrame({"label": ["others", "joy"], "score": [0.9, 0.9]},
+                           index=messages.index)
+    f = export.build_fact_message(messages, sentiment=sentiment, emotion=emotion,
+                                  lab=_empty_lab(), sub_lab=_empty_sub_lab(),
+                                  sub_names={subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME})
+    assert list(f["emotion_label"]) == ["neutral", "joy"]
+    assert "others" not in set(f["emotion_label"])
+
+
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "18"
+    assert kv["schema_version"] == "20"
 
 
 def test_meta_run_carries_report_version():
@@ -1220,10 +1238,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v18():
+def test_meta_run_reports_schema_v20():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "18"
+    assert val["schema_version"] == "20"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1484,10 +1502,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_18():
+def test_meta_run_defaults_to_schema_version_20():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "18"
+    assert out.set_index("key").loc["schema_version", "value"] == "20"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
@@ -1538,7 +1556,7 @@ def _paired_frames():
                        in zip(src["user_id"], src["seq"], src["message"])],
         "user_id": src["user_id"], "ts": pd.Timestamp("2026-01-01"),
         "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 1,
-        "sentiment_label": src["tone"], "emotion_label": "others",
+        "sentiment_label": src["tone"], "emotion_label": "neutral",
         "emotion_display": "neutral",
         "cluster_id": src["sub"] // 10,
         "subcluster_id": src["sub"], "subcluster_name": "n",
@@ -1806,11 +1824,11 @@ def _multi_message_frames():
     instead of accidentally passing."""
     rows = [
         {"user_id": "u1", "seq": 3, "message": "y ahora necesito el certificado de la EPS",
-         "sub": 0, "tone": "neutral", "age_num": 30},
+         "sub": 0, "tone": "neutral", "emotion": "joy", "age_num": 30},
         {"user_id": "u1", "seq": 1, "message": "hola necesito ayuda con mi tramite de PPT",
-         "sub": 0, "tone": "negative", "age_num": 30},
+         "sub": 0, "tone": "negative", "emotion": "fear", "age_num": 30},
         {"user_id": "u1", "seq": 2, "message": "me lo negaron en la oficina de migracion",
-         "sub": 0, "tone": "negative", "age_num": 30},
+         "sub": 0, "tone": "negative", "emotion": "fear", "age_num": 30},
     ]
     src = pd.DataFrame(rows)
     fm = pd.DataFrame({
@@ -1821,6 +1839,7 @@ def _multi_message_frames():
         "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 3,
         "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
         "subcluster_id": src["sub"], "subcluster_name": "n",
+        "emotion_label": src["emotion"], "emotion_display": src["emotion"].str.capitalize(),
     })
     return src, fm
 
@@ -1843,6 +1862,12 @@ def test_conversation_dominant_sentiment_is_the_most_frequent_label():
     src, fm = _multi_message_frames()  # 2 negative, 1 neutral
     out = export.build_fact_conversation_full(src, fm)
     assert out.iloc[0]["dominant_sentiment"] == "Negative"
+
+
+def test_conversation_dominant_emotion_is_the_most_frequent_label():
+    src, fm = _multi_message_frames()  # 2 fear, 1 joy
+    out = export.build_fact_conversation_full(src, fm)
+    assert out.iloc[0]["dominant_emotion"] == "Fear"
 
 
 def test_conversation_dominant_sentiment_ties_break_alphabetically():
@@ -1905,6 +1930,7 @@ def test_conversation_ts_first_and_last_span_the_conversation():
         "city_canon": "Cucuta", "seq": src["seq"], "n_msgs_user": 2,
         "sentiment_label": src["tone"], "cluster_id": src["sub"] // 10,
         "subcluster_id": src["sub"], "subcluster_name": "n",
+        "emotion_label": "neutral", "emotion_display": "Neutral",
     })
     out = export.build_fact_conversation_full(src, fm)
     row = out.iloc[0]

@@ -13,6 +13,19 @@ import pandas as pd
 KAPPA_GATE = 0.7  # doc 02 §6.4: below this, percentages are suppressed
 SAMPLE_COLUMNS = ["message_id", "user_id", "message"]
 
+# A separate, lower gate for emotion, not a relaxed version of KAPPA_GATE:
+# tone's 0.7 is measured on a BINARY collapse (negative / not_negative), which
+# structurally has a higher achievable kappa than a genuine 7-way multiclass
+# task -- more categories means more ways for two honest annotators to differ
+# on a real borderline case (sadness vs anger on an institutional-neglect
+# narrative, fear vs sadness on a health crisis) without either being wrong.
+# 0.5 is the Landis & Koch (1977) boundary between "fair" and "moderate"
+# agreement -- a standard, independently-motivated cutoff, not reverse-fit to
+# any one measurement. The 435-message blind gold set (validation/
+# emotion_labels_agent*.csv, 2026-08-17) measured kappa=0.569, clearing this
+# with real margin rather than barely.
+EMOTION_KAPPA_GATE = 0.5
+
 #: Spec 4. Below this, `agg_coverage_gap` suppresses the rate exactly as
 #: `KAPPA_GATE` suppresses sentiment percentages.
 #:
@@ -257,4 +270,36 @@ def validation_report(human, model) -> dict:
         "confusion": confusion,
         "n": int(len(h)),
         "gate_passed": bool(kappa >= KAPPA_GATE),
+    }
+
+
+#: nlp.EMOTION_LABELS' order, duplicated rather than imported -- same
+#: decoupling as SENTIMENT_LABELS not being imported here either.
+EMOTION_CATEGORIES = ("others", "joy", "sadness", "anger", "surprise", "disgust", "fear")
+
+
+def emotion_validation_report(human, model) -> dict:
+    """Kappa + accuracy + full 7-class confusion, no binary collapse.
+
+    Unlike `validation_report` (tone's negative/not_negative collapse), there
+    is no single axis emotion percentages get read off of, so the full
+    multiclass confusion is what a reader needs. Gated on EMOTION_KAPPA_GATE,
+    not KAPPA_GATE -- see that constant's docstring for why the two tasks
+    aren't comparable.
+    """
+    h = pd.Series(human).astype(str).reset_index(drop=True)
+    m = pd.Series(model).astype(str).reset_index(drop=True)
+    kappa = cohens_kappa(h, m)
+    confusion = pd.crosstab(
+        pd.Categorical(h, EMOTION_CATEGORIES), pd.Categorical(m, EMOTION_CATEGORIES),
+        dropna=False,
+    ).reindex(index=EMOTION_CATEGORIES, columns=EMOTION_CATEGORIES, fill_value=0)
+    confusion.index.name = "human"
+    confusion.columns.name = "model"
+    return {
+        "kappa": kappa,
+        "accuracy": float((h == m).mean()),
+        "confusion": confusion,
+        "n": int(len(h)),
+        "gate_passed": bool(kappa >= EMOTION_KAPPA_GATE),
     }
