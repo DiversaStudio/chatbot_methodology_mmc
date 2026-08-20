@@ -7,6 +7,22 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
+**`schema_version = "21"`** (bumped from `"20"`, 2026-08-20): `fact_message` /
+`fact_message_sample` gain `emotion_order`, and `fact_conversation_full` gains
+`dominant_emotion_order` — a numeric sort key duplicated onto every table that
+carries an emotion column, mapping the dashboard's requested reading order
+(least- to most-alarming): `Joy`=0, `Satisfaction`=1, `Neutral`=2, `Concern`=3,
+`Sadness`=4, `Fear`=5, `Anger`=6 (`export.EMOTION_DISPLAY_ORDER`). Wire a
+Power BI "Sort by column" from `emotion_display`/`dominant_emotion` to its
+`_order` sibling in the *same table* (the requirement, not a preference — see
+`dim_subcluster[display_order]`'s note above) to get this order on any
+Emotion visual instead of the default alphabetical one. `canon.NATIONALITY_CANON`
+also gained two entries this run, fixing real 2026-08-20 export gaps: bare
+`"Otro"`/`"Otra"` (the free-text option picked with nothing typed into it) now
+folds into `Desconocida` instead of surviving as its own literal bucket, and
+`"México mexicana"` (a two-word free-text answer) now folds to `Mexico` — no
+column change, so no dashboard rewiring needed for that half.
+
 **`schema_version = "20"`** (bumped from `"19"`, 2026-08-18):
 `fact_conversation_full` gains `dominant_emotion` — the conversation-grain
 counterpart to `dominant_sentiment`, same construction (most frequent label
@@ -358,6 +374,7 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `sentiment_label` | **never null** — the pipeline always runs the sentiment model |
 | `emotion_label` | **New in schema v18, validated in v19.** 5-class (`neutral`/`joy`/`sadness`/`anger`/`fear` — the model's `others` is renamed to `neutral` here; `surprise`/`disgust` are excluded entirely, see below), never null. Kappa=0.572 against a 429-message blind gold set, gated on `validation.EMOTION_KAPPA_GATE=0.5` (see `meta_run["emotion_kappa"]`/`["emotion_gate_passed"]`). Recall is uneven by class — `fear` 26%, `sadness` 48%, `anger` 58%, `joy` 90%, `neutral` 92% — implicit emotional content with no explicit emotion word is largely invisible to this model; treat rare-class percentages as directional, not exact |
 | `emotion_display` | Splits the `neutral` bucket by the row's own `sentiment_label` (`preocupación`/`satisfacción`/`neutral`) so a plain-Q&A majority isn't one dead category — see `export.OTHERS_SENTIMENT_DISPLAY`. Any non-neutral `emotion_label` passes through unchanged |
+| `emotion_order` (schema v21) | `export.EMOTION_DISPLAY_ORDER[emotion_display]` — the dashboard's requested reading order (`Joy`=0 … `Anger`=6), duplicated onto this table so a Power BI "Sort by column" on `emotion_display` has a same-table sort key to point at |
 | `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The message-owning user's subcategory (see `dim_user[subcluster_id]` / `dim_subcluster`); **never null**, same `-10` / composite-id caveats as `dim_user`. `subcluster_name` is duplicated here for the same sort-by-column reason described on `dim_user` |
 
@@ -379,6 +396,7 @@ shipped one row per message.
 | `user_id`, `cluster_id`, `subcluster_id`, `subcluster_name`, `city_canon`, `age_num` | see `fact_message` — all already constant per user upstream, so they carry over from the user's first surviving message unchanged |
 | `dominant_sentiment` | **Title Case** (`Negative`/`Neutral`/`Positive`) — the most frequent `sentiment_label` across the user's surviving messages, ties broken alphabetically for a deterministic result. `sentiment_label` is per-message and has no single value once messages are joined into one block of text; this is an explicit aggregate, not a per-message truth |
 | `dominant_emotion` (schema v20) | Same construction as `dominant_sentiment`, over `fact_message[emotion_display]` instead — already English/Title Case (`Joy`/`Sadness`/`Fear`/`Anger`/`Concern`/`Satisfaction`/`Neutral`), no further translation needed here |
+| `dominant_emotion_order` (schema v21) | `export.EMOTION_DISPLAY_ORDER[dominant_emotion]`, same sort-by-column role as `fact_message[emotion_order]` |
 | `n_messages` | how many of the user's messages survived redaction and the low-content filter and are represented in `conversation_text` |
 | `ts_first`, `ts_last` | timestamp of the user's first and last surviving message |
 | `conversation_text` | the user's surviving messages, each run through `redact.scrub`, joined in `seq` order (not `ts` — messages sent in the same second would otherwise join in an arbitrary order) with `"\n\n"` as the separator |

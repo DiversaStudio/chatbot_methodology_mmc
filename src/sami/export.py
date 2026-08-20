@@ -231,6 +231,18 @@ _FACT_MSG_COLS = ["message_id", "user_id", "ts", "city_canon",
 OTHERS_SENTIMENT_DISPLAY = {"negative": "Concern", "positive": "Satisfaction",
                             "neutral": "Neutral"}
 
+#: Dashboard-requested reading order for `emotion_display` / `dominant_emotion`
+#: charts, least- to most-alarming: Joy, Satisfaction, Neutral, Concern,
+#: Sadness, Fear, Anger. Not alphabetical and not the model's own class order
+#: -- Power BI's "Sort by column" needs this sitting in the same table as the
+#: value it orders (see `dim_subcluster[display_order]`'s note on the same
+#: requirement), so it is duplicated onto every table that carries an emotion
+#: column rather than kept as a lookup elsewhere.
+EMOTION_DISPLAY_ORDER: dict[str, int] = {
+    "Joy": 0, "Satisfaction": 1, "Neutral": 2, "Concern": 3,
+    "Sadness": 4, "Fear": 5, "Anger": 6,
+}
+
 
 def _emotion_display(emotion_label, sentiment_label) -> str:
     """Checked against the model's raw "others" -- called before
@@ -258,6 +270,7 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
                           if emotion is not None else pd.NA)
     f["emotion_display"] = [_emotion_display(e, s) for e, s in
                             zip(f["emotion_label"], f["sentiment_label"])]
+    f["emotion_order"] = f["emotion_display"].map(EMOTION_DISPLAY_ORDER)
     # "others" is the model's internal class name (nlp.EMOTION_LABELS); renamed
     # to "neutral" here, at the export boundary, so the stored value matches
     # sentiment_label's own vocabulary (negative/neutral/positive) instead of
@@ -277,8 +290,8 @@ SAMPLE_PER_BUCKET = 6
 SAMPLE_LEN_MIN, SAMPLE_LEN_MAX = 60, 190
 FACT_MESSAGE_SAMPLE_COLUMNS = [
     "message_id", "user_id", "cluster_id", "subcluster_id", "subcluster_name",
-    "sentiment_label", "emotion_label", "emotion_display", "city_canon", "ts",
-    "char_len", "text_redacted", "redaction_applied",
+    "sentiment_label", "emotion_label", "emotion_display", "emotion_order",
+    "city_canon", "ts", "char_len", "text_redacted", "redaction_applied",
 ]
 
 
@@ -334,6 +347,7 @@ def build_fact_message_sample(messages: pd.DataFrame, fact_message: pd.DataFrame
                 "sentiment_label": rec["sentiment_label"],
                 "emotion_label": rec["emotion_label"],
                 "emotion_display": rec["emotion_display"],
+                "emotion_order": rec["emotion_order"],
                 "city_canon": rec["city_canon"],
                 "ts": rec["ts"],
                 "char_len": rec["char_len"],
@@ -416,7 +430,8 @@ def _is_low_content_message(text: str) -> bool:
 
 FACT_CONVERSATION_FULL_COLUMNS = [
     "user_id", "cluster_id", "subcluster_id", "subcluster_name",
-    "dominant_sentiment", "dominant_emotion", "age_num", "city_canon",
+    "dominant_sentiment", "dominant_emotion", "dominant_emotion_order",
+    "age_num", "city_canon",
     "n_messages", "ts_first", "ts_last", "conversation_text", "redaction_applied",
 ]
 CONVERSATION_SEPARATOR = "\n\n"
@@ -447,11 +462,13 @@ def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFr
     frequent label across the user's surviving messages) is carried instead,
     explicitly named as an aggregate rather than presented as a per-message
     truth. `dominant_emotion` is the same aggregate over `emotion_display`
-    (already English/Title Case), same reasoning, same tie-break. `cluster_id`/
-    `subcluster_id`/`subcluster_name`/`city_canon`/`age_num` are already
-    constant per user upstream (clustering and the profile fields are
-    assigned per user, not per message), so the first surviving message's
-    values carry over unchanged.
+    (already English/Title Case), same reasoning, same tie-break.
+    `dominant_emotion_order` (schema v21) is `EMOTION_DISPLAY_ORDER[dominant_emotion]`,
+    duplicated onto this table for Power BI's "Sort by column" -- see that
+    constant. `cluster_id`/`subcluster_id`/`subcluster_name`/`city_canon`/
+    `age_num` are already constant per user upstream (clustering and the
+    profile fields are assigned per user, not per message), so the first
+    surviving message's values carry over unchanged.
     """
     src = messages.copy()
     src["message_id"] = [message_key(u, s, m) for u, s, m
@@ -475,6 +492,7 @@ def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFr
     rows = []
     for user_id, msgs in by_user.items():
         first = msgs[0]
+        dominant_emotion = _dominant_sentiment(m["emotion_display"] for m in msgs)
         rows.append({
             "user_id": user_id,
             "cluster_id": first["cluster_id"],
@@ -483,8 +501,8 @@ def build_fact_conversation_full(messages: pd.DataFrame, fact_message: pd.DataFr
             "dominant_sentiment": _dominant_sentiment(
                 TONE_DISPLAY.get(m["sentiment_label"], m["sentiment_label"])
                 for m in msgs),
-            "dominant_emotion": _dominant_sentiment(
-                m["emotion_display"] for m in msgs),
+            "dominant_emotion": dominant_emotion,
+            "dominant_emotion_order": EMOTION_DISPLAY_ORDER.get(dominant_emotion),
             "age_num": first["age_num"],
             "city_canon": first["city_canon"],
             "n_messages": len(msgs),
@@ -1416,7 +1434,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "20") -> pd.DataFrame:
+                   schema_version: str = "21") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

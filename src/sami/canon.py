@@ -91,6 +91,16 @@ NATIONALITY_CANON: dict[str, str] = {
     "republica dominicana": "Dominican Republic",
     "noruega": "Norway", "norway": "Norway",
     "bulgaria": "Bulgaria", "india": "India",
+    "mexico mexicana": "Mexico",
+    # Bare "Otro"/"Otra" with no *_other elaboration (clean_nationality only
+    # substitutes *_other when the raw field IS "Otra"/"Otro" -- see there):
+    # a respondent who picked the free-text option and then left it blank.
+    # Without these two entries the value survives is_plausible_nationality
+    # (single alpha word, no junk marker) and title-cases to its own literal
+    # "Otro" bucket, sitting apart from -- and duplicating the meaning of --
+    # the real Desconocida/Unknown catch-all every other non-answer lands in.
+    # Measured 2026-08-20 real export: 6 rows.
+    "otro": "Desconocida", "otra": "Desconocida",
 }
 
 UNKNOWN_NATIONALITY = "Desconocida"

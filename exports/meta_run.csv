@@ -6,8 +6,8 @@ meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
 ts_max,2026-08-13 14:03:48.987000
 salt_present,True
-generated_at,2026-08-18T20:02:07.174716+00:00
-schema_version,20
+generated_at,2026-08-20T12:55:12.464033+00:00
+schema_version,21
 report_version,2.0.0
 embed_model,intfloat/multilingual-e5-large
 sentiment_model,cardiffnlp/twitter-xlm-roberta-base-sentiment
@@ -15,19 +15,19 @@ emotion_model,pysentimiento/robertuito-emotion-analysis
 emotion_kappa,0.579
 emotion_gate_passed,True
 emotion_validated,True
-chosen_k,6
-stability_ari,0.841
+chosen_k,8
+stability_ari,0.705
 tone_kappa,0.466
 tone_gate_passed,False
 sentiment_quotable,False
 nlp_included,True
 k_soft_cap,7
-n_provisional_names,0
-n_subclusters,12
-n_parents_split,4
-n_provisional_subnames,0
+n_provisional_names,2
+n_subclusters,13
+n_parents_split,5
+n_provisional_subnames,4
 subcluster_min_users,30
-subcluster_stability_ari,0.764
+subcluster_stability_ari,0.805
 entity_coverage_pct,40.1
 entity_dict_entities,24
 entity_dict_patterns,65
