@@ -73,6 +73,25 @@ def test_nationality_canon_rejects_non_country_input():
         assert canon.nationality_canon(junk) == "Desconocida", junk
 
 
+def test_nationality_canon_folds_multiword_free_text_to_one_country():
+    """2026-08-20 export carried 'México mexicana' as its own literal bucket
+    -- the folded two-word key isn't in NATIONALITY_CANON's single-word
+    'mexico'/'mexicana' entries, so it fell through untranslated."""
+    assert canon.nationality_canon("México mexicana") == "Mexico"
+    assert canon.nationality_canon("Mexico Mexicana") == "Mexico"
+
+
+def test_nationality_canon_bare_otro_folds_to_unknown():
+    """2026-08-20 export carried 6 rows of literal 'Otro' (the free-text
+    option picked with nothing typed into it -- clean_nationality only
+    substitutes *_other when there IS elaboration). Without an explicit
+    mapping this passes is_plausible_nationality and title-cases to its own
+    'Otro' bucket, duplicating Desconocida instead of joining it -- see the
+    'Otra' (city) / 'Desconocida' (nationality) catch-all convention."""
+    assert canon.nationality_canon("Otro") == "Desconocida"
+    assert canon.nationality_canon("Otra") == "Desconocida"
+
+
 def test_is_plausible_nationality():
     assert canon.is_plausible_nationality("uruguay")
     assert canon.is_plausible_nationality("costa rica")
