@@ -81,6 +81,18 @@ def test_nationality_canon_folds_multiword_free_text_to_one_country():
     assert canon.nationality_canon("Mexico Mexicana") == "Mexico"
 
 
+def test_nationality_canon_masculine_demonym_forms():
+    """Every nationality had both grammatical-gender demonyms mapped (e.g.
+    venezolana/venezolano) except Mexico, Panama, Chile, Brazil, and Haiti,
+    which only had the feminine form -- the masculine fell through untranslated
+    and sat as its own bucket (e.g. "Mexicano") next to "Mexico"."""
+    assert canon.nationality_canon("mexicano") == "Mexico"
+    assert canon.nationality_canon("panameno") == "Panama"
+    assert canon.nationality_canon("chileno") == "Chile"
+    assert canon.nationality_canon("brasileno") == "Brazil"
+    assert canon.nationality_canon("haitiano") == "Haiti"
+
+
 def test_nationality_canon_bare_otro_folds_to_unknown():
     """2026-08-20 export carried 6 rows of literal 'Otro' (the free-text
     option picked with nothing typed into it -- clean_nationality only
