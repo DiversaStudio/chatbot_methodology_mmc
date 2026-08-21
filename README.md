@@ -10,14 +10,17 @@ SAMI analytics and dashboard project for the MMC WhatsApp chatbot. The repo cont
 
 ![Sami User Profile dashboard page](powerbi/2.png)
 
-#### Demand & Experience
+#### Conversational Analysis
 
-![Demand & Experience dashboard page](powerbi/3.png)
+![Conversational analysis dashboard page](powerbi/3.png)
 
-#### Needs & Gaps
+#### Demands And Needs
 
-![Needs & Gaps dashboard page](powerbi/4.png)
+![Demands and Needs dashboard page](powerbi/4.png)
 
+#### MEAL Analysis
+
+![Meal Analysis dashboard page](powerbi/5.png)
 
 ## Repository Layout
 
