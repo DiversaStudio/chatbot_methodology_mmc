@@ -7,6 +7,10 @@ agreement (NB3 design §5).
 """
 from __future__ import annotations
 
+import re
+import warnings
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -110,6 +114,121 @@ class GoldLabelError(Exception):
     """Gold tone labels cannot be aligned to the current message spine."""
 
 
+#: Committed files that carry the TEXT of gold-labelled messages, keyed on the
+#: message_id the labels were written against. `load_gold` reads them only
+#: when an id no longer resolves.
+GOLD_TEXT_FILES = ("tone_gold_labels.csv", "tone_review_input_378.csv",
+                   "emotion_sample_429.csv")
+
+#: Above this share of unrecoverable labels, `load_gold` raises: the corpus is
+#: no longer the one that was labelled, and a kappa on what survives would
+#: describe a different sample than the one the methodology reports.
+MAX_GOLD_DROP = 0.10
+
+#: `redact.NAME_PLACEHOLDER` and the phone/ID placeholder. The text files hold
+#: scrubbed text; each placeholder stands for some run of the raw spine text.
+_PLACEHOLDER = re.compile(r"\\\[(?:nombre|redacted)\\\]")
+
+
+def _norm(text) -> str:
+    return " ".join(str(text).split())
+
+
+def _spine_ids(messages: pd.DataFrame) -> pd.Series:
+    from . import export  # local import: export imports validation-adjacent modules
+    return pd.Series(
+        [export.message_key(u, s, m) for u, s, m in
+         zip(messages["user_id"], messages["seq"], messages["message"])],
+        index=messages.index, name="message_id")
+
+
+def rekey_gold(gold_ids, messages: pd.DataFrame, text_by_id: dict) -> pd.Series:
+    """Current-spine message_id for each gold id, or None if unrecoverable.
+
+    An id that still resolves is kept as is. One that does not (a re-export
+    renumbered its user's `seq`; see `export.message_key`) is matched on its
+    stored text instead: whitespace-normalised, redaction placeholders
+    matching any run of text, and accepted only when EXACTLY ONE spine message
+    fits. That is content matching, not positional alignment: the model label
+    being validated is a function of the text alone. Ambiguous text (it now
+    occurs twice) or vanished text maps to None, as do two gold rows landing on
+    the same message.
+    """
+    spine = _spine_ids(messages)
+    known = set(spine)
+    texts = pd.Series([_norm(m) for m in messages["message"]], index=spine.values)
+    counts = texts.value_counts()
+
+    out = []
+    for gid in pd.Series(list(gold_ids)).astype(str):
+        if gid in known:
+            out.append(gid)
+            continue
+        text = text_by_id.get(gid)
+        if text is None or pd.isna(text):
+            out.append(None)
+            continue
+        text = _norm(text)
+        pattern = _PLACEHOLDER.sub(".+?", re.escape(text))
+        if pattern == re.escape(text):
+            hits = texts.index[texts == text] if counts.get(text, 0) == 1 else []
+        else:
+            rx = re.compile(pattern, re.DOTALL)
+            hits = texts.index[[bool(rx.fullmatch(t)) for t in texts]]
+        out.append(hits[0] if len(hits) == 1 else None)
+
+    out = pd.Series(out, dtype=object)
+    clash = out.notna() & out.duplicated(keep=False)
+    return out.mask(clash, None)
+
+
+def load_gold(name: str, messages: pd.DataFrame, root="validation") -> pd.DataFrame:
+    """Read a gold label file with its message_ids resolved onto `messages`.
+
+    Every caller reads gold labels through this, never `pd.read_csv` directly:
+    the committed ids are content hashes of the corpus they were labelled on,
+    and a newer export can shift some of them (a backfilled message renumbers
+    that user's `seq`). Those rows are re-keyed by text in memory, never
+    written back, so a `git pull` of the labels stays clean on every machine.
+    Rows whose text cannot be placed are dropped with a warning; losing more
+    than MAX_GOLD_DROP raises. The returned frame has the file's columns, with
+    `message_id` holding current-spine ids ready for `align_gold`.
+    """
+    root = Path(root)
+    gold = pd.read_csv(root / name, encoding="utf-8")
+    ids = gold["message_id"].astype(str)
+    if ids.isin(set(_spine_ids(messages))).all():
+        return gold
+
+    text_by_id: dict = {}
+    for fname in GOLD_TEXT_FILES:
+        path = root / fname
+        if path.exists():
+            t = pd.read_csv(path, encoding="utf-8", usecols=["message_id", "message"])
+            for k, v in zip(t["message_id"].astype(str), t["message"]):
+                text_by_id.setdefault(k, v)
+
+    new = rekey_gold(ids, messages, text_by_id)
+    lost = new.isna().to_numpy()
+    n, n_lost = len(gold), int(lost.sum())
+    n_rekeyed = int((new.notna() & (new.to_numpy() != ids.to_numpy())).sum())
+    if n_lost > MAX_GOLD_DROP * n:
+        raise GoldLabelError(
+            f"{name}: {n_lost} of {n} gold labels match no message in the current "
+            f"spine, even by text (first: {ids[lost].iloc[0]!r}).\n"
+            f"  why:  more than {MAX_GOLD_DROP:.0%} lost means this export is not the "
+            "corpus that was labelled (or SAMI_SALT/the export file is wrong).\n"
+            "  fix:  check the salt and the file in datasets/responses/; if the "
+            "corpus really changed, draw and label a fresh gold sample.")
+    warnings.warn(
+        f"{name}: re-keyed {n_rekeyed} of {n} gold labels by message text and "
+        f"dropped {n_lost} of {n} whose text is missing or ambiguous in this "
+        f"export (dropped: {list(ids[lost])[:5]}). This export differs from the "
+        "one the labels were written on; validation runs on the remaining labels.",
+        UserWarning, stacklevel=2)
+    return gold.assign(message_id=new.to_numpy())[~lost].reset_index(drop=True)
+
+
 def align_gold(gold_ids, messages: pd.DataFrame, sentiment: pd.DataFrame) -> pd.Series:
     """Model labels for `gold_ids`, matched by message_id — never by position.
 
@@ -127,13 +246,8 @@ def align_gold(gold_ids, messages: pd.DataFrame, sentiment: pd.DataFrame) -> pd.
     measurement. A kappa is a claim about a model; it must not be computable
     from mismatched rows.
     """
-    from . import export  # local import: export imports validation-adjacent modules
-
     ids = pd.Series(list(gold_ids)).astype(str)
-    spine = pd.Series(
-        [export.message_key(u, s, m) for u, s, m in
-         zip(messages["user_id"], messages["seq"], messages["message"])],
-        index=messages.index, name="message_id")
+    spine = _spine_ids(messages)
 
     if spine.duplicated().any():
         raise GoldLabelError(
@@ -149,10 +263,10 @@ def align_gold(gold_ids, messages: pd.DataFrame, sentiment: pd.DataFrame) -> pd.
             "  why:  the gold file is keyed on message_id. Old files are keyed on "
             "the pre-migration ROW NUMBER, which is not a message identity — "
             "re-keying them by position would measure noise.\n"
-            "  fix:  re-key the gold labels onto the content-hash message_id by "
-            "matching on message text (validation/tone_gold_labels.csv carries the "
-            "text), dropping rows whose text is not unique in the corpus. Then "
-            "re-run. Never fall back to positional alignment.")
+            "  fix:  read the labels through validation.load_gold, which re-keys "
+            "them onto the content-hash message_id by message text and drops rows "
+            "whose text is not unique in the corpus. Never fall back to "
+            "positional alignment.")
 
     return pd.Series(
         sentiment["label"].to_numpy()[pos.loc[ids.values].to_numpy()],

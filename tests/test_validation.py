@@ -197,6 +197,92 @@ def test_align_gold_raises_when_only_some_ids_are_unknown():
         validation.align_gold([ids[0], "deadbeefdeadbeef"], spine, sent)
 
 
+def _write_gold(root, labels: pd.DataFrame, texts: dict):
+    """A validation/ dir holding one label file plus its text companion."""
+    labels.to_csv(root / "tone_labels_reviewer.csv", index=False, encoding="utf-8")
+    pd.DataFrame({"message_id": list(texts), "message": list(texts.values())}).to_csv(
+        root / "tone_gold_labels.csv", index=False, encoding="utf-8")
+
+
+def test_load_gold_passes_through_ids_that_still_resolve(tmp_path):
+    spine = _spine()
+    ids = _ids(spine)
+    labels = pd.DataFrame({"message_id": [ids[2], ids[0]],
+                           "label_reviewer": ["positive", "negative"]})
+    _write_gold(tmp_path, labels, {})
+    out = validation.load_gold("tone_labels_reviewer.csv", spine, root=tmp_path)
+    pd.testing.assert_frame_equal(out, labels)
+
+
+def test_load_gold_rekeys_by_text_when_the_export_renumbers_a_user(tmp_path):
+    """The client-machine failure: a backfilled message shifts u1's seq, so the
+    labelled message's content hash changes although its text did not."""
+    old = _spine()
+    old_ids = _ids(old)
+    new = pd.DataFrame({
+        "user_id": ["u1", "u1", "u1", "u2"],
+        "seq": [0, 1, 2, 0],
+        "message": ["hola", "necesito ayuda urgente", "gracias", "como saco el ppt"],
+    })
+    labels = pd.DataFrame({"message_id": [old_ids[0], old_ids[2]],
+                           "label_reviewer": ["negative", "neutral"]})
+    _write_gold(tmp_path, labels, dict(zip(old_ids, old["message"])))
+    with pytest.warns(UserWarning, match="re-keyed 1 of 2"):
+        out = validation.load_gold("tone_labels_reviewer.csv", new, root=tmp_path)
+    new_ids = _ids(new)
+    assert list(out["message_id"]) == [new_ids[1], new_ids[3]]
+    assert list(out["label_reviewer"]) == ["negative", "neutral"]
+    sent = pd.DataFrame({"label": ["neutral", "negative", "positive", "neutral"]})
+    assert list(validation.align_gold(out["message_id"], new, sent)) == ["negative", "neutral"]
+
+
+def test_load_gold_rekeys_through_redaction_placeholders(tmp_path):
+    """emotion_sample_429.csv stores name-scrubbed text; '[nombre]' must still
+    match the raw spine text it stood in for."""
+    old_id = "0123456789abcdef"
+    new = pd.DataFrame({"user_id": ["u1", "u2"], "seq": [0, 0],
+                        "message": ["Hola  si como cambiar la eps de medellin",
+                                    "otra cosa"]})
+    labels = pd.DataFrame({"message_id": [old_id], "label_reviewer": ["neutral"]})
+    _write_gold(tmp_path, labels, {old_id: "Hola si como cambiar la eps de [nombre]"})
+    with pytest.warns(UserWarning):
+        out = validation.load_gold("tone_labels_reviewer.csv", new, root=tmp_path)
+    assert list(out["message_id"]) == [_ids(new)[0]]
+
+
+def test_load_gold_drops_ambiguous_or_missing_text(tmp_path):
+    """Text that appears twice, or not at all, is dropped — never guessed."""
+    spine = pd.DataFrame({"user_id": [f"u{i}" for i in range(22)], "seq": [0] * 22,
+                          "message": ["gracias", "gracias"] + [f"m{i}" for i in range(20)]})
+    ids = _ids(spine)
+    stale = ["aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb"]
+    labels = pd.DataFrame({"message_id": stale + ids[2:],
+                           "label_reviewer": ["neutral"] * 22})
+    _write_gold(tmp_path, labels, {stale[0]: "gracias", stale[1]: "texto borrado"})
+    with pytest.warns(UserWarning, match="dropped 2 of 22"):
+        out = validation.load_gold("tone_labels_reviewer.csv", spine, root=tmp_path)
+    assert list(out["message_id"]) == ids[2:]
+
+
+def test_load_gold_raises_when_too_many_labels_are_lost(tmp_path):
+    """Losing a large share means a different corpus, not a re-export: stop."""
+    spine = _spine()
+    labels = pd.DataFrame({"message_id": ["aaaaaaaaaaaaaaaa", _ids(spine)[0]],
+                           "label_reviewer": ["neutral", "neutral"]})
+    _write_gold(tmp_path, labels, {"aaaaaaaaaaaaaaaa": "texto borrado"})
+    with pytest.raises(validation.GoldLabelError, match="1 of 2"):
+        validation.load_gold("tone_labels_reviewer.csv", spine, root=tmp_path)
+
+
+def test_load_gold_still_refuses_pre_migration_row_numbers(tmp_path):
+    """Row-number ids have no text companion, so they cannot be re-keyed."""
+    spine = _spine()
+    labels = pd.DataFrame({"message_id": [0, 1, 2], "label_reviewer": ["neutral"] * 3})
+    _write_gold(tmp_path, labels, {})
+    with pytest.raises(validation.GoldLabelError):
+        validation.load_gold("tone_labels_reviewer.csv", spine, root=tmp_path)
+
+
 def test_shipped_gold_labels_align_to_the_real_spine():
     """The committed gold file must be joinable to the current corpus."""
     from pathlib import Path

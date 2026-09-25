@@ -122,12 +122,13 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
         # resolve ids. See notebooks/03_text_insights_nlp.ipynb §4 for the
         # full account of why (the earlier analyst-only kappa=0.604 turned out
         # to be an optimistic small-sample estimate).
-        analyst = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
-        reviewer_path = Path("validation/tone_labels_reviewer.csv")
-        if reviewer_path.exists():
-            reviewer = pd.read_csv(reviewer_path, encoding="utf-8")
+        # load_gold re-keys, by message text, any label whose content-hash id a
+        # newer export shifted (see validation.load_gold); it never guesses.
+        if Path("validation/tone_labels_reviewer.csv").exists():
+            reviewer = validation.load_gold("tone_labels_reviewer.csv", SD.messages)
             gold_ids, human = reviewer["message_id"], reviewer["label_reviewer"]
         else:
+            analyst = validation.load_gold("tone_labels_analyst.csv", SD.messages)
             gold_ids, human = analyst["message_id"], analyst["label_analyst"]
         # align_gold matches on message_id and raises if any label is unresolvable.
         # The previous `sent.loc[analyst["message_id"]]` was a POSITIONAL lookup
@@ -141,7 +142,7 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
         # emotion_sample_429.csv). Gated on EMOTION_KAPPA_GATE, not KAPPA_GATE
         # -- see that constant's docstring for why the two tasks (binary tone
         # collapse vs genuine 7-class emotion) aren't comparable.
-        emotion_gold = pd.read_csv("validation/emotion_labels_agent.csv", encoding="utf-8")
+        emotion_gold = validation.load_gold("emotion_labels_agent.csv", SD.messages)
         aligned_emotion_model = validation.align_gold(
             emotion_gold["message_id"], SD.messages, emo)
         emotion_report = validation.emotion_validation_report(
