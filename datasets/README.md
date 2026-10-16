@@ -8,6 +8,7 @@ datasets/
   responses/    <- the chatbot users / responses export   (required)
   meal/         <- the MEAL survey export                 (required)
   bot_log/      <- the WhatsApp production log            (OPTIONAL)
+  labels/       <- the client's labelled messages          (notebook 4 only; the pipeline does not read it)
 ```
 
 `bot_log/` is the only optional role. It feeds one indicator — the Coverage Gap
