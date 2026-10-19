@@ -35,6 +35,21 @@ graphify-out/
 report/
 USER_MANUAL.md
 
+# Message-level text extract for manual sentiment review, regenerated with
+# `python review_messages.py`. Carries user messages (scrubbed by
+# redact.scrub, unredactable rows dropped), so it must never enter version
+# control -- the same reason message-grain `fact_message_full` was retired in
+# schema v12. Wildcard, not ".xlsx": the reviewer may save it as .ods/.csv.
+# Review artefacts (samples, agent pre-labels, hand-labelling sheets). They all
+# carry user message text -- scrubbed, but never committable. Supersedes the
+# earlier per-file rules.
+exports/review/
+
+# Spreadsheet lock files left behind while a workbook is open (LibreOffice
+# .~lock.<name>#, Excel ~$<name>) -- never commit them.
+.~lock.*#
+~$*
+
 # Dataset intake: the folder structure and its docs are tracked, the data never
 # is (the raw platform exports carry users' WhatsApp phone numbers).
 datasets/**/*.xls
