@@ -43,5 +43,7 @@ datasets/**/*.xlsm
 datasets/**/*.xlsb
 datasets/**/*.ods
 datasets/**/*.csv
+# LLM-labelling work files (scrubbed user text): batches, parquet, filled prompts
+datasets/labels/llm_haiku/
 !datasets/README.md
 !datasets/**/.gitkeep

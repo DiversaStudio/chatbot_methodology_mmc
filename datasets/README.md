@@ -9,6 +9,7 @@ datasets/
   meal/         <- the MEAL survey export                 (required)
   bot_log/      <- the WhatsApp production log            (OPTIONAL)
   labels/       <- the client's labelled messages          (notebook 4 only; the pipeline does not read it)
+                   labels/llm_haiku/ = work files of `python -m sami.llm_labels` (regenerable, gitignored)
 ```
 
 `bot_log/` is the only optional role. It feeds one indicator — the Coverage Gap
