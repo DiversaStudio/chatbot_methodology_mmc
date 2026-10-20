@@ -175,6 +175,13 @@ def test_load_synthetic_keeps_only_agreed_rows_with_their_batch(tmp_path):
     assert s["batch"].tolist() == ["b0", "b1", "b1"]
 
 
+def test_load_synthetic_all_rows_keeps_flagged_and_uses_the_target(tmp_path):
+    s = cz.load_synthetic(_synthetic_workbook(tmp_path, fixed="Riesgos de protección"), all_rows=True)
+    assert s["text"].tolist() == ["uno", "dos", "tres", "cuatro"]             # the flagged "dos" is in
+    assert s["label"].tolist() == ["Empleabilidad", "Emprendimiento", cz.NONE, "Empleabilidad"]   # target, not the correction
+    assert s["batch"].tolist() == ["b0", "b0", "b1", "b1"]
+
+
 def test_load_synthetic_drops_a_blank_message(tmp_path):
     path = _synthetic_workbook(tmp_path)
     d = pd.read_excel(path, sheet_name="Sinteticos")

@@ -186,12 +186,15 @@ def ngram_features(texts_tr, texts_te, emb_tr, emb_te, *, emb_weight: float = 2.
     return hstack(blocks_tr).tocsr(), hstack(blocks_te).tocsr()
 
 
-def load_synthetic(path: str | Path | None = None, batches: str | Path | None = None) -> pd.DataFrame:
-    """The synthetic messages that are safe to train on, one row each: `text`, `label`, `batch`.
+def load_synthetic(path: str | Path | None = None, batches: str | Path | None = None,
+                   all_rows: bool = False) -> pd.DataFrame:
+    """The synthetic messages, one row each: `text`, `label`, `batch`.
 
-    Reads the `Sinteticos` sheet of the synthetic review workbook. A row is kept when `Revisar` is
-    empty (the target class and the LLM's check label agree). Its label is `Categoría corregida` when
-    a reviewer filled it, else `Categoría objetivo`; rows with no message text are dropped. `batch` is the generation batch (from
+    Reads the `Sinteticos` sheet of the synthetic review workbook. By default a row is kept when `Revisar`
+    is empty (the target class and the LLM's check label agree) and its label is `Categoría corregida`
+    when a reviewer filled it, else `Categoría objetivo`. With `all_rows=True` every row is kept, flagged
+    ones included, and the label is always `Categoría objetivo` (the class the message was written for).
+    Rows with no message text are dropped either way. `batch` is the generation batch (from
     `llm_haiku_synth/synthetic.csv`, joined on the workbook's `id`), so cross-validation can keep a
     batch's near-twin messages on one side; NaN when that file is absent.
     """
@@ -201,8 +204,12 @@ def load_synthetic(path: str | Path | None = None, batches: str | Path | None = 
             f"{path} not found.\n  fix:  run `python -m sami.llm_labels --version synth synthreport` "
             f"(writes datasets/labels/{SYNTH_FILE}).")
     x = pd.read_excel(path, sheet_name="Sinteticos")
-    x = x[(x["Revisar"] != "sí") & x["Mensaje sintético"].notna()]      # a blank message cannot be embedded
-    label = x["Categoría corregida"].where(x["Categoría corregida"].notna(), x["Categoría objetivo"])
+    x = x[x["Mensaje sintético"].notna()]                               # a blank message cannot be embedded
+    if all_rows:
+        label = x["Categoría objetivo"]
+    else:
+        x = x[x["Revisar"] != "sí"]
+        label = x["Categoría corregida"].where(x["Categoría corregida"].notna(), x["Categoría objetivo"])
     unknown = set(label) - set(CLASSES)
     if unknown:
         raise ValueError(f"unexpected classes in {path.name}: {sorted(unknown)}")
