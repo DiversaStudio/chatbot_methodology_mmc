@@ -914,7 +914,7 @@ def _cmd_synth(a, wd):
 def _cmd_check(a, wd):
     work = _load_work(wd)
     system = _write_prompts(work, wd)
-    syn = pd.read_csv(wd / "synthetic.csv").sample(frac=1, random_state=37)
+    syn = pd.read_csv(wd / "synthetic.csv", keep_default_na=False).sample(frac=1, random_state=37)
     syn["context"] = ""
     jobs = label_jobs(syn, "s_", with_context=False)
     print(f"check: {len(syn)} synthetic messages in {len(jobs)} batches")
@@ -925,7 +925,7 @@ def _cmd_check(a, wd):
 def _cmd_report(a, wd):
     work = _load_work(wd)
     pred = read_labels(wd / "label_batches")
-    syn = pd.read_csv(wd / "synthetic.csv")
+    syn = pd.read_csv(wd / "synthetic.csv", keep_default_na=False)
     syn_pred = read_labels(wd / "synth_check_batches")
     w = work.assign(llm=work["row"].map(pred), client=client_label(work))
     summary = {"Mensajes etiquetados por el LLM": int(w["llm"].notna().sum()),
@@ -1116,7 +1116,7 @@ def _cmd_check2(a, wd):
     """Re-label every synthetic message with the v1 labelling prompt, no context."""
     work = _load_work(wd)
     system = _write_prompts(work, wd, control=True)           # control = no corrections = the v1 prompt
-    syn = pd.read_csv(wd / "synthetic.csv").sample(frac=1, random_state=37)
+    syn = pd.read_csv(wd / "synthetic.csv", keep_default_na=False).sample(frac=1, random_state=37)
     syn["context"] = ""
     jobs = label_jobs(syn, "s_", with_context=False)
     print(f"check2: {len(syn):,} synthetic messages in {len(jobs)} batches")
@@ -1127,8 +1127,8 @@ def _cmd_check2(a, wd):
 def _cmd_synthreport(a, wd):
     wf = _final_work(wd)
     targets = synth_targets(wf)
-    syn = pd.read_csv(wd / "synthetic.csv")
-    raw = pd.read_csv(wd / "synthetic_raw.csv")
+    syn = pd.read_csv(wd / "synthetic.csv", keep_default_na=False)
+    raw = pd.read_csv(wd / "synthetic_raw.csv", keep_default_na=False)
     pred = read_labels(wd / "synth_check_batches")
     table = pd.DataFrame({"Categoría": CLASSES, "objetivo": [targets[c] for c in CLASSES],
                           "generados": [int((raw["category"] == c).sum()) for c in CLASSES],

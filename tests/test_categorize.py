@@ -147,3 +147,67 @@ def test_evaluate_accepts_a_features_callable(labeled):
     r = cz.evaluate(lambda: LinearSVC(C=1, class_weight="balanced"), feats, y, groups,
                     np.flatnonzero(~test), np.flatnonzero(test))
     assert 0.0 <= r["test_macro_f1"] <= 1.0                        # texts name their class, so TF-IDF alone learns it
+
+
+def _synthetic_workbook(tmp_path, flagged=("dos",), fixed=None):
+    """A tiny synthetic review workbook (+ the batch file next to it), like `llm_labels.write_synthetic_workbook`."""
+    d = pd.DataFrame({
+        "Mensaje sintético": ["uno", "dos", "tres", "cuatro"],
+        "Categoría objetivo": ["Empleabilidad", "Emprendimiento", cz.NONE, "Empleabilidad"],
+        "Etiqueta LLM": ["Empleabilidad", "Empleabilidad", cz.NONE, "Empleabilidad"],
+        "Categoría corregida": [None, None, None, fixed],
+        "Comentario": None,
+        "Revisar": ["sí" if t in flagged else None for t in ["uno", "dos", "tres", "cuatro"]],
+        "id": [0, 1, 2, 3]})
+    path = tmp_path / "syn.xlsx"
+    with pd.ExcelWriter(path) as xw:
+        d.to_excel(xw, sheet_name="Sinteticos", index=False)
+    (tmp_path / "llm_haiku_synth").mkdir()
+    pd.DataFrame({"text": d["Mensaje sintético"], "category": d["Categoría objetivo"],
+                  "batch": ["b0", "b0", "b1", "b1"]}).to_csv(tmp_path / "llm_haiku_synth" / "synthetic.csv", index=False)
+    return path
+
+
+def test_load_synthetic_keeps_only_agreed_rows_with_their_batch(tmp_path):
+    s = cz.load_synthetic(_synthetic_workbook(tmp_path))
+    assert s["text"].tolist() == ["uno", "tres", "cuatro"]                    # the flagged "dos" is out
+    assert s["label"].tolist() == ["Empleabilidad", cz.NONE, "Empleabilidad"]
+    assert s["batch"].tolist() == ["b0", "b1", "b1"]
+
+
+def test_load_synthetic_drops_a_blank_message(tmp_path):
+    path = _synthetic_workbook(tmp_path)
+    d = pd.read_excel(path, sheet_name="Sinteticos")
+    d.loc[2, "Mensaje sintético"] = None                    # e.g. a text such as "null" that a CSV read turned into NaN
+    with pd.ExcelWriter(path) as xw:
+        d.to_excel(xw, sheet_name="Sinteticos", index=False)
+    assert cz.load_synthetic(path)["text"].tolist() == ["uno", "cuatro"]
+
+
+def test_load_synthetic_prefers_a_reviewers_correction(tmp_path):
+    s = cz.load_synthetic(_synthetic_workbook(tmp_path, fixed="Riesgos de protección"))
+    assert s.set_index("text").loc["cuatro", "label"] == "Riesgos de protección"
+
+
+def test_load_synthetic_without_batch_file_and_missing_workbook(tmp_path):
+    path = _synthetic_workbook(tmp_path)
+    (tmp_path / "llm_haiku_synth" / "synthetic.csv").unlink()
+    assert cz.load_synthetic(path)["batch"].isna().all()
+    with pytest.raises(FileNotFoundError, match="synthreport"):
+        cz.load_synthetic(tmp_path / "nope.xlsx")
+
+
+def test_embeddings_with_memo_embeds_only_what_the_memo_lacks(tmp_path, monkeypatch):
+    import pickle
+
+    from sami import nlp
+    calls = []
+    monkeypatch.setattr(nlp, "embed_documents",
+                        lambda t, batch_size=16: calls.append(list(t)) or np.full((len(t), 3), 2.0, "float32"))
+    memo = tmp_path / "memo.pkl"
+    memo.write_bytes(pickle.dumps({"a": np.array([1.0, 0, 0], "float32")}))
+    cache = tmp_path / "emb.npz"
+    e = cz.embeddings_with_memo(["a", "b", "a"], cache, memo)
+    assert calls == [["b"]] and e[0, 0] == 1.0 and e[1, 0] == 2.0 and (e[0] == e[2]).all()
+    cz.embeddings_with_memo(["a", "b", "a"], cache, memo)                       # cached: no new call
+    assert len(calls) == 1

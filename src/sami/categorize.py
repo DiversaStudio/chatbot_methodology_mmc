@@ -36,6 +36,7 @@ from scipy.sparse import csr_matrix, hstack
 from . import datasets
 
 LABELS_FILE = "messages_category_original.xlsx"
+SYNTH_FILE = "messages_category_synthetic_haiku.xlsx"      # review workbook of the synthetic messages
 NONE = "Ninguna"
 
 #: The client's 10 categories, in the order of the workbook's `Lista` sheet.
@@ -76,6 +77,11 @@ TEST_FRACTION = 0.2
 def labels_path() -> Path:
     """Where the client's workbook is expected: `datasets/labels/messages_category_original.xlsx`."""
     return datasets.DATASETS_DIR / "labels" / LABELS_FILE
+
+
+def synthetic_path() -> Path:
+    """Where the synthetic review workbook is expected: `datasets/labels/messages_category_synthetic_haiku.xlsx`."""
+    return datasets.DATASETS_DIR / "labels" / SYNTH_FILE
 
 
 def _norm(s: pd.Series) -> pd.Series:
@@ -178,6 +184,61 @@ def ngram_features(texts_tr, texts_te, emb_tr, emb_te, *, emb_weight: float = 2.
             v = TfidfVectorizer(min_df=2, sublinear_tf=True, strip_accents="unicode", **kw)
             blocks_tr.append(v.fit_transform(lo_tr)); blocks_te.append(v.transform(lo_te))
     return hstack(blocks_tr).tocsr(), hstack(blocks_te).tocsr()
+
+
+def load_synthetic(path: str | Path | None = None, batches: str | Path | None = None) -> pd.DataFrame:
+    """The synthetic messages that are safe to train on, one row each: `text`, `label`, `batch`.
+
+    Reads the `Sinteticos` sheet of the synthetic review workbook. A row is kept when `Revisar` is
+    empty (the target class and the LLM's check label agree). Its label is `Categoría corregida` when
+    a reviewer filled it, else `Categoría objetivo`; rows with no message text are dropped. `batch` is the generation batch (from
+    `llm_haiku_synth/synthetic.csv`, joined on the workbook's `id`), so cross-validation can keep a
+    batch's near-twin messages on one side; NaN when that file is absent.
+    """
+    path = Path(path) if path else synthetic_path()
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found.\n  fix:  run `python -m sami.llm_labels --version synth synthreport` "
+            f"(writes datasets/labels/{SYNTH_FILE}).")
+    x = pd.read_excel(path, sheet_name="Sinteticos")
+    x = x[(x["Revisar"] != "sí") & x["Mensaje sintético"].notna()]      # a blank message cannot be embedded
+    label = x["Categoría corregida"].where(x["Categoría corregida"].notna(), x["Categoría objetivo"])
+    unknown = set(label) - set(CLASSES)
+    if unknown:
+        raise ValueError(f"unexpected classes in {path.name}: {sorted(unknown)}")
+    out = pd.DataFrame({"id": x["id"].to_numpy(), "text": x["Mensaje sintético"].astype(str).to_numpy(),
+                        "label": label.to_numpy()})
+    b = Path(batches) if batches else path.parent / "llm_haiku_synth" / "synthetic.csv"
+    out["batch"] = out["id"].map(pd.read_csv(b)["batch"]) if b.exists() else np.nan
+    return out.drop(columns="id").reset_index(drop=True)
+
+
+def embeddings_with_memo(texts: list[str], cache: str | Path, memo: str | Path | None = None) -> np.ndarray:
+    """Like `cached_embeddings`, but reuses vectors already computed for the same texts.
+
+    `memo` is a pickle `{text: vector}` written by `llm_labels.cached_embedder` while the synthetic
+    messages were deduplicated (our own file, local and gitignored). Texts it holds are taken from
+    it; only the rest go through `nlp.embed_documents`. Same pinned model, so the vectors are the ones
+    a full run would produce.
+    """
+    import pickle
+
+    from . import nlp
+
+    cache = Path(cache)
+    key = hashlib.sha256(("\n".join(texts) + nlp.EMBED_REVISION).encode("utf-8")).hexdigest()
+    if cache.exists():
+        z = np.load(cache, allow_pickle=False)
+        if str(z["key"]) == key:
+            return z["emb"]
+    known = pickle.loads(Path(memo).read_bytes()) if memo and Path(memo).exists() else {}
+    missing = [t for t in dict.fromkeys(texts) if t not in known]
+    if missing:
+        known = {**known, **dict(zip(missing, nlp.embed_documents(missing, batch_size=16)))}
+    emb = np.array([known[t] for t in texts])
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(cache, emb=emb, key=np.array(key))
+    return emb
 
 
 def scores(y_true, y_pred, classes=None) -> dict:
