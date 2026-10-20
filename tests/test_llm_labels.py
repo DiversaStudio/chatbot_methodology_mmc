@@ -384,7 +384,7 @@ def test_synthetic_workbook_layout(tmp_path):
     ws = wb["Sinteticos"]
     assert [c.value for c in ws[1]] == ["Mensaje sintético", "Categoría objetivo", "Etiqueta LLM", "Categoría corregida",
                                         "Comentario", "Revisar", "id"]
-    assert ws["A2"].value == "uno" and ws["F2"].value == "sí" and ws["A3"].value == "dos"   # flagged first
+    assert ws["A2"].value == "dos" and ws["F2"].value is None and ws["A4"].value == "uno" and ws["F4"].value == "sí"   # flagged last
     assert len(ws.data_validations.dataValidation) == 1 and ws.freeze_panes == "A2"
     assert any("faltan 4" in str(c.value) for c in wb["Guia_revision"]["A"])
 

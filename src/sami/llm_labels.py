@@ -759,7 +759,7 @@ def write_synthetic_workbook(path: Path, syn: pd.DataFrame, syn_pred: dict[int, 
 
     `syn` has `text` and `category` (index = id), `syn_pred` the check label per id, `table` the
     target / generated / kept count per class. Flagged rows (check label differs from the target) come
-    first and are shaded; `Categoría corregida` is a dropdown, and empty means keep.
+    last and are shaded; `Categoría corregida` is a dropdown, and empty means keep.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
@@ -769,7 +769,7 @@ def write_synthetic_workbook(path: Path, syn: pd.DataFrame, syn_pred: dict[int, 
     s = syn.assign(llm=syn.index.map(syn_pred))
     s["rev"] = np.where(s["llm"].notna() & (s["llm"] != s["category"]), "sí", "")
     s["_c"] = s["category"].map({c: i for i, c in enumerate(CLASSES)})
-    s = s.assign(_f=(s["rev"] != "sí")).sort_values(["_f", "_c"], kind="stable")
+    s = s.assign(_f=(s["rev"] == "sí")).sort_values(["_f", "_c"], kind="stable")
     df = pd.DataFrame({"Mensaje sintético": s["text"].to_numpy(), "Categoría objetivo": s["category"].to_numpy(),
                        "Etiqueta LLM": s["llm"].to_numpy(), "Categoría corregida": None, "Comentario": None,
                        "Revisar": s["rev"].to_numpy(), "id": s.index.to_numpy()})
@@ -781,7 +781,8 @@ def write_synthetic_workbook(path: Path, syn: pd.DataFrame, syn_pred: dict[int, 
         "",
         "Categoría objetivo = la categoría para la que se generó el mensaje.",
         "Etiqueta LLM = la categoría que el LLM le pone al releerlo, sin contexto.",
-        "Revisar = sí: la Etiqueta LLM no coincide con la Categoría objetivo. Esas filas van primero y sombreadas.",
+        "Revisar = sí: la Etiqueta LLM no coincide con la Categoría objetivo. Esas filas van al final y sombreadas.",
+        "Para entrenar: usar la Categoría objetivo de las filas donde Revisar está vacío (objetivo y LLM coinciden).",
         "Categoría corregida: dejar vacío para mantener la categoría objetivo; elegir otra categoría para moverlo.",
         "Nada se mueve ni se elimina automáticamente.",
         "",
