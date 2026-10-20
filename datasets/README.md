@@ -10,6 +10,8 @@ datasets/
   bot_log/      <- the WhatsApp production log            (OPTIONAL)
   labels/       <- the client's labelled messages          (notebook 4 only; the pipeline does not read it)
                    labels/llm_haiku/ = work files of `python -m sami.llm_labels` (regenerable, gitignored)
+                   labels/llm_haiku_v2/ = the closed prompt experiment; labels/messages_category_haiku_final.xlsx = v1 labels + reviewer corrections
+                   labels/llm_haiku_synth/ = work files of the synthetic set (`--version synth`); labels/messages_category_synthetic_haiku.xlsx = its review workbook
 ```
 
 `bot_log/` is the only optional role. It feeds one indicator — the Coverage Gap

@@ -12,6 +12,9 @@ Two datasets are built with Claude Haiku 5.5 from the client's original labels
 Run it as a module (there is no other entry point)::
 
     PYTHONPATH=src .venv/bin/python -m sami.llm_labels {prep|pilot|label|synth|check|report|table} [--dry-run]
+    ... -m sami.llm_labels --version v2 {corr|baseline|devcheck|testcheck|label|compare}
+    ... -m sami.llm_labels --version synth {synth2|check2|synthreport} [--only CLASS] --workers 5
+    ... -m sami.llm_labels final      # v1 labels + the reviewer's corrections -> messages_category_haiku_final.xlsx
 
 Rules the numbers depend on, enforced in code:
 
@@ -33,6 +36,7 @@ import hashlib
 import json
 import random
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -53,6 +57,7 @@ CLASSES = list(cz.CLASSES)
 LABEL_BATCH = 40          # messages per labelling call
 SYNTH_BATCH = 25          # synthetic messages per generation call
 SYNTH_PER_CLASS = 350
+SYNTH_BIG, SYNTH_X_BIG, SYNTH_X_SMALL = 3, 3, 10     # the 3 biggest classes get 3x their real messages, the rest 10x
 SYNTH_ROUNDS = 3          # extra rounds to refill classes that lose messages to the dedupe
 NEAR_DUP = 0.97           # e5 cosine above which two synthetic messages of a class are the same
 SHOTS = 8                 # development examples per class shown to the labeller
@@ -62,12 +67,11 @@ RETRIES = 3
 WORKERS = 3
 LIMIT_WAIT = 900          # seconds to wait when the subscription limit is hit, then resume
 LIMIT_WAITS = 24          # ... at most this many times per batch (6 hours)
-PROMPTS = Path(__file__).parent / "prompts"
 
 
-def work_dir() -> Path:
-    """`datasets/labels/llm_haiku/`: batches, parquet, filled prompts, CSVs. Gitignored."""
-    return datasets.DATASETS_DIR / "labels" / "llm_haiku"
+def work_dir(version: str = "v1") -> Path:
+    """`datasets/labels/llm_haiku/` (v1) or `llm_haiku_v2/`: batches, parquet, prompts, CSVs. Gitignored."""
+    return datasets.DATASETS_DIR / "labels" / ("llm_haiku" if version == "v1" else f"llm_haiku_{version}")
 
 
 def _norm(s: str) -> str:
@@ -103,21 +107,119 @@ def client_label(work: pd.DataFrame) -> pd.Series:
     return work["label"].where(work["label"].notna(), np.where(work["in_na_sheet"], NONE, None))
 
 
+# ------------------------------------------------------------------ prompt templates
+# Placeholders are filled by `build_label_prompt` / `synth_jobs`. The few-shot examples and seeds are real
+# (scrubbed) client text, so only these templates live in the repo, never a filled prompt.
+LABEL_TEMPLATE = """You label messages that migrants and refugees (mostly Venezuelans in Colombia, Peru and Ecuador) sent to a humanitarian WhatsApp chatbot. Messages are informal, phone-typed Spanish with typos. Personal data is redacted: tokens such as [nombre] are placeholders, ignore them.
+
+Give each message exactly ONE category, copied exactly from this closed list:
+{cats}
+- {none}  (the message expresses no need or question of its own)
+
+Rules:
+1. Label the person's NEED, not words that happen to appear in the message.
+2. Always {none}, whatever the context says: greetings, thanks, "si" / "no" / "ok" / "listo", a bare place name or "estoy en <lugar>" answering where they are, a bare number or menu choice, a lone redacted token. A place counts only when the message also states a need: "estoy en cali y necesito comida" -> Asistencia Humanitaria.
+3. "contexto" holds the previous messages of the same conversation. Use it ONLY to resolve a follow-up question or request that refers back to the topic being discussed ("y como lo saco", "cuanto cuesta", "donde queda"). Label only "mensaje", never the context.
+4. If two categories fit, choose the dominant one.
+5. Entidades del Estado vs Acceso a servicios del Estado: Entidades = the person asks WHICH institution or WHERE to go (an office, address, phone, who handles their case) without naming a public service. Servicios = the person asks how to GET a public service (health, EPS, SISBEN, education, social programs, social security), including requirements and eligibility. Naming a public service AND asking where to get it ("donde queda la oficina del sisben") is Acceso a servicios del Estado.
+6. Asistencia Humanitaria vs Acceso a servicios del Estado: Asistencia Humanitaria = an urgent or direct need for help NOW (food, shelter, money, kits, "estoy enfermo, necesito un medico") or help from humanitarian organisations (ACNUR, OIM, fundaciones). Servicios = access to State systems and their requirements (EPS, affiliation, SISBEN, "me atienden sin papeles?", school, subsidies).
+7. WHERE + a concrete need takes the category of the need: where to get a document -> Acceso a documentos y regularización; where to get or renew the salvoconducto -> Acceso a la protección internacional y asilo; where to report a crime or abuse -> Riesgos de protección; where to get a public service -> Acceso a servicios del Estado. Entidades del Estado only when they ask for an institution with no concrete need.
+8. How to GET papers (PPT, pasaporte, cédula de extranjería, permits) -> Acceso a documentos y regularización. Whether they can use a service WITH the papers they have ("me atienden con el pasaporte?") -> Acceso a servicios del Estado.
+9. Validating or apostilling diplomas -> Acceso a documentos y regularización. Studying, enrolling children in school, SENA courses -> Acceso a servicios del Estado.
+
+Examples labelled by the client's team:
+{shots}
+
+Reply through the structured output: one item per input message, with the same "id" and the chosen category in "c".
+"""
+
+SYNTH_TEMPLATE = """You write realistic synthetic training data for a text classifier. The real data are messages that migrants and refugees (mostly Venezuelans in Colombia, Peru and Ecuador) send to a humanitarian WhatsApp chatbot.
+
+Write {n} NEW messages that {goal}.
+Here are real messages of that kind, for style and topic only (do NOT copy or lightly paraphrase them):
+{seeds}
+
+Requirements:
+- Informal, phone-typed Spanish as in the examples: mostly lowercase, missing accents, some typos, short, occasional regional words (Venezuelan or Colombian).
+- Vary the sub-topic, the situation (family, children, women, elderly, work, location), the phrasing and the length. No two messages alike.
+- {avoid}
+- No real names, phone numbers, ID numbers or addresses.
+
+Reply through the structured output: the list of messages in "messages".
+"""
+
+
 # ------------------------------------------------------------------ prompts
 def _dev_texts(work: pd.DataFrame, cls: str) -> list[str]:
     d = work[(work["split"] == "dev") & (work["label"] == cls) & work["text"].notna()]
     return list(dict.fromkeys(d["text"]))
 
 
-def build_label_prompt(work: pd.DataFrame, seed: int = 21) -> str:
-    """The labelling system prompt: closed class list, separation rules and dev-only few-shots."""
+def load_corrections(path: Path, work: pd.DataFrame) -> pd.DataFrame:
+    """The reviewer's `Categoría corregida` rows of a reviewed Haiku workbook, joined to `work`.
+
+    One row per corrected message: `row`, `text`, `split`, `client`, `llm_v1` (Haiku's first label),
+    `correction`, `verdict` in {haiku, client, other} and `conflict` (the same text was corrected to
+    two different classes, which context can justify, so such texts are never used as few-shots).
+    """
+    x = pd.read_excel(path, sheet_name="Etiquetas")
+    x = x[x["Categoría corregida"].notna()]
+    unknown = set(x["Categoría corregida"]) - set(CLASSES)
+    if unknown:
+        raise ValueError(f"unknown corrected classes: {sorted(unknown)}")
+    w = work.assign(client=client_label(work)).set_index("row")
+    missing = set(x["id"]) - set(w.index)
+    if missing:
+        raise ValueError(f"{len(missing)} corrected ids are not in the work table")
+    out = pd.DataFrame({"row": x["id"].astype(int).to_numpy(), "llm_v1": x["Etiqueta LLM"].to_numpy(),
+                        "correction": x["Categoría corregida"].to_numpy()})
+    out["text"] = w.loc[out["row"], "text"].to_numpy()
+    out["split"] = w.loc[out["row"], "split"].to_numpy()
+    out["client"] = w.loc[out["row"], "client"].to_numpy()
+    out["verdict"] = np.select([out["correction"] == out["llm_v1"], out["correction"] == out["client"]],
+                               ["haiku", "client"], "other")
+    out["conflict"] = out.groupby("text")["correction"].transform("nunique").gt(1)
+    return out.sort_values("row").reset_index(drop=True)
+
+
+def _shots(work: pd.DataFrame, corrections: pd.DataFrame | None, seed: int,
+           hard: bool = True) -> list[tuple[int, str, str]]:
+    """The few-shots as (row, text, class). With `corrections`, dev rows carry the reviewer's class
+    instead of the client's, and (when `hard`) dev messages Haiku v1 got wrong come first (at most `SHOTS // 2`
+    per class)."""
     rng = random.Random(seed)
     shots = []
-    for c in CLASSES:
-        pool = _dev_texts(work, c)
-        shots += [f"- {json.dumps(t, ensure_ascii=False)} -> {c}" for t in rng.sample(pool, min(SHOTS, len(pool)))]
+    if corrections is None:
+        for c in CLASSES:
+            pool = _dev_texts(work, c)
+            shots += [(-1, t, c) for t in rng.sample(pool, min(SHOTS, len(pool)))]
+    else:
+        fix = corrections[(corrections["split"] == "dev") & ~corrections["conflict"]].set_index("row")["correction"]
+        d = work[(work["split"] == "dev") & work["text"].notna() & work["label"].notna()].copy()
+        d["cls"] = d["row"].map(fix).fillna(d["label"])
+        bad = set(corrections.loc[(corrections["verdict"] != "haiku") & (corrections["split"] == "dev"), "row"]) if hard else set()
+        banned = set(corrections.loc[corrections["conflict"], "text"])
+        for c in CLASSES:
+            k = d[(d["cls"] == c) & ~d["text"].isin(banned)].drop_duplicates("text")
+            hard = k[k["row"].isin(bad)]
+            hard = hard.sample(min(SHOTS // 2, len(hard)), random_state=seed)
+            rest = k[~k["row"].isin(hard["row"])]
+            rest = rest.sample(min(SHOTS - len(hard), len(rest)), random_state=seed)
+            shots += [(int(r), t, c) for r, t in zip(pd.concat([hard, rest])["row"], pd.concat([hard, rest])["text"])]
     rng.shuffle(shots)
-    tpl = (PROMPTS / "label_template.txt").read_text(encoding="utf-8")
+    return shots
+
+
+def shot_rows(work: pd.DataFrame, corrections: pd.DataFrame, seed: int = 21, hard: bool = True) -> set[int]:
+    """Message ids shown as few-shots in the corrected prompt; they must not be scored on themselves."""
+    return {r for r, _, _ in _shots(work, corrections, seed, hard)}
+
+
+def build_label_prompt(work: pd.DataFrame, seed: int = 21, corrections: pd.DataFrame | None = None,
+                       hard: bool = True) -> str:
+    """The labelling system prompt: closed class list, separation rules and dev-only few-shots."""
+    shots = [f"- {json.dumps(t, ensure_ascii=False)} -> {c}" for _, t, c in _shots(work, corrections, seed, hard)]
+    tpl = LABEL_TEMPLATE
     return (tpl.replace("{cats}", "\n".join(f"- {c}" for c in cz.CATEGORIES))
             .replace("{none}", NONE).replace("{shots}", "\n".join(shots)))
 
@@ -286,19 +388,25 @@ def _goal_avoid(cls: str) -> tuple[str, str]:
             f'Each message must unambiguously belong to "{cls}" and not to any of: {others}.')
 
 
-def synth_jobs(work: pd.DataFrame, need: dict[str, int], prefix: str, seed: int = 3) -> list[tuple]:
-    """Generation calls for `need` messages per class, each seeded with dev examples of the class."""
+def synth_jobs(work: pd.DataFrame, need: dict[str, int], prefix: str, seed: int = 3,
+               pools: dict[str, list[str]] | None = None) -> list[tuple]:
+    """Generation calls for `need` messages per class, each seeded with examples of the class.
+
+    Seeds come from `pools[class]` when given, else from the development rows. Every filled prompt is
+    checked: a frozen-test text in it raises.
+    """
     rng = random.Random(seed)
-    tpl = (PROMPTS / "synth_template.txt").read_text(encoding="utf-8")
+    tpl = SYNTH_TEMPLATE
     jobs = []
     for c in CLASSES:
-        pool = _dev_texts(work, c)
+        pool = pools[c] if pools is not None else _dev_texts(work, c)
         for k in range(-(-need.get(c, 0) // SYNTH_BATCH)):
             n = min(SYNTH_BATCH, need[c] - k * SYNTH_BATCH)
             goal, avoid = _goal_avoid(c)
             seeds = "\n".join(f"- {json.dumps(t, ensure_ascii=False)}" for t in rng.sample(pool, min(SEEDS, len(pool))))
             p = (tpl.replace("{n}", str(n)).replace("{goal}", goal).replace("{avoid}", avoid)
                  .replace("{seeds}", seeds))
+            assert_no_test_text(p, work)
             jobs.append((f"{prefix}{CLASSES.index(c):02d}_{k:03d}", p, {"cat": c, "n": n}))
     return jobs
 
@@ -320,11 +428,11 @@ def collect_synth(folder: Path) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["text", "category", "batch"])
 
 
-def dedupe_synth(syn: pd.DataFrame, real_texts, embed=None, limit: int = SYNTH_PER_CLASS,
+def dedupe_synth(syn: pd.DataFrame, real_texts, embed=None, limit: int | dict[str, int] = SYNTH_PER_CLASS,
                  threshold: float = NEAR_DUP) -> pd.DataFrame:
     """Drop exact copies of real or earlier synthetic text, then near-duplicates within a class.
 
-    Keeps at most `limit` per class, first come first kept. `embed(list[str]) -> L2-normalised
+    Keeps at most `limit` per class (one number, or a dict per class), first come first kept. `embed(list[str]) -> L2-normalised
     array`; without it only exact duplicates are removed.
     """
     real = {_norm(t) for t in real_texts}
@@ -338,34 +446,88 @@ def dedupe_synth(syn: pd.DataFrame, real_texts, embed=None, limit: int = SYNTH_P
     if embed is not None and len(syn):
         X = np.asarray(embed(syn["text"].tolist()))
         survive = np.zeros(len(syn), bool)
-        for idx in syn.groupby("category").indices.values():
+        for cat, idx in syn.groupby("category").indices.items():
+            cap = limit[cat] if isinstance(limit, dict) else limit
             kept = []
             for i in idx:
-                if len(kept) >= limit:
+                if len(kept) >= cap:
                     break
                 if not kept or float((X[kept] @ X[i]).max()) < threshold:
                     kept.append(i)
             survive[kept] = True
         syn = syn[survive].reset_index(drop=True)
     elif len(syn):
-        syn = syn.groupby("category", sort=False).head(limit).reset_index(drop=True)
+        cap = syn["category"].map(limit) if isinstance(limit, dict) else limit
+        syn = syn[syn.groupby("category", sort=False).cumcount() < cap].reset_index(drop=True)
     return syn
 
 
-def build_synthetic(work: pd.DataFrame, folder: Path, client, system_synth: str, embed=None, **kw) -> pd.DataFrame:
-    """Generate until every class has `SYNTH_PER_CLASS` messages (or `SYNTH_ROUNDS` refills passed)."""
-    need = {c: SYNTH_PER_CLASS for c in CLASSES}
+def build_synthetic(work: pd.DataFrame, folder: Path, client, system_synth: str, embed=None, *,
+                    targets: dict[str, int] | None = None, pools: dict[str, list[str]] | None = None,
+                    **kw) -> pd.DataFrame:
+    """Generate until every class has its target (`SYNTH_PER_CLASS` each by default) or `SYNTH_ROUNDS` refills passed.
+
+    A class that cannot reach its target is reported, never padded.
+    """
+    targets = targets or {c: SYNTH_PER_CLASS for c in CLASSES}
+    need = dict(targets)
     real = work["text"].dropna().tolist()
     for rnd in range(SYNTH_ROUNDS + 1):
-        run_batches(synth_jobs(work, need, f"r{rnd}_", seed=3 + rnd), folder, client, system_synth,
+        run_batches(synth_jobs(work, need, f"r{rnd}_", seed=3 + rnd, pools=pools), folder, client, system_synth,
                     SYNTH_SCHEMA, check_synth, **kw)
-        syn = dedupe_synth(collect_synth(folder), real, embed)
+        syn = dedupe_synth(collect_synth(folder), real, embed, limit=targets)
         have = syn["category"].value_counts().to_dict()
-        need = {c: max(0, SYNTH_PER_CLASS - have.get(c, 0)) for c in CLASSES}
+        need = {c: max(0, targets.get(c, 0) - have.get(c, 0)) for c in CLASSES}
         if not any(need.values()):
             break
         print(f"round {rnd}: still short {({c: n for c, n in need.items() if n})}", flush=True)
     return syn
+
+
+# ------------------------------------------------------------------ synthetic set sized from the final labels
+FINAL_UNREVIEWED = "LLM, discrepa (sin revisar)"
+
+
+def load_final(path: Path, work: pd.DataFrame) -> pd.DataFrame:
+    """`work` plus `final` and `fuente_final` from the final labelled workbook, joined on `id` = `row`."""
+    x = pd.read_excel(path)
+    bad = set(x["Etiqueta final"]) - set(CLASSES)
+    if bad:
+        raise ValueError(f"unknown final classes: {sorted(bad)}")
+    if not set(x["id"]) <= set(work["row"]):
+        raise ValueError("final labels hold ids that are not in the work table")
+    m = x.drop_duplicates("id").set_index("id")
+    return work.assign(final=work["row"].map(m["Etiqueta final"]), fuente_final=work["row"].map(m["Fuente final"]))
+
+
+def synth_targets(wf: pd.DataFrame) -> dict[str, int]:
+    """Synthetic messages per class: 3x the real non-test messages for the 3 biggest classes, 10x for the rest."""
+    real = wf[(wf["split"] != "test") & wf["final"].notna() & wf["text"].notna()]["final"].value_counts()
+    big = set(real.index[:SYNTH_BIG])
+    return {c: int(real.get(c, 0)) * (SYNTH_X_BIG if c in big else SYNTH_X_SMALL) for c in CLASSES}
+
+
+def synth_pools(wf: pd.DataFrame) -> dict[str, list[str]]:
+    """Seed texts per class: non-test messages with a final label, without the unreviewed client/Haiku
+    disagreements and without any text a frozen-test message also has (an unlabelled repeat of a test text)."""
+    test = {_norm(t) for t in wf.loc[wf["split"] == "test", "text"].dropna()}
+    d = wf[(wf["split"] != "test") & wf["final"].notna() & wf["text"].notna() & (wf["fuente_final"] != FINAL_UNREVIEWED)]
+    d = d[~d["text"].map(_norm).isin(test)]
+    return {c: list(dict.fromkeys(d.loc[d["final"] == c, "text"])) for c in CLASSES}
+
+
+def cached_embedder(path: Path, embed):
+    """`embed` that remembers every text it has seen in `path`, so a refill round embeds only the new ones."""
+    import pickle
+    memo = pickle.loads(path.read_bytes()) if path.exists() else {}
+
+    def run(texts):
+        new = [t for t in dict.fromkeys(texts) if t not in memo]
+        if new:
+            memo.update(zip(new, np.asarray(embed(new))))
+            path.write_bytes(pickle.dumps(memo))
+        return np.array([memo[t] for t in texts])
+    return run
 
 
 SYNTH_SYSTEM = "You write realistic synthetic Spanish chat messages for a text classifier."
@@ -384,11 +546,14 @@ def agreement(y_client, y_llm) -> dict:
 
 
 # ------------------------------------------------------------------ labels table
-def labels_table(work: pd.DataFrame, pred: dict[int, str]) -> pd.DataFrame:
+def labels_table(work: pd.DataFrame, pred: dict[int, str], corrections: pd.DataFrame | None = None) -> pd.DataFrame:
     """Every message Haiku labelled, one row each, in the order of the client's sheet.
 
     Columns: context, message, the client's label, Haiku's label, three blank reviewer columns,
     `Fuente`, `split`, the keys (`id`, `Conversation ID`, `Message #`) and `Coincide cliente`.
+    With `corrections`, two more columns: `Etiqueta final` (the reviewer's class where there is one,
+    else Haiku's) and `Fuente final` (corrección humana / LLM, coincide con cliente / LLM, discrepa
+    (sin revisar) / LLM, sin etiqueta del cliente). Nothing else is overwritten.
     """
     w = work.assign(llm=work["row"].map(pred), client=client_label(work))
     w = w[w["text"].notna() & w["llm"].notna()]
@@ -403,7 +568,42 @@ def labels_table(work: pd.DataFrame, pred: dict[int, str]) -> pd.DataFrame:
         "Message #": w["Message #"].to_numpy()})
     out["Coincide cliente"] = np.select(
         [w["client"].isna().to_numpy(), (w["client"] == w["llm"]).to_numpy()], ["", "sí"], "no")
+    if corrections is not None:
+        fix = out["id"].map(corrections.drop_duplicates("row").set_index("row")["correction"])
+        out["Etiqueta final"] = fix.fillna(out["Etiqueta LLM"])
+        out["Fuente final"] = np.select(
+            [fix.notna(), out["Etiqueta cliente"].isna(), out["Coincide cliente"] == "sí"],
+            ["corrección humana", "LLM, sin etiqueta del cliente", "LLM, coincide con cliente"],
+            "LLM, discrepa (sin revisar)")
     return out
+
+
+def gold_table(work: pd.DataFrame, pred: dict[int, str], corrections: pd.DataFrame) -> pd.DataFrame:
+    """The measuring stick: `row`, `split`, `gold`, `group`.
+
+    Gold = the reviewer's class for corrected messages (`group` haiku / client / other = who the
+    reviewer agreed with), and the shared label for unreviewed messages where the client and `pred`
+    agree (`group` agreed). Unreviewed disagreements and Haiku-only messages have no gold and are left out.
+    """
+    fix = corrections.drop_duplicates("row").set_index("row")
+    w = work.assign(client=client_label(work), llm=work["row"].map(pred))
+    w = w[w["text"].notna() & w["llm"].notna() & w["split"].isin(["dev", "test"])]
+    agreed = w[(w["client"] == w["llm"]) & ~w["row"].isin(fix.index)]
+    rev = w[w["row"].isin(fix.index)]
+    return pd.concat([
+        pd.DataFrame({"row": agreed["row"], "split": agreed["split"], "gold": agreed["client"], "group": "agreed"}),
+        pd.DataFrame({"row": rev["row"], "split": rev["split"], "gold": rev["row"].map(fix["correction"]),
+                      "group": rev["row"].map(fix["verdict"])})], ignore_index=True)
+
+
+def score_gold(gold: pd.DataFrame, pred: dict[int, str]) -> pd.DataFrame:
+    """Accuracy of `pred` against `gold`, overall and per `group`/`split`, over the messages it labelled."""
+    g = gold[gold["row"].isin(pred)].assign(ok=lambda d: d["gold"] == d["row"].map(pred))
+    rows = [{"subset": "all", "n": len(g), "accuracy": g["ok"].mean() if len(g) else np.nan}]
+    for key in ("group", "split"):
+        for k, d in g.groupby(key):
+            rows.append({"subset": f"{key}={k}", "n": len(d), "accuracy": d["ok"].mean()})
+    return pd.DataFrame(rows)
 
 
 def write_labels_xlsx(path: Path, table: pd.DataFrame) -> None:
@@ -553,11 +753,93 @@ def write_review_workbook(path: Path, work: pd.DataFrame, pred: dict[int, str], 
 
 
 # ------------------------------------------------------------------ CLI
+def write_synthetic_workbook(path: Path, syn: pd.DataFrame, syn_pred: dict[int, str], table: pd.DataFrame,
+                             today: str | None = None) -> None:
+    """The review workbook of the synthetic set: `Guia_revision`, `Sinteticos`, hidden `_listas`.
+
+    `syn` has `text` and `category` (index = id), `syn_pred` the check label per id, `table` the
+    target / generated / kept count per class. Flagged rows (check label differs from the target) come
+    first and are shaded; `Categoría corregida` is a dropdown, and empty means keep.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    today = today or datetime.now().astimezone().date().isoformat()
+    s = syn.assign(llm=syn.index.map(syn_pred))
+    s["rev"] = np.where(s["llm"].notna() & (s["llm"] != s["category"]), "sí", "")
+    s["_c"] = s["category"].map({c: i for i, c in enumerate(CLASSES)})
+    s = s.assign(_f=(s["rev"] != "sí")).sort_values(["_f", "_c"], kind="stable")
+    df = pd.DataFrame({"Mensaje sintético": s["text"].to_numpy(), "Categoría objetivo": s["category"].to_numpy(),
+                       "Etiqueta LLM": s["llm"].to_numpy(), "Categoría corregida": None, "Comentario": None,
+                       "Revisar": s["rev"].to_numpy(), "id": s.index.to_numpy()})
+    guia = [
+        "MENSAJES SINTÉTICOS (LLM)",
+        f"Generados con {MODEL} ({today}) a partir de mensajes reales etiquetados (sin el conjunto de prueba). No son mensajes reales.",
+        "Cantidad por categoría = 3 veces los mensajes reales (Documentos, Asistencia Humanitaria y Ninguna) o 10 veces (el resto),",
+        "contando solo los mensajes que no son de prueba, con la etiqueta final.",
+        "",
+        "Categoría objetivo = la categoría para la que se generó el mensaje.",
+        "Etiqueta LLM = la categoría que el LLM le pone al releerlo, sin contexto.",
+        "Revisar = sí: la Etiqueta LLM no coincide con la Categoría objetivo. Esas filas van primero y sombreadas.",
+        "Categoría corregida: dejar vacío para mantener la categoría objetivo; elegir otra categoría para moverlo.",
+        "Nada se mueve ni se elimina automáticamente.",
+        "",
+        "RESUMEN (objetivo / generados / conservados tras quitar duplicados)",
+        *[f"{r.Categoría}: {r.objetivo} / {r.generados} / {r.conservados}" + (f"  (faltan {r.objetivo - r.conservados})" if r.conservados < r.objetivo else "")
+          for r in table.itertuples()],
+        f"Total conservados: {len(syn)}"]
+    book = Workbook()
+    book.remove(book.active)
+    ws = book.create_sheet("Guia_revision")
+    for i, line in enumerate(guia, 1):
+        ws.cell(i, 1, line)
+    ws["A1"].font = Font(bold=True)
+    ws.column_dimensions["A"].width = 120
+    lists = book.create_sheet("_listas")
+    for i, v in enumerate(CLASSES, 1):
+        lists.cell(i, 1, v)
+    lists.sheet_state = "hidden"
+    ws = book.create_sheet("Sinteticos")
+    widths = {"Mensaje sintético": 70, "Categoría objetivo": 34, "Etiqueta LLM": 34, "Categoría corregida": 34,
+              "Comentario": 30, "Revisar": 10, "id": 8}
+    for j, h in enumerate(df.columns, 1):
+        ws.cell(1, j, h).font = Font(bold=True)
+        ws.column_dimensions[ws.cell(1, j).column_letter].width = widths[h]
+    yellow = PatternFill("solid", fgColor="FFF2CC")
+    flag_col = list(df.columns).index("Revisar")
+    for i, row in enumerate(df.itertuples(index=False), 2):
+        for j, x in enumerate(row, 1):
+            if x is not None and not pd.isna(x) and x != "":
+                ws.cell(i, j, x.item() if hasattr(x, "item") else x)
+        if row[flag_col] == "sí":
+            for j in range(1, len(df.columns) + 1):
+                ws.cell(i, j).fill = yellow
+    col = ws.cell(1, list(df.columns).index("Categoría corregida") + 1).column_letter
+    dv = DataValidation(type="list", formula1=f"=_listas!$A$1:$A${len(CLASSES)}", allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"{col}2:{col}{len(df) + 1}")
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{ws.cell(1, len(df.columns)).column_letter}{len(df) + 1}"
+    book.move_sheet("_listas", offset=1)
+    book.save(path)
+
+
 def _load_work(wd: Path) -> pd.DataFrame:
     f = wd / "work.parquet"
     if not f.exists():
-        raise SystemExit(f"{f} not found. Run `prep` first.")
+        v1 = work_dir("v1") / "work.parquet"
+        if wd != v1.parent and v1.exists():          # a new version starts from the same ids and split
+            wd.mkdir(parents=True, exist_ok=True)
+            shutil.copy(v1, f)
+        else:
+            raise SystemExit(f"{f} not found. Run `prep` first.")
     return pd.read_parquet(f)
+
+
+def _corrections(wd: Path) -> pd.DataFrame | None:
+    f = wd / "corrections.parquet"
+    return pd.read_parquet(f) if f.exists() else None
 
 
 def _cmd_prep(a, wd):
@@ -573,10 +855,10 @@ def _cmd_prep(a, wd):
     print(work["split"].value_counts().to_dict(), "| test with text:", int(t["text"].notna().sum()))
 
 
-def _write_prompts(work, wd):
-    system = build_label_prompt(work)
+def _write_prompts(work, wd, hard=True, control=False):
+    system = build_label_prompt(work, corrections=None if control else _corrections(wd), hard=hard)
     assert_no_test_text(system, work)
-    (wd / "prompt_label.txt").write_text(system, encoding="utf-8")
+    (wd / ("prompt_label.txt" if hard else "prompt_label_nohard.txt")).write_text(system, encoding="utf-8")
     return system
 
 
@@ -660,6 +942,116 @@ def _cmd_report(a, wd):
     print(f"workbook: {path.name}")
 
 
+def _cmd_corr(a, wd):
+    """Ingest the reviewer's corrections (no model calls) and report who the reviewer agreed with."""
+    work = _load_work(wd)
+    c = load_corrections(a.corrections, work)
+    c.to_parquet(wd / "corrections.parquet")
+    print(f"{len(c)} corrections · usable for the prompt (dev): {int((c['split'] == 'dev').sum())} · "
+          f"held out (test): {int((c['split'] == 'test').sum())}")
+    print(pd.crosstab(c["split"], c["verdict"]).to_string())
+    dup = c[c["conflict"]]
+    print(f"texts corrected to two different classes: {dup['text'].nunique()} (ids {sorted(dup['row'])}); "
+          "never used as few-shots")
+
+
+def _v1_pred() -> dict[int, str]:
+    return read_labels(work_dir("v1") / "label_batches")
+
+
+def _cmd_baseline(a, wd):
+    """Haiku v1 against the gold set, before anything changes (no model calls)."""
+    work, c = _load_work(wd), _corrections(wd)
+    if c is None:
+        raise SystemExit("Run `corr` first.")
+    print(score_gold(gold_table(work, _v1_pred(), c), _v1_pred()).round(3).to_string(index=False))
+
+
+def _cmd_devcheck(a, wd):
+    """Gate: relabel the dev corrections plus a sample of agreed dev rows with the corrected prompt.
+
+    The messages are always the same ones (the sample excludes the hard-first shots), so runs compare.
+    `--no-hard` shows random corrected examples instead of the hard-first ones and writes its own folder;
+    scoring then also leaves out that variant's own shots.
+    """
+    work, c = _load_work(wd), _corrections(wd)
+    if c is None:
+        raise SystemExit("Run `corr` first.")
+    system = _write_prompts(work, wd, hard=not a.no_hard, control=a.control)
+    gold = gold_table(work, _v1_pred(), c)
+    gold = gold[(gold["split"] == "dev") & ~gold["row"].isin(shot_rows(work, c))]      # never score a shot on itself
+    rng = np.random.default_rng(7)
+    agreed = gold[gold["group"] == "agreed"]
+    pick = pd.concat([gold[gold["group"] != "agreed"],
+                      agreed.loc[rng.choice(agreed.index, min(a.n, len(agreed)), replace=False)]])
+    rows = work.set_index("row").loc[pick["row"]].sample(frac=1, random_state=7)
+    jobs = label_jobs(rows, "d_")
+    folder = wd / ("devcheck_control_batches" if a.control else
+                   "devcheck_nohard_batches" if a.no_hard else "devcheck_batches")
+    print(f"devcheck{' (no hard-first shots)' if a.no_hard else ''}: {len(rows)} messages in {len(jobs)} batches")
+    if a.dry_run:
+        return
+    run_batches(jobs, folder, LLMClient(), system, LABEL_SCHEMA, check_labels, workers=a.workers)
+    runs = {"v1": _v1_pred(), "v2": read_labels(folder)}
+    other = wd / "devcheck_batches"
+    if (a.no_hard or a.control) and other.exists():
+        runs["v2 hard-first"] = read_labels(other)
+    if a.control:                                   # the v1 prompt again: the run-to-run noise floor
+        runs["v1 prompt rerun"] = runs.pop("v2")
+    elif a.no_hard:                                 # keep the comparison fair: drop this variant's own shots too
+        pick = pick[~pick["row"].isin(shot_rows(work, c, hard=False))]
+    ok = lambda p: pick["gold"] == pick["row"].map(p)     
+    for name, p in runs.items():
+        print(f"{name}:"); print(score_gold(pick, p).round(3).to_string(index=False))
+    new = runs.get("v2", runs.get("v1 prompt rerun"))
+    print(f"fixed {int((~ok(runs['v1']) & ok(new)).sum())} · broken {int((ok(runs['v1']) & ~ok(new)).sum())}")
+
+
+def _cmd_testcheck(a, wd):
+    """The honest comparison: the 588 frozen-test messages against the client and the 66 corrections.
+
+    `--control` = the v1 examples with the current rules; otherwise the corrected examples. `--tag` names the
+    run (each tag is its own folder, so repeats measure the run-to-run noise). Every finished run found in the
+    work folder is scored, next to Haiku v1's single run.
+    """
+    work, c = _load_work(wd), _corrections(wd)
+    if c is None:
+        raise SystemExit("Run `corr` first.")
+    kind = "control" if a.control else "v2"
+    system = _write_prompts(work, wd, control=a.control)
+    rows = work[(work["split"] == "test") & work["text"].notna()].set_index("row").sample(frac=1, random_state=11)
+    jobs = label_jobs(rows, "t_")
+    folder = wd / f"testcheck_{kind}_{a.tag}_batches"
+    print(f"testcheck {kind}/{a.tag}: {len(rows)} blind test messages in {len(jobs)} batches")
+    if a.dry_run:
+        return
+    run_batches(jobs, folder, LLMClient(), system, LABEL_SCHEMA, check_labels, workers=a.workers)
+    runs = {"v1 (first prompt)": _v1_pred()} | {f.name.removeprefix("testcheck_").removesuffix("_batches"): read_labels(f)
+                                                 for f in sorted(wd.glob("testcheck_*_batches"))}
+    k = work.assign(client=client_label(work))
+    k = k[k["row"].isin(runs[next(r for r in runs if r != "v1 (first prompt)")]) & k["client"].notna()]
+    gold = gold_table(work, runs["v1 (first prompt)"], c)
+    gold = gold[(gold["split"] == "test") & (gold["group"] != "agreed")]            # the 66 reviewed test messages
+    print(f"{'run':<22}{'vs client':>10}{'kappa':>7}{'Ninguna':>9}{'vs 66 reviewed':>16}{'client-right (4)':>18}")
+    for name, p in runs.items():
+        r = agreement(k["client"], k["row"].map(p))
+        g = score_gold(gold, p).set_index("subset")["accuracy"]
+        print(f"{name:<22}{r['accuracy']:>10.3f}{r['kappa']:>7.2f}{r['share_ninguna']:>9.3f}"
+              f"{g['all']:>16.3f}{g.get('group=client', float('nan')):>18.3f}")
+
+
+def _cmd_compare(a, wd):
+    """How many labels the corrected prompt changed, by class and by client-labelled vs Haiku-only."""
+    work = _load_work(wd)
+    old, new = _v1_pred(), read_labels(wd / "label_batches")
+    w = work.assign(client=client_label(work), v1=work["row"].map(old), v2=work["row"].map(new))
+    w = w[w["v1"].notna() & w["v2"].notna()]
+    ch = w[w["v1"] != w["v2"]]
+    print(f"{len(w):,} compared · changed {len(ch):,} ({len(ch) / len(w):.1%})")
+    print(pd.crosstab(ch["v1"], ch["v2"]).to_string())
+    print("changed, client-labelled:", int(ch["client"].notna().sum()), "· Haiku-only:", int(ch["client"].isna().sum()))
+
+
 def _cmd_table(a, wd):
     work = _load_work(wd)
     t = labels_table(work, read_labels(wd / "label_batches"))
@@ -669,16 +1061,107 @@ def _cmd_table(a, wd):
           f"{(t['Coincide cliente'] != '').sum():,}")
 
 
+def _cmd_final(a, wd):
+    """The v1 Haiku labels with the reviewer's corrections on top (no model calls)."""
+    v1, v2 = work_dir("v1"), work_dir("v2")
+    c = _corrections(v2)
+    if c is None:
+        raise SystemExit("Run `--version v2 corr` first.")
+    t = labels_table(_load_work(v1), read_labels(v1 / "label_batches"), c)
+    path = datasets.DATASETS_DIR / "labels" / "messages_category_haiku_final.xlsx"
+    write_labels_xlsx(path, t)
+    print(f"{path.name}: {len(t):,} rows")
+    print(t["Fuente final"].value_counts().to_string())
+
+
+FINAL_XLSX = "messages_category_haiku_final.xlsx"
+SYNTH_XLSX = "messages_category_synthetic_haiku.xlsx"
+
+
+def _final_work(wd):
+    work = _load_work(wd)
+    return load_final(datasets.DATASETS_DIR / "labels" / FINAL_XLSX, work)
+
+
+def _cmd_synth2(a, wd):
+    """Synthetic messages sized from the final labels: 3x / 10x the real non-test messages per class."""
+    wf = _final_work(wd)
+    targets, pools = synth_targets(wf), synth_pools(wf)
+    if a.only:
+        targets = {c: n for c, n in targets.items() if c == a.only}
+    thin = {c: len(pools[c]) for c in targets if len(pools[c]) < 30}
+    if thin:
+        raise SystemExit(f"too few seed messages: {thin}")
+    print("class target (seed pool):")
+    for c, n in targets.items():
+        print(f"  {c}: {n:,} ({len(pools[c]):,})")
+    jobs = synth_jobs(wf, targets, "r0_", pools=pools)
+    print(f"synth2: {sum(targets.values()):,} messages in {len(jobs)} round-0 calls (no test text in any prompt)")
+    if a.dry_run:
+        return
+    embed = cached_embedder(wd / "embeddings.pkl", _embed)
+    syn = build_synthetic(wf, wd / "synth_batches", LLMClient(), SYNTH_SYSTEM, embed=embed, targets=targets,
+                          pools=pools, workers=a.workers)
+    raw = collect_synth(wd / "synth_batches")
+    raw.to_csv(wd / "synthetic_raw.csv", index=False)
+    syn.to_csv(wd / "synthetic.csv", index=False)
+    got, made = syn["category"].value_counts(), raw["category"].value_counts()
+    print("class: target / generated / kept")
+    for c, n in targets.items():
+        print(f"  {c}: {n:,} / {made.get(c, 0):,} / {got.get(c, 0):,}" + ("  SHORT" if got.get(c, 0) < n else ""))
+
+
+def _cmd_check2(a, wd):
+    """Re-label every synthetic message with the v1 labelling prompt, no context."""
+    work = _load_work(wd)
+    system = _write_prompts(work, wd, control=True)           # control = no corrections = the v1 prompt
+    syn = pd.read_csv(wd / "synthetic.csv").sample(frac=1, random_state=37)
+    syn["context"] = ""
+    jobs = label_jobs(syn, "s_", with_context=False)
+    print(f"check2: {len(syn):,} synthetic messages in {len(jobs)} batches")
+    if not a.dry_run:
+        run_batches(jobs, wd / "synth_check_batches", LLMClient(), system, LABEL_SCHEMA, check_labels, workers=a.workers)
+
+
+def _cmd_synthreport(a, wd):
+    wf = _final_work(wd)
+    targets = synth_targets(wf)
+    syn = pd.read_csv(wd / "synthetic.csv")
+    raw = pd.read_csv(wd / "synthetic_raw.csv")
+    pred = read_labels(wd / "synth_check_batches")
+    table = pd.DataFrame({"Categoría": CLASSES, "objetivo": [targets[c] for c in CLASSES],
+                          "generados": [int((raw["category"] == c).sum()) for c in CLASSES],
+                          "conservados": [int((syn["category"] == c).sum()) for c in CLASSES]})
+    path = datasets.DATASETS_DIR / "labels" / SYNTH_XLSX
+    write_synthetic_workbook(path, syn, pred, table)
+    flagged = sum(pred.get(i) not in (None, c) for i, c in enumerate(syn["category"]))
+    print(table.to_string(index=False))
+    print(f"{path.name}: {len(syn):,} rows · flagged Revisar = sí: {flagged:,} · not yet checked: {len(syn) - len(pred):,}")
+
+
 def main(argv=None) -> None:
     p = argparse.ArgumentParser(prog="python -m sami.llm_labels", description=__doc__.split("\n\n")[0])
-    p.add_argument("stage", choices=["prep", "pilot", "label", "synth", "check", "report", "table"])
+    p.add_argument("stage", choices=["prep", "pilot", "label", "synth", "check", "report", "table",
+                                     "corr", "baseline", "devcheck", "testcheck", "compare", "final",
+                                     "synth2", "check2", "synthreport"])
+    p.add_argument("--version", default="v1", help="work folder version: v1 = llm_haiku, v2 = llm_haiku_v2")
+    p.add_argument("--no-hard", action="store_true", help="devcheck: random corrected few-shots, not hard-first")
+    p.add_argument("--only", help="synth2: generate just this class (the small-class checkpoint)")
+    p.add_argument("--tag", default="r1", help="testcheck: name of the run, so repeats do not overwrite")
+    p.add_argument("--control", action="store_true", help="devcheck/testcheck: the v1 examples (no corrections) with the current rules")
+    p.add_argument("--corrections", type=Path,
+                   default=datasets.DATASETS_DIR / "labels" / "messages_category_revised_haiku.xlsx",
+                   help="reviewed workbook read by `corr`")
     p.add_argument("--dry-run", action="store_true", help="build prompts and job lists, call no model")
     p.add_argument("--workers", type=int, default=WORKERS, help="parallel model calls (default %(default)s)")
-    p.add_argument("-n", type=int, default=300, help="pilot size (half blind test, half dev)")
+    p.add_argument("-n", type=int, default=300, help="pilot size (half blind test, half dev); agreed rows in devcheck")
     a = p.parse_args(argv)
-    wd = work_dir()
+    wd = work_dir(a.version)
     {"prep": _cmd_prep, "pilot": _cmd_pilot, "label": _cmd_label, "synth": _cmd_synth,
-     "check": _cmd_check, "report": _cmd_report, "table": _cmd_table}[a.stage](a, wd)
+     "check": _cmd_check, "report": _cmd_report, "table": _cmd_table, "corr": _cmd_corr,
+     "baseline": _cmd_baseline, "devcheck": _cmd_devcheck, "testcheck": _cmd_testcheck,
+     "compare": _cmd_compare, "final": _cmd_final, "synth2": _cmd_synth2,
+     "check2": _cmd_check2, "synthreport": _cmd_synthreport}[a.stage](a, wd)
 
 
 if __name__ == "__main__":
