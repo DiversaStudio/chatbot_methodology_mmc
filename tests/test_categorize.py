@@ -218,3 +218,55 @@ def test_embeddings_with_memo_embeds_only_what_the_memo_lacks(tmp_path, monkeypa
     assert calls == [["b"]] and e[0, 0] == 1.0 and e[1, 0] == 2.0 and (e[0] == e[2]).all()
     cz.embeddings_with_memo(["a", "b", "a"], cache, memo)                       # cached: no new call
     assert len(calls) == 1
+
+
+# ---- the pipeline's use of the classifier -------------------------------------------------------------------------
+
+def _msgs(rows):
+    return pd.DataFrame(rows, columns=["user_id", "ts", "seq", "label"])
+
+
+def test_dominant_category_is_the_most_frequent_topic_and_ignores_ninguna():
+    m = _msgs([("a", 1, 0, cz.NONE), ("a", 2, 1, cz.NONE), ("a", 3, 2, "Empleabilidad"), ("a", 4, 3, "Emprendimiento"),
+               ("a", 5, 4, "Emprendimiento")])
+    out = cz.dominant_categories(m, m["label"])
+    assert out.loc["a", "dominant"] == "Emprendimiento" and out.loc["a", "n_categories"] == 2 and not out.loc["a", "tied"]
+
+
+def test_dominant_category_tie_goes_to_the_latest_message():
+    m = _msgs([("a", 1, 0, "Empleabilidad"), ("a", 2, 1, "Emprendimiento"), ("a", 3, 2, "Empleabilidad"),
+               ("a", 4, 3, "Emprendimiento")])
+    out = cz.dominant_categories(m.sample(frac=1, random_state=0), m.sample(frac=1, random_state=0)["label"])
+    assert out.loc["a", "dominant"] == "Emprendimiento" and out.loc["a", "tied"]           # the order of rows does not matter
+
+
+def test_a_user_with_only_ninguna_has_no_dominant_category():
+    m = _msgs([("a", 1, 0, cz.NONE), ("b", 1, 0, "Empleabilidad")])
+    out = cz.dominant_categories(m, m["label"])
+    assert pd.isna(out.loc["a", "dominant"]) and out.loc["a", "n_categories"] == 0 and out.loc["b", "dominant"] == "Empleabilidad"
+
+
+def test_category_ids_are_stable_and_cover_the_topics_only():
+    assert list(cz.CATEGORY_IDS.values()) == list(range(len(cz.CATEGORIES))) and cz.NONE not in cz.CATEGORY_IDS
+    assert cz.CATEGORY_IDS["Asistencia Humanitaria"] == 0           # moving a category would recolour the dashboard
+
+
+def test_resolve_categories_names_every_topic_with_its_marker():
+    terms = {0: pd.Series({"ayuda": 0.5, "comida": 0.2}), 1: pd.Series(dtype=float)}
+    r = cz.resolve_categories(terms)
+    assert set(r) == set(cz.CATEGORY_IDS.values()) and r[0]["marker"] == "ayuda" and r[1]["marker"] == ""
+    assert r[0]["name"] == "Asistencia Humanitaria" and not any(v["provisional"] for v in r.values())
+
+
+def test_category_colours_are_one_per_category_distinct_and_readable_on_white():
+    from sami import theme
+
+    cols = theme.CATEGORY_COLORS
+    assert len(cols) == len(cz.CATEGORIES) and len(set(cols)) == len(cols)
+
+    def luminance(h):
+        c = np.array([int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+        c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+    assert all(1.05 / (luminance(c) + 0.05) >= 1.9 for c in cols)         # no near-white mark; the lightest is the brand's own light teal (1.97)

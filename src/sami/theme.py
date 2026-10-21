@@ -69,6 +69,25 @@ DEEP    = NAVY                                      # flags, secondary series
 # NOT because k is seven. k is chosen by the stability rule and may exceed it.
 CLUSTER_IDENTITY = CAT[:CAT_VALIDATED]
 
+# Fixed identity colour of each message-classifier category, indexed by `categorize.CATEGORY_IDS` (the position
+# in `categorize.CATEGORIES`), so a category keeps its colour in every run and `dim_cluster[color_hex]` can be
+# bound by name. Ten categories exceed the seven the brand palette separates, so the first seven are the brand
+# hues (the pale AQUA/MIST slots, ~1.1-1.5:1 against white, are left out) and the last three are off-brand but
+# readable: amber, slate and olive. Checked against white (contrast about 2:1 or better; the lightest is the brand's own light teal, 1.97) and for the closest pair (CIE76 dE
+# >= 17, teal vs its own tints). Still direct-label the marks: colour alone will not carry ten categories.
+CATEGORY_COLORS = [
+    TEAL,       # 0 Asistencia Humanitaria
+    WINE,       # 1 Acceso a documentos y regularización
+    "#62c8ce",  # 2 Empleabilidad
+    "#a3557a",  # 3 Emprendimiento
+    NAVY,       # 4 Entidades del Estado
+    "#c78fa4",  # 5 Acceso a la nacionalidad
+    "#00707a",  # 6 Acceso a la protección internacional y asilo
+    "#c8892f",  # 7 Riesgos de protección
+    "#6b7a99",  # 8 Recomendaciones para un viaje seguro
+    "#8a9a2e",  # 9 Acceso a servicios del Estado
+]
+
 # CAT slot 8. Reserved for the cluster_id = -1 "No conversation text" bucket and
 # never handed to a real cluster: it is the grey the retired `unclassified`
 # category used, so the "no information" reading carries over for anyone who

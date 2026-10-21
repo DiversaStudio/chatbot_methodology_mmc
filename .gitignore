@@ -62,3 +62,6 @@ datasets/**/*.csv
 datasets/labels/llm_haiku*/
 !datasets/README.md
 !datasets/**/.gitkeep
+
+# Regenerable run output: pipeline logs, trial exports, embedding caches. Never tracked.
+outputs/

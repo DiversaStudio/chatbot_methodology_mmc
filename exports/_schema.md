@@ -7,6 +7,18 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
+**`schema_version = "23"`** (bumped from `"22"`): **the message classifier's tables are added NEXT TO the
+k-means ones; nothing existing changes meaning.** "Cluster" is the unsupervised grouping of users
+(`dim_cluster`, `cluster_id`, `dim_subcluster`, `nlp_umap`, ...), unchanged. "Category" is the client's 10 topics,
+assigned message by message by a supervised classifier (RBF SVM on the pipeline's own e5-large embeddings,
+trained on the client's corrected labels plus Haiku-written synthetic messages at half weight; accuracy 83.7%,
+macro-F1 0.772 on the frozen test, re-measured every run in `meta_run`). New tables: `dim_category`,
+`nlp_category_terms`, `nlp_category_voices`, `agg_weekly_category`, `agg_priority_matrix_category`
+(section "Message classifier" below). New columns: `dim_user` gains `category_id`, `n_categories`,
+`category_tied`; `fact_message` gains `message_category`, `message_category_id`, `category_id`. `meta_run`
+gains the `classifier_*` keys. A Power BI report built on schema 22 refreshes without any edit; the report
+decides when to expose a Cluster / Classification option.
+
 **`schema_version = "22"`** (bumped from `"21"`): `dim_user` gains
 `drop_off_question` — which registration question an abandoned registration
 stopped at. The platform's `Drop-off Question` field was previously discarded as
@@ -338,6 +350,7 @@ of their earliest record — the survey they actually answered.
 | `intends_to_stay` | boolean; no onward destination stated, or destination is Colombia |
 | `cluster_id` | the user's discovered cluster (the pipeline's categorization axis — see `dim_cluster` below). **Never null**: users with no conversation text are assigned `cluster_id = -1`, the "No conversation text" bucket, rather than left blank |
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The user's subcategory within `cluster_id` — see `dim_subcluster`. **Never null**: no-text users take `subcluster_id = -10`; a user whose parent didn't split still gets that parent's single child row (`subcluster_id = cluster_id * 10`). `subcluster_id` is composite and run-scoped like `cluster_id` — never key a colour or a report object on it. `subcluster_name` is duplicated here from `dim_subcluster` on purpose, so a Power BI visual sorting on this name by `dim_subcluster[display_order]` doesn't need a cross-table sort-by-column, which Power BI does not support |
+| `category_id`, `n_categories`, `category_tied` | **New in schema v23.** The message classifier's view of the user (see "Message classifier"): `category_id` is the topic the user wrote about most (the most frequent non-"Ninguna" class over their messages; a tie goes to the latest message among the tied), joins to `dim_category[category_id]`; **-1** = no topic (no message, or only "Ninguna"). `n_categories` is how many distinct topics they wrote about (0 for -1; 2 or more flags a multi-topic user); `category_tied` is true when the top count was shared. Beside `cluster_id`, not instead of it |
 | `language` | interface language selected (`es` / `en`, no `fr` observed). **New in schema v3, v2-only** — the language selector did not exist in v1 |
 | `registration_status` | raw pass-through of the platform's `Registration Status` field (`Completed` / `Abandoned` / `In Progress`, …). **New in schema v3, v2-only** |
 | `attempts` | number of registration attempts. **New in schema v3, v2-only**. Beware: sparse (305 of 1,660 records filled) and contains at least one impossible value (`313`), so clean it before averaging |
@@ -385,6 +398,7 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `emotion_display` | Splits the `neutral` bucket by the row's own `sentiment_label` (`preocupación`/`satisfacción`/`neutral`) so a plain-Q&A majority isn't one dead category — see `export.OTHERS_SENTIMENT_DISPLAY`. Any non-neutral `emotion_label` passes through unchanged |
 | `emotion_order` (schema v21) | `export.EMOTION_DISPLAY_ORDER[emotion_display]` — the dashboard's requested reading order (`Joy`=0 … `Anger`=6), duplicated onto this table so a Power BI "Sort by column" on `emotion_display` has a same-table sort key to point at |
 | `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
+| `message_category`, `message_category_id`, `category_id` | **New in schema v23.** The classifier's output for this message: `message_category` is the message's OWN class (one of the client's 10 categories or "Ninguna" = no topic of its own, e.g. a greeting), `message_category_id` its `dim_category[category_id]` (**-1** for "Ninguna"), `category_id` the AUTHOR's category (same value as `dim_user[category_id]`, -1 = no topic). Beside `cluster_id`, which stays the author's k-means cluster. Never null once a classifier ran |
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The message-owning user's subcategory (see `dim_user[subcluster_id]` / `dim_subcluster`); **never null**, same `-10` / composite-id caveats as `dim_user`. `subcluster_name` is duplicated here for the same sort-by-column reason described on `dim_user` |
 
 **Text-free by design.** `fact_message` carries **no** message text (dashboard spec §7 — "no message text in the model"). Verbatim quotes live in `nlp_voices`; word-cloud terms in `nlp_cluster_terms`; neither needs raw text.
@@ -992,6 +1006,54 @@ from `fact_message.sentiment_label` × `cluster_id` instead.*
 
 ---
 
+## Message classifier (new in schema v23)
+
+The client's 10 categories assigned by `categorize` (see the module docstring), next to the k-means tables.
+**Vocabulary:** *cluster* = unsupervised user grouping (everything above); *category* = the classifier's topic.
+The ids are fixed: `category_id` is the position in `categorize.CATEGORIES` (0 Asistencia Humanitaria, 1 Acceso a
+documentos y regularización, 2 Empleabilidad, 3 Emprendimiento, 4 Entidades del Estado, 5 Acceso a la nacionalidad,
+6 Acceso a la protección internacional y asilo, 7 Riesgos de protección, 8 Recomendaciones para un viaje seguro,
+9 Acceso a servicios del Estado), the same in every run, so a colour or a report object can be bound to it.
+"Ninguna" (a message with no topic of its own) is not a category of a user: it only appears as
+`fact_message[message_category]`.
+
+**⚠️ Small categories.** Several categories have few users (15 to 27 on the 2026-09 data: Riesgos de protección, Viaje seguro, Entidades del Estado). Terms, rates and
+colours for them are indicative; the dashboard should say so.
+
+### `dim_category` — 1 row per category that has users, plus the "No topic" row
+`dim_cluster`'s counterpart. Cols: `category_id`, `name` (the client's name; `-1` = "No topic"), `description`,
+`top_terms` (comma-joined c-TF-IDF terms of the messages classified into the category), `n_users`, `n_messages`,
+`median_age` (empty for `-1`), `display_order` (= `category_id`; `-1` last), `color_hex`, `is_real_category`,
+`name_is_provisional` (always False: the names are the client's; kept for the same shape as `dim_cluster`).
+`color_hex` is **fixed per category** (`theme.CATEGORY_COLORS`: ten colours, the lightest about 2:1 against white;
+colour alone does not separate ten categories, so direct-label the marks). `n_users` counts users by their
+`category_id`; `n_messages` the messages of those users (not the messages classified into the category: for that
+use `fact_message[message_category_id]`).
+
+### `nlp_category_terms` — 1 row per (category, user, term)
+`nlp_cluster_terms`' counterpart. Cols: `category_id`, `user_id`, `term`, `weight` (the user's occurrences of the
+term in messages classified into the category, times the term's fixed corpus c-TF-IDF weight). Relates to
+`dim_user` on `user_id`.
+
+### `nlp_category_voices` — 1 row per category
+`nlp_voices`' counterpart. Cols: `category_id`, `name`, `matched_term`, `message`, `user_id`: one quoted message
+per category, taken from the messages classified into it.
+
+### `agg_weekly_category` — week × category × user
+`agg_weekly_cluster`'s counterpart. Cols: `week`, `category_id`, `user_id`, `n`. **Each message counts under ITS
+OWN category** (not the author's); messages with no topic ("Ninguna") are left out.
+
+### `agg_priority_matrix_category` — 1 row per user that has a category
+`agg_priority_matrix`'s counterpart, with a different Met / Unmet rule. Cols: `category_id` (the user's), `user_id`,
+`messages` (the user's total), `users` (always 1), `is_unmet`, `has_negative_tone`, `is_repeat_asker`,
+`has_poor_survey`, `name`, `top_terms`, `color_hex`. **A user is Unmet (`is_unmet = 1`) when they show at least
+one of three signals:** a message read as negative, `dim_user[is_repeat_asker]`, or a MEAL response rated 2 or lower
+("Not useful" / "Slightly useful"). The share of Unmet users of a category is Average(`is_unmet`). This replaces
+the z-score of the k-means matrix, which changed from 38% to 25% Unmet just by changing the category set.
+**Known limit:** "at least one negative message" favours users who write a lot (Unmet 19% for one-message users,
+81% for five or more), so the figure partly measures how much someone writes. Users with no category are not in the
+table, so Met + Unmet is the users that have a topic, not all users with text.
+
 ## Meta / parity
 
 ### `meta_run` — key/value (29 rows)
@@ -1007,6 +1069,13 @@ The run's identity card. Two columns, `key` and `value`, one row per key:
 pipeline has no partial-run mode, all 29 keys are always present. `chosen_k` /
 `n_provisional_names` are new in schema v5 — see the `dim_cluster` note above
 for what they mean.
+
+**New in schema v23, the classifier behind the `category_*` tables:** `classifier` (text), `classifier_train_rows`
+(30,248), `classifier_synthetic_weight` (0.5), `classifier_test_accuracy` and `classifier_test_macro_f1`
+(re-measured on the frozen test against the final labels on every run: 0.837 / 0.772 expected),
+`classifier_test_n` (566), `n_categories` (categories that have users), `users_with_category`,
+`users_tied_categories`, `users_only_ninguna`. These come from `categorize`, not from the k-means pass, so a
+future run could carry only one of the two sets.
 
 **New in schema v7, from the entity-dictionary registry:**
 

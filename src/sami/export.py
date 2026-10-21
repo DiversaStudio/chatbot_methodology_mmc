@@ -23,6 +23,11 @@ from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters, redact
 # count an intentional, visible thing. Same reasoning as NO_RESPONSE_EN below.
 NO_CLUSTER_ID = -1
 NO_CLUSTER_NAME = "No conversation text"
+#: What the -1 row of `dim_category` holds: the classifier's counterpart of the "no text" bucket. It also takes
+#: users whose only messages are "Ninguna" (greetings, thanks...), who have no topic to be filed under.
+NO_CATEGORY_DESCRIPTION = ("Users with no message, or whose messages carry no topic (greetings, thanks, "
+                           "bare words)")
+NO_CATEGORY_NAME = "No topic"
 
 # EN display for the emergent-need probes (mirrors NB3).
 PROBE_EN = {
@@ -158,11 +163,19 @@ def build_dim_city() -> pd.DataFrame:
 
 def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
                    lab: pd.Series, *, sub_lab: pd.Series,
-                   sub_names: dict) -> pd.DataFrame:
+                   sub_names: dict,
+                   categories: pd.DataFrame | None = None) -> pd.DataFrame:
     """One row per user. `lab` (Series indexed by user_id -> cluster_id) fills
     `cluster_id`; users absent from it — those with no message text to cluster —
     get NO_CLUSTER_ID. `sub_lab` does the same one level down, falling back to
-    NO_SUBCLUSTER_ID, and `sub_names` resolves the id to its display name."""
+    NO_SUBCLUSTER_ID, and `sub_names` resolves the id to its display name.
+
+    `categories` (schema v23; indexed by user_id, columns `category_id`,
+    `n_categories`, `tied` -- `categorize.dominant_categories` mapped to ids) adds the
+    message classifier's view of the user NEXT TO the k-means one: `category_id`
+    (-1 = no topic), how many distinct topics they wrote about and whether their top
+    topic was a tie. Without it the three columns are null, so a caller with no
+    classifier output still gets the same columns."""
     r = responses.sort_values("ts", kind="stable")
     # Derived before the groupby so 'first' picks the version of the user's
     # earliest record — a user who appears in both cohorts is counted as v1,
@@ -219,6 +232,14 @@ def build_dim_user(responses: pd.DataFrame, messages: pd.DataFrame,
                             .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
     agg["subcluster_name"] = agg["subcluster_id"].map(sub_names).fillna(
         subclusters.NO_SUBCLUSTER_NAME)
+    if categories is not None:
+        idx = agg.index.to_series()
+        agg["category_id"] = idx.map(categories["category_id"].to_dict()).fillna(NO_CLUSTER_ID).astype(int)
+        agg["n_categories"] = idx.map(categories["n_categories"].to_dict()).fillna(0).astype(int)
+        agg["category_tied"] = idx.map(categories["tied"].to_dict()).fillna(False).astype(bool)
+    else:
+        for col, dtype in (("category_id", "Int64"), ("n_categories", "Int64"), ("category_tied", "boolean")):
+            agg[col] = pd.array([pd.NA] * len(agg), dtype=dtype)
     return to_english_user(agg.reset_index())
 
 
@@ -264,7 +285,16 @@ def _emotion_display(emotion_label, sentiment_label) -> str:
 
 def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" = None,
                        *, lab: pd.Series, sub_lab: pd.Series,
-                       sub_names: dict, emotion: "pd.DataFrame | None" = None) -> pd.DataFrame:
+                       sub_names: dict, emotion: pd.DataFrame | None = None,
+                       message_category: pd.Series | None = None,
+                       category_lab: pd.Series | None = None,
+                       category_ids: dict | None = None) -> pd.DataFrame:
+    """One row per message. `cluster_id` is the AUTHOR's k-means cluster (see `lab`).
+
+    Schema v23 adds the message classifier's columns next to it, all null when no classifier output is given:
+    `message_category` (the message's own class, a name of `categorize.CLASSES` incl. "Ninguna"; index-aligned
+    to `messages`), `message_category_id` (its `category_ids` id, -1 for "Ninguna") and `category_id` (the
+    AUTHOR's category, from `category_lab`: user_id -> id, -1 = no topic)."""
     f = messages.copy()
     f["message_id"] = [message_key(u, s, m) for u, s, m
                        in zip(f["user_id"], f["seq"], f["message"])]
@@ -290,6 +320,15 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
                           .fillna(subclusters.NO_SUBCLUSTER_ID).astype(int))
     f["subcluster_name"] = f["subcluster_id"].map(sub_names).fillna(
         subclusters.NO_SUBCLUSTER_NAME)
+    if message_category is not None:
+        f["message_category"] = message_category.loc[messages.index].values
+        f["message_category_id"] = f["message_category"].map(category_ids or {}).fillna(NO_CLUSTER_ID).astype(int)
+        f["category_id"] = (f["user_id"].map(category_lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
+                            if category_lab is not None else pd.NA)
+    else:
+        f["message_category"] = pd.NA
+        f["message_category_id"] = pd.array([pd.NA] * len(f), dtype="Int64")
+        f["category_id"] = pd.array([pd.NA] * len(f), dtype="Int64")
     _translate(f, "city_canon", _mapper(canon.OTHER_BUCKET_EN))
     return f
 
@@ -911,7 +950,10 @@ def _user_unmet_need_axes(real, fact_meal, dim_user, pm,
     return pd.concat(axes, axis=1).mean(axis=1)
 
 
-def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
+def build_dim_cluster(prof: pd.DataFrame, resolved: dict,
+                      identity: dict | None = None,
+                      no_text_description: str = "",
+                      no_text_name: str = "") -> pd.DataFrame:
     """The dashboard's one categorisation dimension.
 
     `resolved` is `taxonomy.resolve_cluster_names`' output:
@@ -922,6 +964,11 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
     an id makes the dashboard re-colour itself on every re-cluster. Rank by
     n_users is stable in the way that matters: the biggest cluster keeps the
     primary brand hue. Ties break on cluster_id so the result is deterministic.
+
+    `identity` ({cluster_id: (display_order, color_hex)}) replaces the size rank when the clusters are
+    fixed categories (the message classifier, via `build_dim_category`): their id, order and colour are then
+    the same in every run, so the dashboard can bind a colour to a category name. `no_text_description` and
+    `no_text_name` label the -1 row (defaults: the k-means wording).
     """
     d = prof.reset_index().rename(columns={"archetype": "cluster_id"})
     d["name"] = d["cluster_id"].map(lambda c: resolved[c]["name"])
@@ -935,19 +982,24 @@ def build_dim_cluster(prof: pd.DataFrame, resolved: dict) -> pd.DataFrame:
 
     order = (d.sort_values(["n_users", "cluster_id"], ascending=[False, True],
                            kind="stable")["cluster_id"].tolist())
-    rank = {cid: i for i, cid in enumerate(order)}
-    d["display_order"] = d["cluster_id"].map(rank)
-    palette = theme.cluster_colors(len(order))   # warns past the validated ceiling
-    d["color_hex"] = d["display_order"].map(lambda i: palette[i])
+    if identity is None:
+        rank = {cid: i for i, cid in enumerate(order)}
+        d["display_order"] = d["cluster_id"].map(rank)
+        palette = theme.cluster_colors(len(order))   # warns past the validated ceiling
+        d["color_hex"] = d["display_order"].map(lambda i: palette[i])
+    else:
+        d["display_order"] = d["cluster_id"].map(lambda c: identity[c][0])
+        d["color_hex"] = d["cluster_id"].map(lambda c: identity[c][1])
 
     # The no-text bucket, appended last so it sorts to the end of every legend
     # and slicer. is_real_cluster is the flag the dashboard filters on.
     d = pd.concat([d, pd.DataFrame([{
-        "cluster_id": NO_CLUSTER_ID, "name": NO_CLUSTER_NAME, "top_terms": "",
+        "cluster_id": NO_CLUSTER_ID, "name": no_text_name or NO_CLUSTER_NAME, "top_terms": "",
         "n_users": pd.NA, "n_messages": pd.NA, "median_age": pd.NA,
-        "display_order": len(order), "color_hex": theme.NO_TEXT_COLOR,
+        "display_order": (max(d["display_order"]) + 1 if identity is not None else len(order)),
+        "color_hex": theme.NO_TEXT_COLOR,
         "is_real_cluster": False, "name_is_provisional": False,
-        "description": "",
+        "description": no_text_description,
     }])], ignore_index=True)
 
     cols = ["cluster_id", "name", "description", "top_terms", "n_users",
@@ -1252,7 +1304,7 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
         # rather than dropping to an arbitrary message, and only gives up when
         # nothing distinctive is quotable.
         rest = [t for t in _terms(cid) if t != meta["marker"]]
-        candidates = ([meta["marker"]]
+        candidates = (([meta["marker"]] if meta["marker"] else [])
                       + [t for t in rest if t not in shared]
                       + [t for t in rest if t in shared])
 
@@ -1275,6 +1327,84 @@ def build_nlp_voices(msgs_lab: pd.DataFrame, resolved: dict,
                      "matched_term": matched, "message": message,
                      "user_id": quote_user})
     return pd.DataFrame(rows)
+
+
+# ---- The message classifier's tables (schema v23) ------------------------------------------------------------------
+#
+# They sit NEXT TO the k-means tables (`dim_cluster`, `nlp_cluster_terms`, ...), which are unchanged: "cluster" is
+# the unsupervised grouping, "category" the client's 10 topics assigned by the classifier. A user's category is
+# the topic they wrote about most (`categorize.dominant_categories`); a message keeps its own as
+# `fact_message[message_category]`.
+
+def build_dim_category(prof: pd.DataFrame, resolved: dict, identity: dict) -> pd.DataFrame:
+    """`dim_cluster`'s counterpart for the classifier: one row per category that has users, plus the -1 row.
+
+    `prof` is `clusters.archetype_profiles` over the users' categories, `resolved` is
+    `categorize.resolve_categories`, `identity` maps category_id -> (display_order, color_hex). The -1 row
+    ("No topic") takes the users with no message or only "Ninguna" ones. `name_is_provisional` is always False
+    (the names are the client's); the column stays so the table has the same shape as `dim_cluster`.
+    """
+    d = build_dim_cluster(prof, resolved, identity=identity, no_text_description=NO_CATEGORY_DESCRIPTION,
+                          no_text_name=NO_CATEGORY_NAME)
+    return d.rename(columns={"cluster_id": "category_id", "is_real_cluster": "is_real_category"})
+
+
+def build_nlp_category_terms(terms: dict, msgs_cat: pd.DataFrame) -> pd.DataFrame:
+    """`nlp_cluster_terms`' counterpart: (category_id, user_id, term, weight). `msgs_cat` has one row per
+    message that has a topic, with its own category id in `archetype`."""
+    return _terms_frame_by_user(terms, "category_id", msgs_cat, "archetype")
+
+
+def build_nlp_category_voices(msgs_cat: pd.DataFrame, resolved: dict, terms_by_category: dict | None = None) -> pd.DataFrame:
+    """`nlp_voices`' counterpart: one quoted message per category, from the messages classified into it."""
+    return build_nlp_voices(msgs_cat, resolved, terms_by_cluster=terms_by_category).rename(
+        columns={"cluster_id": "category_id"})
+
+
+def build_agg_weekly_category(messages: pd.DataFrame, message_category_id: pd.Series) -> pd.DataFrame:
+    """`agg_weekly_cluster`'s counterpart: one row per (week, category, user), counting each message under ITS
+    OWN category. Messages with no topic ("Ninguna", id -1) are left out.
+    """
+    m = messages.assign(category_id=message_category_id.loc[messages.index].to_numpy()).dropna(subset=["ts"])
+    m = m[m["category_id"] != NO_CLUSTER_ID].copy()
+    m["week"] = m["ts"].dt.to_period("W-SUN").dt.start_time
+    return (m.groupby(["week", "category_id", "user_id"]).size().reset_index(name="n"))
+
+
+def build_agg_priority_matrix_category(messages: pd.DataFrame, sentiment: pd.DataFrame, fact_meal: pd.DataFrame,
+                                       dim_user: pd.DataFrame, dim_category: pd.DataFrame) -> pd.DataFrame:
+    """`agg_priority_matrix`'s counterpart for the classifier: one row per user that has a category.
+
+    Met / Unmet is read from the user's OWN signals, not from a z-score against the other categories (that one
+    moved from 38% to 25% Unmet just by changing the category set). A user is Unmet (`is_unmet = 1`) when they
+    show at least one of:
+
+    - `has_negative_tone`: at least one message read as negative;
+    - `is_repeat_asker`: `dim_user.is_repeat_asker`;
+    - `has_poor_survey`: a MEAL response rated 2 or lower ("Not useful" / "Slightly useful").
+
+    The share of Unmet users of a category is Average(`is_unmet`). KNOWN LIMIT: "at least one negative message"
+    favours users who write a lot (Unmet 19% for one-message users, 81% for five or more), so the figure
+    partly measures how much someone writes. Users with no category (no message, or only "Ninguna") are not in
+    the table, so Met + Unmet is the users that have a topic, not all users with text.
+    """
+    neg = (sentiment.loc[messages.index, "label"] == "negative").groupby(messages["user_id"]).any()
+    poor = fact_meal.groupby("user_id")["rating_num"].min().le(2)
+    du = dim_user[dim_user["category_id"] != NO_CLUSTER_ID].set_index("user_id")
+    out = pd.DataFrame({"category_id": du["category_id"].astype(int)})
+    out["messages"] = messages.groupby("user_id").size().reindex(out.index).fillna(0).astype(int)
+    out["users"] = 1
+    out["has_negative_tone"] = neg.reindex(out.index).fillna(False).astype(int)
+    out["is_repeat_asker"] = du["is_repeat_asker"].astype(bool).astype(int)
+    out["has_poor_survey"] = poor.reindex(out.index).fillna(False).astype(int)
+    out["is_unmet"] = out[["has_negative_tone", "is_repeat_asker", "has_poor_survey"]].max(axis=1)
+    cat = dim_category.set_index("category_id")
+    out["name"] = out["category_id"].map(cat["name"])
+    out["top_terms"] = out["category_id"].map(cat["top_terms"])
+    out["color_hex"] = out["category_id"].map(cat["color_hex"])
+    out = out.reset_index().rename(columns={"index": "user_id"})
+    return out[["category_id", "user_id", "messages", "users", "is_unmet", "has_negative_tone", "is_repeat_asker",
+                "has_poor_survey", "name", "top_terms", "color_hex"]]
 
 
 # Version of the DASHBOARD, bumped by hand when the report's visuals or fields
@@ -1442,7 +1572,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "22") -> pd.DataFrame:
+                   schema_version: str = "23") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

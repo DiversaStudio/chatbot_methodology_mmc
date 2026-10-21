@@ -116,6 +116,10 @@ POLICY: dict[str, Policy] = {
     "cluster_id": Policy.POOLABLE,
     "subcluster_id": Policy.POOLABLE,
     "subcluster_name": Policy.POOLABLE,
+    # Derived from the user's messages by the message classifier, like cluster_id above.
+    "category_id": Policy.POOLABLE,
+    "n_categories": Policy.POOLABLE,
+    "category_tied": Policy.POOLABLE,
     # Session time is timed by the PLATFORM, not asked by either questionnaire,
     # so the registration cohort does not change how it is measured — and the
     # only timestamps the loader trusts are the v2-platform ISO ones, which means

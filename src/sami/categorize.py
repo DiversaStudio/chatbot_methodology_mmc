@@ -292,3 +292,152 @@ def confidence_gap(model, X) -> np.ndarray:
     """
     s = np.sort(model.decision_function(X), axis=1)
     return s[:, -1] - s[:, -2]
+
+
+# ---- the pipeline's use of the chosen classifier ---------------------------------------------------
+#
+# Notebooks 5 and 6 chose the setting below. `run_pipeline.py` fits it once per run (about two minutes
+# on CPU), labels every message and gives each user the category they wrote about most.
+
+#: Stable `dim_cluster.cluster_id` of each topic: the position in `CATEGORIES`, so the id (and the colour
+#: the dashboard binds to it) does not change between runs. "Ninguna" has no id: it is never a user's category.
+CATEGORY_IDS = {c: i for i, c in enumerate(CATEGORIES)}
+
+FINAL_FILE = "messages_category_haiku_final.xlsx"     # Haiku's labels with the human corrections on top
+SYNTH_MEMO = "llm_haiku_synth/embeddings.pkl"          # vectors computed while the synthetic set was deduplicated
+
+#: The pipeline's setting: Corrected + all synthetic messages, the synthetic ones at HALF weight, RBF SVM,
+#: balanced classes. Notebook 6 measured it on the frozen test (final labels) at accuracy 83.7%, macro-F1 0.772,
+#: against 83.2% / 0.769 at full weight. That gap is inside the noise (95% interval of the accuracy difference
+#: -0.4 to +1.4 points, better in 63% of resamples) and the notebook's own adoption rule did not select it; it
+#: was chosen by the team. `frozen_test_scores` re-measures it on every run.
+PRODUCTION_SYNTH_WEIGHT = 0.5
+PRODUCTION_SVC = {"C": 10, "class_weight": "balanced", "cache_size": 1000}
+
+
+def required_training_files() -> list[Path]:
+    """Files `fit_production` reads, so preflight can name what is missing before any work starts."""
+    d = datasets.DATASETS_DIR / "labels"
+    return [labels_path(), d / FINAL_FILE, synthetic_path()]
+
+
+class Production:
+    """The fitted classifier plus what it was trained on.
+
+    `train_texts` (normalised) lets a caller tell the messages the model has seen from the ones it has not.
+    """
+
+    def __init__(self, model, n_train: int, train_texts: set[str]):
+        self.model, self.n_train, self.train_texts = model, n_train, train_texts
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self.model.predict(X)
+
+
+def training_set(cache_dir: str | Path, *, include_test: bool = False):
+    """Corrected + all synthetic messages, rebuilt as in notebook 5: `(X, y, texts, weight)`.
+
+    `weight` is 1 for a Corrected message and `PRODUCTION_SYNTH_WEIGHT` for a synthetic one (`sample_weight`).
+
+    Corrected = the final labels (Haiku's with the human corrections) of the client's workbook, without the
+    frozen test messages, without the unreviewed Haiku/client disagreements, each distinct text once.
+    Synthetic = every synthetic message, labelled with the class it was written for. `include_test=True`
+    adds the frozen test messages back (a model for production use once its score has been measured).
+    """
+    cache_dir = Path(cache_dir)
+    labels_dir = datasets.DATASETS_DIR / "labels"
+    df = load_labeled()
+    X_all = cached_embeddings(df["text"].tolist(), cache_dir / "category_embeddings.npz")
+    test = frozen_split(df).to_numpy() & df["label"].notna().to_numpy()
+    test_texts = set(_norm(df["text"].iloc[np.flatnonzero(test)]))
+
+    final = pd.read_excel(labels_dir / FINAL_FILE, usecols=["id", "Etiqueta final", "Fuente final", "split"])
+    keep = final["Fuente final"] != "LLM, discrepa (sin revisar)"
+    if not include_test:
+        keep &= final["split"] != "prueba"
+    cand = final[keep]
+    norm = _norm(df["text"].iloc[cand["id"].to_numpy()])
+    if not include_test:
+        seen_in_test = norm.isin(test_texts).to_numpy()
+        cand, norm = cand[~seen_in_test], norm[~seen_in_test]
+    cand = cand[~norm.duplicated().to_numpy()]
+    rows = cand["id"].to_numpy()
+    unknown = set(cand["Etiqueta final"].dropna()) - set(CLASSES)
+    if unknown:
+        raise ValueError(f"unexpected labels in {FINAL_FILE}: {sorted(unknown)}")
+
+    syn = load_synthetic(all_rows=True)
+    X_syn = embeddings_with_memo(syn["text"].tolist(), cache_dir / "synthetic_embeddings.npz",
+                                 labels_dir / SYNTH_MEMO)
+    X = np.vstack([X_all[rows], X_syn])
+    y = np.r_[cand["Etiqueta final"].to_numpy(), syn["label"].to_numpy()]
+    texts = pd.concat([df["text"].iloc[rows], syn["text"]], ignore_index=True)
+    if not include_test and test_texts & set(_norm(texts)):
+        raise AssertionError("a frozen-test text is in the training set")
+    weight = np.r_[np.ones(len(rows)), np.full(len(syn), PRODUCTION_SYNTH_WEIGHT)]
+    return X, y, texts, weight
+
+
+def fit_production(cache_dir: str | Path, *, include_test: bool = False) -> Production:
+    from sklearn.svm import SVC
+
+    X, y, texts, weight = training_set(cache_dir, include_test=include_test)
+    return Production(SVC(**PRODUCTION_SVC).fit(X, y, sample_weight=weight), len(y), set(_norm(texts)))
+
+
+def frozen_test_scores(prod: Production, cache_dir: str | Path) -> dict:
+    """Accuracy and macro-F1 of `prod` on the frozen test messages, against the final labels (notebook 5/6's
+    scoring). Only meaningful for a model fitted with `include_test=False`; the messages without a final label
+    are left out, as in the notebooks."""
+    cache_dir = Path(cache_dir)
+    df = load_labeled()
+    X_all = cached_embeddings(df["text"].tolist(), cache_dir / "category_embeddings.npz")
+    test = np.flatnonzero(frozen_split(df).to_numpy() & df["label"].notna().to_numpy())
+    final = pd.read_excel(datasets.DATASETS_DIR / "labels" / FINAL_FILE, usecols=["id", "Etiqueta final"])
+    truth = df["row"].map(final.set_index("id")["Etiqueta final"]).to_numpy()[test]
+    has = pd.notna(truth)
+    sc = scores(truth[has], prod.predict(X_all[test])[has], list(CLASSES))
+    return {"accuracy": float(sc["accuracy"]), "macro_f1": float(sc["macro_f1"]), "n": int(has.sum())}
+
+
+def classify(prod: Production, texts, cache: str | Path) -> np.ndarray:
+    """One class of `CLASSES` per text. Embeddings are cached at `cache` (keyed on the texts)."""
+    texts = [str(t) for t in texts]
+    return prod.predict(cached_embeddings(texts, cache))
+
+
+def dominant_categories(messages: pd.DataFrame, labels) -> pd.DataFrame:
+    """One row per user: the topic they wrote about most.
+
+    `messages` has `user_id`, `ts` and `seq`; `labels` holds one class per message, in the same order.
+    `dominant` is the most frequent class other than "Ninguna". When several share the top count the
+    one of the user's most recent message among them wins (`tied` marks those users). A user with no
+    topic message gets `dominant = NaN`. `n_categories` counts the distinct topics the user wrote about.
+    """
+    m = pd.DataFrame({"user_id": messages["user_id"].to_numpy(), "ts": messages["ts"].to_numpy(),
+                      "seq": messages["seq"].to_numpy(), "label": np.asarray(labels)})
+    m = m.sort_values(["user_id", "ts", "seq"], kind="stable")
+    topic = m[m["label"] != NONE]
+    rows = []
+    for uid, g in topic.groupby("user_id", sort=True):
+        n = g["label"].value_counts()
+        best = set(n.index[n == n.iloc[0]])
+        rows.append((uid, g.loc[g["label"].isin(best), "label"].iloc[-1], len(n), len(best) > 1))
+    out = pd.DataFrame(rows, columns=["user_id", "dominant", "n_categories", "tied"]).set_index("user_id")
+    rest = pd.Index(m["user_id"].unique(), name="user_id").difference(out.index)
+    none = pd.DataFrame({"dominant": np.nan, "n_categories": 0, "tied": False}, index=rest)
+    return pd.concat([out, none]).sort_index()
+
+
+def resolve_categories(terms: dict) -> dict:
+    """`taxonomy.resolve_cluster_names`' shape for the fixed categories: `{id: {name, marker, description, provisional}}`.
+
+    `marker` is the category's strongest distinctive term, which `export.build_nlp_voices` searches first
+    when it picks the quoted message. No name is provisional: the names are the client's.
+    """
+    out = {}
+    for name, cid in CATEGORY_IDS.items():
+        top = list(terms[cid].index[:1]) if cid in terms and len(terms[cid]) else []
+        out[cid] = {"name": name, "marker": top[0] if top else "", "provisional": False,
+                    "description": f"MMC category (message classifier): {name}"}
+    return out
