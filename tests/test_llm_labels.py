@@ -163,7 +163,9 @@ def test_review_workbook_layout(tmp_path):
     hdr = [c.value for c in wb["Etiquetas"][1]]
     assert hdr[:5] == ["Contexto (3 mensajes previos)", "Mensaje", "Etiqueta cliente", "Etiqueta LLM", "Validación humana"]
     assert len(wb["Etiquetas"].data_validations.dataValidation) == 2
-    assert wb["Sinteticos"]["G2"].value == "sí"                       # the mismatch is listed first
+    ws = wb["Sinteticos"]                                             # grouped by Haiku's label, flagged first within a group
+    assert ws["C2"].value == "Emprendimiento" and ws["G2"].value is None
+    assert ws["C3"].value == ll.NONE and ws["G3"].value == "sí"       # target was Riesgos de protección: flagged
     assert ll.MODEL in wb["Guia_revision"]["A3"].value
 
 
