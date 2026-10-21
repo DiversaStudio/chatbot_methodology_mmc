@@ -66,6 +66,11 @@ POLICY: dict[str, Policy] = {
     "is_returning": Policy.V2_ONLY,
     "safety_alert": Policy.V2_ONLY,
     "escalation_status": Policy.V2_ONLY,
+    # Only the v2 instrument records which question an abandoned registration
+    # stopped at, so pooling it with v1 would compare against a column v1 never
+    # had. (In practice v1 shows ~0 abandonment, so this also keeps a v1 "0%"
+    # from being read as a real v1 figure.)
+    "drop_off_question": Policy.V2_ONLY,
     # --- identical question and options in both versions ---
     "user_id": Policy.POOLABLE,
     "ts": Policy.POOLABLE,

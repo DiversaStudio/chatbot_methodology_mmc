@@ -136,7 +136,15 @@ _RAW_RENAME = {"Minors": "minors",
                "Attempts": "attempts",
                "Is Returning User": "is_returning",
                "Safety Alert": "safety_alert",
-               "Escalation Status": "escalation_status"}
+               "Escalation Status": "escalation_status",
+               # Which registration question an abandoned registration stopped
+               # at. Sparse by nature -- only an abandoned v2 registration
+               # records one (32 of 1,660 records in the 2026-08 export), so a
+               # null here means "did not abandon", not "missing data". Values
+               # are question identifiers (consent, nationality, destination,
+               # time_in_city, gender, city, age), never user text, so this
+               # column needs no redaction pass.
+               "Drop-off Question": "drop_off_question"}
 
 
 def build_dim_city() -> pd.DataFrame:
@@ -1434,7 +1442,7 @@ def build_agg_bot_gap_entities(turns: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_meta_run(run_meta: dict, nlp_meta: "dict | None" = None,
-                   schema_version: str = "21") -> pd.DataFrame:
+                   schema_version: str = "22") -> pd.DataFrame:
     merged = {k: v for k, v in run_meta.items() if k != "checks"}
     merged["schema_version"] = schema_version
     merged["report_version"] = REPORT_VERSION

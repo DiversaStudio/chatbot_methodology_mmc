@@ -7,6 +7,14 @@ This is the Power BI data contract: the CSVs listed in `_manifest.csv`, generate
 .venv/Scripts/python.exe run_pipeline.py            # full run -> all tables, incl. GPU NLP
 ```
 
+**`schema_version = "22"`** (bumped from `"21"`): `dim_user` gains
+`drop_off_question` — which registration question an abandoned registration
+stopped at. The platform's `Drop-off Question` field was previously discarded as
+an ignored column (`schema.RESPONSES_IGNORED`); it is now read and carried
+through, so the "which question loses the most people" question is answerable
+from the export instead of only from the raw workbook. No other table changes.
+See `drop_off_question` below for the two limits on what it can show.
+
 **`schema_version = "21"`** (bumped from `"20"`, 2026-08-20): `fact_message` /
 `fact_message_sample` gain `emotion_order`, and `fact_conversation_full` gains
 `dominant_emotion_order` — a numeric sort key duplicated onto every table that
@@ -332,7 +340,8 @@ of their earliest record — the survey they actually answered.
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The user's subcategory within `cluster_id` — see `dim_subcluster`. **Never null**: no-text users take `subcluster_id = -10`; a user whose parent didn't split still gets that parent's single child row (`subcluster_id = cluster_id * 10`). `subcluster_id` is composite and run-scoped like `cluster_id` — never key a colour or a report object on it. `subcluster_name` is duplicated here from `dim_subcluster` on purpose, so a Power BI visual sorting on this name by `dim_subcluster[display_order]` doesn't need a cross-table sort-by-column, which Power BI does not support |
 | `language` | interface language selected (`es` / `en`, no `fr` observed). **New in schema v3, v2-only** — the language selector did not exist in v1 |
 | `registration_status` | raw pass-through of the platform's `Registration Status` field (`Completed` / `Abandoned` / `In Progress`, …). **New in schema v3, v2-only** |
-| `attempts` | number of registration attempts. **New in schema v3, v2-only** |
+| `attempts` | number of registration attempts. **New in schema v3, v2-only**. Beware: sparse (305 of 1,660 records filled) and contains at least one impossible value (`313`), so clean it before averaging |
+| `drop_off_question` | which registration question an **abandoned** registration stopped at (`consent`, `nationality`, `destination`, `time_in_city`, `gender`, `city`, `age`). **New in schema v22.** Carried from the platform's `Drop-off Question` field, which was previously discarded as an ignored column. **Sparse by design**: only an abandoned v2 registration records one (32 of 1,660 records / 32 of 1,581 users in the 2026-08 export), so a null means "did not abandon at a recorded question", NOT missing data — do not read the nulls as a denominator. Directionally the largest single leak is `consent` (18), then `nationality` (5) and `destination` (4). Two limits: (a) n=32 is a signal, not a rate — no percentage should be quoted from it; (b) it cannot see the pre-registration leak at all, because a user who never starts a registration produces no record (235 users, 14.9%, arrived and sent nothing). Values are question identifiers, never user text, so no redaction applies |
 | `is_returning` | raw pass-through of the platform's `Is Returning User` field. **New in schema v3, v2-only** — not a closed Yes/No set, check actual values before building a slicer |
 | `safety_alert` | free-text incident note where the platform flagged a safety concern; populated for a handful of users only (5 in the July run). **New in schema v3, v2-only** |
 | `escalation_status` | escalation state tied to `safety_alert` (e.g. `🔴 Urgent`); same small population. **New in schema v3, v2-only** |

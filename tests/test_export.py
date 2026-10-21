@@ -106,7 +106,7 @@ def test_fact_message_emotion_order_matches_dashboard_reading_order():
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "21"
+    assert kv["schema_version"] == "22"
 
 
 def test_meta_run_carries_report_version():
@@ -1257,10 +1257,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v21():
+def test_meta_run_reports_schema_v22():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "21"
+    assert val["schema_version"] == "22"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1521,10 +1521,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_21():
+def test_meta_run_defaults_to_schema_version_22():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "21"
+    assert out.set_index("key").loc["schema_version", "value"] == "22"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
