@@ -1,15 +1,15 @@
 subcluster_id,cluster_id,subcluster_name,top_terms,n_users,n_messages,display_order,color_hex,is_split,name_is_provisional
-0,0,Services and integration,"laboral, educación, abierto, servicios, cerca, atención",81,152,60,#a6dfe3,True,False
-1,0,"Subcluster 1 · regresar, entiendo, especial","regresar, entiendo, especial, refugio, preguntas, unidos",38,43,61,#bae6e9,True,True
-10,1,Family nationality options,"vigente, esposa, ciudadanía, estudiar, opción, teniendo",193,922,20,#62c8ce,False,False
-20,2,Health access and registration,"hospital, registrarme, sola, encontrar, medellin, urgente",221,1752,0,#009ba4,False,False
-30,3,"Subcluster 30 · estudio, visitante, pago","estudio, visitante, pago, quedaron, extranjeria, tarjeta",121,244,50,#c78fa4,True,True
-31,3,"Subcluster 31 · salvó, tramite, condición","salvó, tramite, condición, cuánto, multa, venció",50,144,51,#d3a8b8,True,True
-40,4,Biometrics and minors' documents,"biometría, traslado, biométrico, mayores, teléfono, número",110,419,40,#000031,True,False
-41,4,"Subcluster 41 · jornada, adultos, saco","jornada, adultos, saco, control, tramitar, pasos",68,108,41,#38385e,True,True
-50,5,Regularising status abroad,"legalmente, estatus, presentar, estadía, sello, españa",103,278,30,#a3557a,True,False
-51,5,Apostilles and birth records,"saime, padres, nacimiento, acta, antecedentes, siendo",82,287,31,#b77a97,True,False
-60,6,Food and shelter from organisations,"bucaramanga, alimentación, organización, mercado, ayude, contra",118,457,10,#671e42,True,False
-61,6,Single mothers seeking economic support,"soltera, madre, llega, desempleada, niños, subsidio",78,174,11,#88506c,True,False
-70,7,Starting a business,"emprendimiento, capital, emprendimientos, negocio, empleabilidad, específica",83,193,70,#eef6f5,False,False
+0,0,"Subcluster 0 · traslado, número, formulario","traslado, número, formulario, menos, salió, nunca",103,253,50,#c78fa4,True,True
+1,0,"Subcluster 1 · consigo, porfa, primera","consigo, porfa, primera, tramitar, pasos, haga",52,73,51,#d3a8b8,True,True
+10,1,Regularising status abroad,"nieta, españa, legal, estadía, empezar, llevo",146,370,20,#62c8ce,True,False
+11,1,"Subcluster 11 · darle, civil, padres","darle, civil, padres, nacimiento, nació, partida",129,515,21,#85d4d9,True,True
+20,2,Services and integration,"intégrate, rutas, casa, metro, queda, legales",112,214,60,#a6dfe3,True,False
+21,2,"Subcluster 21 · sigue, entiendo, listo","sigue, entiendo, listo, preguntas, unidos, estados",34,35,61,#bae6e9,True,True
+30,3,"Subcluster 30 · deportado, extranjería, pais","deportado, extranjería, pais, tarjeta, saqué, dentro",175,375,40,#000031,True,True
+31,3,Expiring permits and renewals,"salvó, prórroga, julio, renovación, renovar, multa",60,164,41,#38385e,True,False
+40,4,Food and shelter from organisations,"organización, fundaciones, alojamiento, alimentación, migrantes, bucaramanga",237,903,30,#a3557a,False,False
+50,5,Health access and registration,"twilio, accounts, messages, aced, hospital, https",281,1797,10,#671e42,False,False
+60,6,Family nationality options,"papá, saca, papa, viviendo, cuenta, derecho",154,811,0,#009ba4,True,False
+61,6,Biometrics and minors' documents,"biométrico, biometría, tomaron, solución, xfavor, aprobado",143,605,1,#38b1b8,True,False
+70,7,Starting a business,"emprendimiento, emprendedores, capital, negocio, magdalena, oportunidades",114,258,70,#eef6f5,False,False
 -10,-1,No conversation text,,,,90,#b7b7b7,False,False

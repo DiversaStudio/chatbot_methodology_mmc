@@ -1,23 +1,23 @@
 key,value
-responses_file,Users_1786641318.xlsx
+responses_file,mmc-new-recently-sent-version.xlsx
 meal_file,Survey_Responses_Group_Title_2807.xlsx
-responses_rows,1660
+responses_rows,2222
 meal_rows,142
 ts_min,2026-03-25 13:43:06.306000
-ts_max,2026-08-13 14:03:48.987000
+ts_max,2026-10-23 05:01:51.219000
 salt_present,True
-generated_at,2026-10-21T17:20:29.602313+00:00
+generated_at,2026-10-23T20:13:34.403836+00:00
 schema_version,23
 report_version,2.0.0
 embed_model,intfloat/multilingual-e5-large
 sentiment_model,cardiffnlp/twitter-xlm-roberta-base-sentiment
 emotion_model,pysentimiento/robertuito-emotion-analysis
-emotion_kappa,0.579
+emotion_kappa,0.595
 emotion_gate_passed,True
 emotion_validated,True
 chosen_k,8
-stability_ari,0.705
-tone_kappa,0.466
+stability_ari,0.721
+tone_kappa,0.477
 tone_gate_passed,False
 sentiment_quotable,False
 nlp_included,True
@@ -25,9 +25,9 @@ k_soft_cap,7
 n_provisional_names,2
 n_subclusters,13
 n_parents_split,5
-n_provisional_subnames,4
+n_provisional_subnames,5
 subcluster_min_users,30
-subcluster_stability_ari,0.805
+subcluster_stability_ari,0.739
 classifier,"RBF SVM C=10 on e5-large embeddings, Corrected + synthetic (weight 0.5) training messages"
 classifier_train_rows,30248
 classifier_synthetic_weight,0.5
@@ -35,18 +35,18 @@ classifier_test_accuracy,0.837
 classifier_test_macro_f1,0.772
 classifier_test_n,566
 n_categories,10
-users_with_category,1327
-users_tied_categories,197
-users_only_ninguna,19
-entity_coverage_pct,40.1
+users_with_category,1712
+users_tied_categories,261
+users_only_ninguna,28
+entity_coverage_pct,40.6
 entity_dict_entities,24
 entity_dict_patterns,65
 entity_candidates_n,40
 bot_log_present,True
-bot_log_turns,1021
-bot_log_users,216
+bot_log_turns,7132
+bot_log_users,1649
 gap_gold_present,True
 coverage_gap_quotable,True
 gap_probe_precision,0.952
-gap_probe_recall,0.647
+gap_probe_recall,0.214
 gap_precision_gate,0.9

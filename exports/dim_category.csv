@@ -1,12 +1,12 @@
 category_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_category,name_is_provisional
-1,Acceso a documentos y regularización,MMC category (message classifier): Acceso a documentos y regularización,"pasaporte, permiso, regularizar, tutor, extranjería, visa",557,2173,32.0,1,#671e42,True,False
-0,Asistencia Humanitaria,MMC category (message classifier): Asistencia Humanitaria,"ayudas, humanitaria, alimentos, económica, alojamiento, asistencia",282,1296,32.0,0,#009ba4,True,False
-9,Acceso a servicios del Estado,MMC category (message classifier): Acceso a servicios del Estado,"sisben, salud, hospital, savia, sistema, medico",134,497,34.0,9,#8a9a2e,True,False
-6,Acceso a la protección internacional y asilo,MMC category (message classifier): Acceso a la protección internacional y asilo,"salvoconducto, conducto, salvo, refugio, asilo, refugiado",85,289,37.0,6,#00707a,True,False
-2,Empleabilidad,MMC category (message classifier): Empleabilidad,"empleo, empresa, trabajo, empleos, conseguir, empleabilidad",84,280,36.0,2,#62c8ce,True,False
-3,Emprendimiento,MMC category (message classifier): Emprendimiento,"emprendimiento, negocio, emprendimientos, capital, ayudas, crédito",77,230,38.0,3,#a3557a,True,False
-5,Acceso a la nacionalidad,MMC category (message classifier): Acceso a la nacionalidad,"nacionalidad, colombiana, colombianos, nació, colombiano, nacimiento",41,141,34.0,5,#c78fa4,True,False
-4,Entidades del Estado,MMC category (message classifier): Entidades del Estado,"queda, intégrate, personería, número, integrate, danés",27,116,42.0,4,#000031,True,False
-8,Recomendaciones para un viaje seguro,MMC category (message classifier): Recomendaciones para un viaje seguro,"unidos, estados, viajar, salida, canadá, irme",25,74,34.0,8,#6b7a99,True,False
-7,Riesgos de protección,MMC category (message classifier): Riesgos de protección,"unidos, estados, mujeres, protección, queremos, programa",15,54,36.0,7,#c8892f,True,False
--1,No topic,"Users with no message, or whose messages carry no topic (greetings, thanks, bare words)",,,,,10,#b7b7b7,False,False
+1,Acceso a documentos y regularización,MMC category (message classifier): Acceso a documentos y regularización,"pasaporte, permiso, regularizar, visitante, visa, rumv",750,2782,32.0,1,#671e42,True,False
+0,Asistencia Humanitaria,MMC category (message classifier): Asistencia Humanitaria,"ayudas, humanitaria, alojamiento, económica, asistencia, alimentos",328,1481,32.0,0,#009ba4,True,False
+9,Acceso a servicios del Estado,MMC category (message classifier): Acceso a servicios del Estado,"sisben, salud, sistema, savia, médica, subsidio",165,569,33.0,9,#8a9a2e,True,False
+2,Empleabilidad,MMC category (message classifier): Empleabilidad,"empleos, empleo, empresa, trabajo, conseguir, hoja",108,342,37.0,2,#62c8ce,True,False
+6,Acceso a la protección internacional y asilo,MMC category (message classifier): Acceso a la protección internacional y asilo,"salvoconducto, conducto, salvo, asilo, refugio, salvó",106,333,36.0,6,#00707a,True,False
+3,Emprendimiento,MMC category (message classifier): Emprendimiento,"emprendimiento, negocio, emprendimientos, emprendedores, capital, ayudas",86,250,37.0,3,#a3557a,True,False
+5,Acceso a la nacionalidad,MMC category (message classifier): Acceso a la nacionalidad,"nacionalidad, colombiana, colombianos, nacimiento, nació, cédula",61,178,33.0,5,#c78fa4,True,False
+4,Entidades del Estado,MMC category (message classifier): Entidades del Estado,"integrate, número, defensoría, queda, personería, pueblo",44,168,35.5,4,#000031,True,False
+8,Recomendaciones para un viaje seguro,MMC category (message classifier): Recomendaciones para un viaje seguro,"unidos, emigrar, estados, viajar, salida, canadá",38,111,34.0,8,#6b7a99,True,False
+7,Riesgos de protección,MMC category (message classifier): Riesgos de protección,"violencia, presidente, miedo, víctima, queremos, sido",26,113,32.5,7,#c8892f,True,False
+-1,Sin tema,"Users with no message, or whose messages carry no topic (greetings, thanks, bare words)",,,,,10,#b7b7b7,False,False
