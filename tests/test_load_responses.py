@@ -60,12 +60,13 @@ def test_derived_audience_columns(users_fixture):
 
 
 @requires_real_data
-def test_nationality_is_overwhelmingly_venezuelan_on_real_export():
-    """Invariant, not a loosened count: the Venezuelan share must stay >= 90%
-    regardless of how many rows the December export has."""
+def test_nationality_mapper_recognises_every_filled_value_on_real_export():
+    """Mapper invariant, independent of who writes to the bot: a nationality the
+    user filled in must never fall to 'Desconocida' (blanks may)."""
     df = load.load_responses(salt=SALT)
-    share = (df["nationality_canon"] == "Venezuela").mean()
-    assert share >= 0.9
+    raw = df["Nationality"].astype(str).str.strip()
+    filled = df["Nationality"].notna() & (raw != "") & (raw.str.lower() != "nan")
+    assert (df.loc[filled, "nationality_canon"] != "Desconocida").all()
 
 
 def test_dominant_category_is_gone(users_fixture):

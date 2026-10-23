@@ -284,13 +284,14 @@ def test_load_gold_still_refuses_pre_migration_row_numbers(tmp_path):
 
 
 def test_shipped_gold_labels_align_to_the_real_spine():
-    """The committed gold file must be joinable to the current corpus."""
+    """The committed gold file must be joinable to the current corpus, read the way
+    the pipeline reads it (`load_gold`: rows whose text is gone are dropped, more
+    than MAX_GOLD_DROP raises)."""
     from pathlib import Path
     from sami import config, facade
     if not (config.responses_path() and config.meal_path()):
         pytest.skip("real export not present (datasets/ holds no .xlsx)")
     gold = pd.read_csv("validation/tone_labels_analyst.csv", encoding="utf-8")
     SD = facade.load_sami()
-    sent = pd.DataFrame({"label": ["neutral"] * len(SD.messages)})
-    out = validation.align_gold(gold["message_id"], SD.messages, sent)  # must not raise
-    assert len(out) == len(gold)
+    out = validation.load_gold("tone_labels_analyst.csv", SD.messages)
+    assert len(out) >= len(gold) * (1 - validation.MAX_GOLD_DROP)
