@@ -9,4 +9,4 @@ category_id,name,description,top_terms,n_users,n_messages,median_age,display_ord
 4,Entidades del Estado,MMC category (message classifier): Entidades del Estado,"integrate, número, defensoría, queda, personería, pueblo",44,168,35.5,4,#000031,True,False
 8,Recomendaciones para un viaje seguro,MMC category (message classifier): Recomendaciones para un viaje seguro,"unidos, emigrar, estados, viajar, salida, canadá",38,111,34.0,8,#6b7a99,True,False
 7,Riesgos de protección,MMC category (message classifier): Riesgos de protección,"violencia, presidente, miedo, víctima, queremos, sido",26,113,32.5,7,#c8892f,True,False
--1,Sin tema,"Users with no message, or whose messages carry no topic (greetings, thanks, bare words)",,,,,10,#b7b7b7,False,False
+-1,Sin categoría,"Users with no message, or whose messages carry no topic (greetings, thanks, bare words)",,,,,10,#b7b7b7,False,False

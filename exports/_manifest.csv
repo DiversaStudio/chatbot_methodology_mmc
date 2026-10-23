@@ -11,7 +11,7 @@ agg_registration_funnel,4442,"user_id,instrument_version,stage_order,stage",aa82
 agg_weekly_category,2695,"week,category_id,user_id,n",a5a229a8af825e7c22386d0ac8d1842fb693080a
 agg_weekly_cluster,1806,"week,cluster_id,user_id,n",1ea8a21780e461645ea78cf97e19047022cc9317
 agg_weekly_rating,115,"week,user_id,mean_rating,n",653549f253f6300b02002777576f7536bb18addf
-dim_category,11,"category_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_category,name_is_provisional",c68c79395b29401be93d0e0dfda342772f621c81
+dim_category,11,"category_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_category,name_is_provisional",fbeb659174dae28916534b09c17b221bdad0e9f3
 dim_city,14,"city_canon,department,lat,lon",016d702d76d7625c6e47ce5f53f58e88cc002545
 dim_cluster,9,"cluster_id,name,description,top_terms,n_users,n_messages,median_age,display_order,color_hex,is_real_cluster,name_is_provisional",a04ea2686901a835cff377eae7262f591e41b355
 dim_quadrant,4,"quadrant_key,label,action,axis_x,axis_y,color_hex,display_order",8260ab26243ca4a4412ff837fa230e7dbe06d1a4
