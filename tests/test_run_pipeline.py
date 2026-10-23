@@ -382,7 +382,7 @@ def test_category_tables_wiring(monkeypatch, tmp_path):
     # fixed identity: ids from CATEGORY_IDS, a row per category with users, then the -1 row
     real = dim_category[dim_category["category_id"] >= 0]
     assert set(real["category_id"]) == {work, papers} and (real["display_order"] == real["category_id"]).all()
-    assert dim_category.iloc[-1]["category_id"] == -1 and dim_category.iloc[-1]["name"] == "No topic"
+    assert dim_category.iloc[-1]["category_id"] == -1 and dim_category.iloc[-1]["name"] == "Sin tema"
     assert real.set_index("category_id").loc[work, "name"] == "Empleabilidad"
 
     # the other tables, with category_id (never cluster_id), and each message under its OWN category

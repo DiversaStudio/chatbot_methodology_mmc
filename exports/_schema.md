@@ -1020,8 +1020,8 @@ documentos y regularización, 2 Empleabilidad, 3 Emprendimiento, 4 Entidades del
 **⚠️ Small categories.** Several categories have few users (15 to 27 on the 2026-09 data: Riesgos de protección, Viaje seguro, Entidades del Estado). Terms, rates and
 colours for them are indicative; the dashboard should say so.
 
-### `dim_category` — 1 row per category that has users, plus the "No topic" row
-`dim_cluster`'s counterpart. Cols: `category_id`, `name` (the client's name; `-1` = "No topic"), `description`,
+### `dim_category` — 1 row per category that has users, plus the "Sin tema" row
+`dim_cluster`'s counterpart. Cols: `category_id`, `name` (the client's name; `-1` = "Sin tema"), `description`,
 `top_terms` (comma-joined c-TF-IDF terms of the messages classified into the category), `n_users`, `n_messages`,
 `median_age` (empty for `-1`), `display_order` (= `category_id`; `-1` last), `color_hex`, `is_real_category`,
 `name_is_provisional` (always False: the names are the client's; kept for the same shape as `dim_cluster`).

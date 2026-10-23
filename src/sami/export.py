@@ -27,7 +27,7 @@ NO_CLUSTER_NAME = "No conversation text"
 #: users whose only messages are "Ninguna" (greetings, thanks...), who have no topic to be filed under.
 NO_CATEGORY_DESCRIPTION = ("Users with no message, or whose messages carry no topic (greetings, thanks, "
                            "bare words)")
-NO_CATEGORY_NAME = "No topic"
+NO_CATEGORY_NAME = "Sin tema"
 
 # EN display for the emergent-need probes (mirrors NB3).
 PROBE_EN = {
@@ -1341,7 +1341,7 @@ def build_dim_category(prof: pd.DataFrame, resolved: dict, identity: dict) -> pd
 
     `prof` is `clusters.archetype_profiles` over the users' categories, `resolved` is
     `categorize.resolve_categories`, `identity` maps category_id -> (display_order, color_hex). The -1 row
-    ("No topic") takes the users with no message or only "Ninguna" ones. `name_is_provisional` is always False
+    ("Sin tema") takes the users with no message or only "Ninguna" ones. `name_is_provisional` is always False
     (the names are the client's); the column stays so the table has the same shape as `dim_cluster`.
     """
     d = build_dim_cluster(prof, resolved, identity=identity, no_text_description=NO_CATEGORY_DESCRIPTION,
