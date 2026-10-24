@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters, redact
+from . import metrics, taxonomy, qa, canon, theme, cohort, subclusters, redact, categorize
 
 # The categorisation bucket for users with no message text. Clustering needs a
 # document, so the ~194 users who registered and never wrote anything cannot be
@@ -27,7 +27,7 @@ NO_CLUSTER_NAME = "No conversation text"
 #: users whose only messages are "Ninguna" (greetings, thanks...), who have no topic to be filed under.
 NO_CATEGORY_DESCRIPTION = ("Users with no message, or whose messages carry no topic (greetings, thanks, "
                            "bare words)")
-NO_CATEGORY_NAME = "Sin categoría"
+NO_CATEGORY_NAME = "No category"
 
 # EN display for the emergent-need probes (mirrors NB3).
 PROBE_EN = {
@@ -323,6 +323,7 @@ def build_fact_message(messages: pd.DataFrame, sentiment: "pd.DataFrame | None" 
     if message_category is not None:
         f["message_category"] = message_category.loc[messages.index].values
         f["message_category_id"] = f["message_category"].map(category_ids or {}).fillna(NO_CLUSTER_ID).astype(int)
+        f["message_category"] = f["message_category"].map(categorize.DISPLAY_EN).fillna(f["message_category"])
         f["category_id"] = (f["user_id"].map(category_lab.to_dict()).fillna(NO_CLUSTER_ID).astype(int)
                             if category_lab is not None else pd.NA)
     else:
@@ -1341,7 +1342,7 @@ def build_dim_category(prof: pd.DataFrame, resolved: dict, identity: dict) -> pd
 
     `prof` is `clusters.archetype_profiles` over the users' categories, `resolved` is
     `categorize.resolve_categories`, `identity` maps category_id -> (display_order, color_hex). The -1 row
-    ("Sin categoría") takes the users with no message or only "Ninguna" ones. `name_is_provisional` is always False
+    ("No category") takes the users with no message or only "Ninguna" ones. `name_is_provisional` is always False
     (the names are the client's); the column stays so the table has the same shape as `dim_cluster`.
     """
     d = build_dim_cluster(prof, resolved, identity=identity, no_text_description=NO_CATEGORY_DESCRIPTION,

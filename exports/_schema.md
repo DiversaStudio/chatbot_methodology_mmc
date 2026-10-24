@@ -398,7 +398,7 @@ Source: `SD.messages`, joined to sentiment + archetype.
 | `emotion_display` | Splits the `neutral` bucket by the row's own `sentiment_label` (`preocupación`/`satisfacción`/`neutral`) so a plain-Q&A majority isn't one dead category — see `export.OTHERS_SENTIMENT_DISPLAY`. Any non-neutral `emotion_label` passes through unchanged |
 | `emotion_order` (schema v21) | `export.EMOTION_DISPLAY_ORDER[emotion_display]` — the dashboard's requested reading order (`Joy`=0 … `Anger`=6), duplicated onto this table so a Power BI "Sort by column" on `emotion_display` has a same-table sort key to point at |
 | `cluster_id` | the message-owning user's cluster (see `dim_user[cluster_id]` / `dim_cluster`); **never null** |
-| `message_category`, `message_category_id`, `category_id` | **New in schema v23.** The classifier's output for this message: `message_category` is the message's OWN class (one of the client's 10 categories or "Ninguna" = no topic of its own, e.g. a greeting), `message_category_id` its `dim_category[category_id]` (**-1** for "Ninguna"), `category_id` the AUTHOR's category (same value as `dim_user[category_id]`, -1 = no topic). Beside `cluster_id`, which stays the author's k-means cluster. Never null once a classifier ran |
+| `message_category`, `message_category_id`, `category_id` | **New in schema v23.** The classifier's output for this message: `message_category` is the message's OWN class, by its English display name (`categorize.DISPLAY_EN`): one of the client's 10 categories, or "No topic" (the classifier's "Ninguna": no topic of its own, e.g. a greeting), `message_category_id` its `dim_category[category_id]` (**-1** for "Ninguna"), `category_id` the AUTHOR's category (same value as `dim_user[category_id]`, -1 = no topic). Beside `cluster_id`, which stays the author's k-means cluster. Never null once a classifier ran |
 | `subcluster_id`, `subcluster_name` | **New in schema v6.** The message-owning user's subcategory (see `dim_user[subcluster_id]` / `dim_subcluster`); **never null**, same `-10` / composite-id caveats as `dim_user`. `subcluster_name` is duplicated here for the same sort-by-column reason described on `dim_user` |
 
 **Text-free by design.** `fact_message` carries **no** message text (dashboard spec §7 — "no message text in the model"). Verbatim quotes live in `nlp_voices`; word-cloud terms in `nlp_cluster_terms`; neither needs raw text.
@@ -1020,8 +1020,8 @@ documentos y regularización, 2 Empleabilidad, 3 Emprendimiento, 4 Entidades del
 **⚠️ Small categories.** Several categories have few users (15 to 27 on the 2026-09 data: Riesgos de protección, Viaje seguro, Entidades del Estado). Terms, rates and
 colours for them are indicative; the dashboard should say so.
 
-### `dim_category` — 1 row per category that has users, plus the "Sin categoría" row
-`dim_cluster`'s counterpart. Cols: `category_id`, `name` (the client's name; `-1` = "Sin categoría"), `description`,
+### `dim_category` — 1 row per category that has users, plus the "No category" row
+`dim_cluster`'s counterpart. Cols: `category_id`, `name` (the client's category by its English display name, `categorize.DISPLAY_EN`; `-1` = "No category"), `description`,
 `top_terms` (comma-joined c-TF-IDF terms of the messages classified into the category), `n_users`, `n_messages`,
 `median_age` (empty for `-1`), `display_order` (= `category_id`; `-1` last), `color_hex`, `is_real_category`,
 `name_is_provisional` (always False: the names are the client's; kept for the same shape as `dim_cluster`).

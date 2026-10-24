@@ -69,6 +69,22 @@ SHORT = {
     NONE: NONE,
 }
 
+#: English display names for the dashboard. The classifier keeps the client's Spanish classes (the label files and
+#: the model use them); only what is exported is translated, in `resolve_categories` and `export.build_fact_message`.
+DISPLAY_EN = {
+    "Asistencia Humanitaria": "Humanitarian assistance",
+    "Acceso a documentos y regularización": "Documents and regularization",
+    "Empleabilidad": "Employability",
+    "Emprendimiento": "Entrepreneurship",
+    "Entidades del Estado": "Government entities",
+    "Acceso a la nacionalidad": "Nationality",
+    "Acceso a la protección internacional y asilo": "International protection",
+    "Riesgos de protección": "Protection risks",
+    "Recomendaciones para un viaje seguro": "Safe travel",
+    "Acceso a servicios del Estado": "Government services",
+    NONE: "No topic",
+}
+
 SPLIT_SEED = 42      # frozen test set
 CV_SEED = 0          # cross-validation folds on the rest
 TEST_FRACTION = 0.2
@@ -433,11 +449,12 @@ def resolve_categories(terms: dict) -> dict:
     """`taxonomy.resolve_cluster_names`' shape for the fixed categories: `{id: {name, marker, description, provisional}}`.
 
     `marker` is the category's strongest distinctive term, which `export.build_nlp_voices` searches first
-    when it picks the quoted message. No name is provisional: the names are the client's.
+    when it picks the quoted message. No name is provisional: the names are the client's, shown in English (`DISPLAY_EN`).
     """
     out = {}
     for name, cid in CATEGORY_IDS.items():
         top = list(terms[cid].index[:1]) if cid in terms and len(terms[cid]) else []
-        out[cid] = {"name": name, "marker": top[0] if top else "", "provisional": False,
-                    "description": f"MMC category (message classifier): {name}"}
+        shown = DISPLAY_EN[name]
+        out[cid] = {"name": shown, "marker": top[0] if top else "", "provisional": False,
+                    "description": f"MMC category (message classifier): {shown}"}
     return out

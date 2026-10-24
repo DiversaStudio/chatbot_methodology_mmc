@@ -255,7 +255,7 @@ def test_resolve_categories_names_every_topic_with_its_marker():
     terms = {0: pd.Series({"ayuda": 0.5, "comida": 0.2}), 1: pd.Series(dtype=float)}
     r = cz.resolve_categories(terms)
     assert set(r) == set(cz.CATEGORY_IDS.values()) and r[0]["marker"] == "ayuda" and r[1]["marker"] == ""
-    assert r[0]["name"] == "Asistencia Humanitaria" and not any(v["provisional"] for v in r.values())
+    assert r[0]["name"] == "Humanitarian assistance" and not any(v["provisional"] for v in r.values())
 
 
 def test_category_colours_are_one_per_category_distinct_and_readable_on_white():

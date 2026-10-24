@@ -2027,7 +2027,7 @@ def test_dim_user_and_fact_message_carry_the_classifier_columns_beside_the_clust
     f = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub,
                                   message_category=cat, category_lab=pd.Series(4, index=users[:1]),
                                   category_ids={"Empleabilidad": 2})
-    assert (f["message_category"] == "Empleabilidad").all() and (f["message_category_id"] == 2).all()
+    assert (f["message_category"] == "Employability").all() and (f["message_category_id"] == 2).all()
     assert set(f["category_id"]) <= {4, export.NO_CLUSTER_ID} and "cluster_id" in f.columns
     none = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub,
                                      message_category=pd.Series("Ninguna", index=SD.messages.index), category_ids={})
