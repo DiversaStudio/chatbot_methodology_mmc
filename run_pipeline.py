@@ -200,10 +200,13 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
     return tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names
 
 
-def _category_tables(SD, pr, cache_dir: Path):
+def _category_tables(SD, pr, cache_dir: Path, model_path: Path = categorize.MODEL_PATH,
+                     retrain: bool = False):
     """The message classifier's side of the export (schema v23), next to the k-means tables.
 
-    Fits `categorize.fit_production` (the team's setting: Corrected + synthetic at half weight, RBF SVM),
+    Loads the committed classifier (`categorize.load_production`, from `model_path`). With `retrain`, or when
+    there is no saved model, fits `categorize.fit_production` from the label workbooks instead (the team's
+    setting: Corrected + synthetic at half weight, RBF SVM), scores it and saves it to `model_path`. Then it
     labels every message, and gives each user the topic they wrote about most
     (`categorize.dominant_categories`). Returns
     (tables, meta, cat, pred, dim_category) where `tables` holds `dim_category`, `nlp_category_terms`,
@@ -215,9 +218,15 @@ def _category_tables(SD, pr, cache_dir: Path):
     """
     ids = categorize.CATEGORY_IDS
     none_id = -2                                    # "Ninguna": takes part in the term scoring only
-    with pr.stage("training the message classifier"):
-        prod = categorize.fit_production(cache_dir)
-        test = categorize.frozen_test_scores(prod, cache_dir)
+    if retrain or not Path(model_path).exists():
+        with pr.stage("training the message classifier"):
+            prod = categorize.fit_production(cache_dir)
+            test = categorize.frozen_test_scores(prod, cache_dir)
+            categorize.save_production(prod, test, model_path)
+            print(f"  saved the classifier to {model_path}", file=sys.stderr)
+    else:
+        with pr.stage("loading the message classifier"):
+            prod, test = categorize.load_production(model_path)
     with pr.stage(f"classifying {len(SD.messages)} messages"):
         labels = categorize.classify(prod, SD.messages["message"], Path(cache_dir) / "pipeline_messages.npz")
         pred = pd.Series(labels, index=SD.messages.index, name="message_category")
@@ -346,6 +355,10 @@ def main(argv=None) -> int:
                     help="folder for the message classifier's embedding caches "
                          "(default: outputs/cache). The first run embeds the training "
                          "and the pipeline's messages (about 15 min on CPU); later runs reuse them.")
+    ap.add_argument("--retrain-classifier", action="store_true",
+                    help="fit the message classifier again from the label workbooks in datasets/labels/ "
+                         "and overwrite the saved model (models/category_classifier.joblib). Without it "
+                         "the saved model is used and the workbooks are not needed.")
     ap.add_argument("--k", type=int, default=None,
                     help="pin the archetype cluster count instead of letting "
                          "the stability curve choose it (default: auto)")
@@ -355,6 +368,7 @@ def main(argv=None) -> int:
         responses_path=Path(args.responses) if args.responses else datasets.resolve("responses"),
         meal_path=Path(args.meal) if args.meal else datasets.resolve("meal"),
         out_dir=Path(args.out),
+        retrain_classifier=args.retrain_classifier,
     )
     results = preflight.run_all(ctx)
     print("preflight:", file=sys.stderr)
@@ -378,7 +392,8 @@ def main(argv=None) -> int:
 
     nlp_tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names = _nlp_tables(
         SD, pr, k_override=args.k)
-    cat_tables, cat_meta, cat, pred, dim_category = _category_tables(SD, pr, Path(args.category_cache))
+    cat_tables, cat_meta, cat, pred, dim_category = _category_tables(
+        SD, pr, Path(args.category_cache), retrain=args.retrain_classifier)
 
     with pr.stage("building dimension + fact tables"):
         # Every message inherits its author's cluster. This is the join that

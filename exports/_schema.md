@@ -12,7 +12,7 @@ k-means ones; nothing existing changes meaning.** "Cluster" is the unsupervised 
 (`dim_cluster`, `cluster_id`, `dim_subcluster`, `nlp_umap`, ...), unchanged. "Category" is the client's 10 topics,
 assigned message by message by a supervised classifier (RBF SVM on the pipeline's own e5-large embeddings,
 trained on the client's corrected labels plus Haiku-written synthetic messages at half weight; accuracy 83.7%,
-macro-F1 0.772 on the frozen test, re-measured every run in `meta_run`). New tables: `dim_category`,
+macro-F1 0.772 on the frozen test, measured when the model is trained and reported in `meta_run`). New tables: `dim_category`,
 `nlp_category_terms`, `nlp_category_voices`, `agg_weekly_category`, `agg_priority_matrix_category`
 (section "Message classifier" below). New columns: `dim_user` gains `category_id`, `n_categories`,
 `category_tied`; `fact_message` gains `message_category`, `message_category_id`, `category_id`. `meta_run`
@@ -1072,7 +1072,8 @@ for what they mean.
 
 **New in schema v23, the classifier behind the `category_*` tables:** `classifier` (text), `classifier_train_rows`
 (30,248), `classifier_synthetic_weight` (0.5), `classifier_test_accuracy` and `classifier_test_macro_f1`
-(re-measured on the frozen test against the final labels on every run: 0.837 / 0.772 expected),
+(measured on the frozen test against the final labels when the committed model
+`models/category_classifier.joblib` was trained, and saved with it: 0.837 / 0.772 expected),
 `classifier_test_n` (566), `n_categories` (categories that have users), `users_with_category`,
 `users_tied_categories`, `users_only_ninguna`. These come from `categorize`, not from the k-means pass, so a
 future run could carry only one of the two sets.

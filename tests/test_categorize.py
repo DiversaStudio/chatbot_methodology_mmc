@@ -270,3 +270,32 @@ def test_category_colours_are_one_per_category_distinct_and_readable_on_white():
         return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
 
     assert all(1.05 / (luminance(c) + 0.05) >= 1.9 for c in cols)         # no near-white mark; the lightest is the brand's own light teal (1.97)
+
+
+def test_saved_classifier_round_trips_with_its_test_score(tmp_path):
+    from sklearn.svm import SVC
+
+    rng = np.random.default_rng(0)
+    X, y = rng.normal(size=(40, 8)), np.array(["Empleabilidad", cz.NONE] * 20)
+    prod = cz.Production(SVC().fit(X, y), 40)
+    path = tmp_path / "models" / "m.joblib"
+    cz.save_production(prod, {"accuracy": 0.8, "macro_f1": 0.7, "n": 10}, path)
+    back, test = cz.load_production(path)
+    assert back.n_train == 40 and test == {"accuracy": 0.8, "macro_f1": 0.7, "n": 10}
+    assert (back.predict(X) == prod.predict(X)).all()
+
+
+def test_saved_classifier_from_another_embedding_model_is_refused(tmp_path, monkeypatch):
+    from sami import nlp
+
+    path = tmp_path / "m.joblib"
+    cz.save_production(cz.Production(None, 1), {}, path)
+    monkeypatch.setattr(nlp, "EMBED_REVISION", "another")
+    with pytest.raises(ValueError, match="--retrain-classifier"):
+        cz.load_production(path)
+
+
+def test_the_saved_classifier_is_committed():
+    """A clone has no label workbooks (client data, gitignored): without this file the pipeline cannot
+    produce dim_category."""
+    assert cz.MODEL_PATH.exists()

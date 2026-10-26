@@ -355,13 +355,14 @@ def _run_category_tables_with_fixture(monkeypatch, tmp_path):
     def fake_classify(prod, texts, cache):
         return np.array([next((c for k, c in _KEYWORDS.items() if k in t), categorize.NONE) for t in texts])
 
-    monkeypatch.setattr(categorize, "fit_production", lambda cache_dir: categorize.Production(None, 123, set()))
+    monkeypatch.setattr(categorize, "fit_production", lambda cache_dir: categorize.Production(None, 123))
     monkeypatch.setattr(categorize, "frozen_test_scores",
                         lambda prod, cache_dir: {"accuracy": 0.9, "macro_f1": 0.8, "n": 50})
     monkeypatch.setattr(categorize, "classify", fake_classify)
     SD = SamiData(responses=responses, messages=messages, meal=pd.DataFrame(),
                   reconciliation=pd.DataFrame(), run_meta={})
-    return run_pipeline._category_tables(SD, progress.Progress(10, enabled=False), tmp_path), SD
+    return run_pipeline._category_tables(SD, progress.Progress(10, enabled=False), tmp_path,
+                                         model_path=tmp_path / "category_classifier.joblib"), SD
 
 
 def test_category_tables_wiring(monkeypatch, tmp_path):
@@ -399,10 +400,36 @@ def test_category_tables_wiring(monkeypatch, tmp_path):
     assert meta["users_only_ninguna"] == 5 and meta["n_categories"] == 2
 
 
+def test_category_tables_train_and_save_when_there_is_no_saved_model(monkeypatch, tmp_path):
+    _run_category_tables_with_fixture(monkeypatch, tmp_path)
+    assert (tmp_path / "category_classifier.joblib").exists()
+
+
+def test_category_tables_use_the_saved_model_without_the_label_workbooks(monkeypatch, tmp_path):
+    """A clone has the committed model and no workbooks: the run must load it, not fit (the fixture's fit
+    would report 123 training rows)."""
+    from sami import categorize
+
+    model = tmp_path / "category_classifier.joblib"
+    model.write_bytes(b"")
+    loaded = []
+
+    def fake_load(path):
+        loaded.append(path)
+        return categorize.Production(None, 77), {"accuracy": 0.7, "macro_f1": 0.6, "n": 40}
+
+    monkeypatch.setattr(categorize, "load_production", fake_load)
+    (tables, meta, *_), _SD = _run_category_tables_with_fixture(monkeypatch, tmp_path)
+    assert loaded == [model]
+    assert meta["classifier_train_rows"] == 77 and meta["classifier_test_accuracy"] == 0.7
+    assert (tables["dim_category"]["category_id"] == -1).any()
+
+
 def test_classifier_tables_are_wired_into_main_next_to_the_cluster_ones():
     """The k-means tables must still be built, and the classification ones added, not swapped in."""
     src = (Path(__file__).resolve().parents[1] / "run_pipeline.py").read_text(encoding="utf-8")
     for needle in ("_nlp_tables(", "_category_tables(", "tables.update(nlp_tables)", "tables.update(cat_tables)",
                    '"agg_priority_matrix_category"', "export.build_agg_priority_matrix(",
-                   "message_category=pred", "categories=cat", "--category-cache", '"--k"'):
+                   "message_category=pred", "categories=cat", "--category-cache", '"--k"',
+                   "--retrain-classifier", "retrain=args.retrain_classifier"):
         assert needle in src, f"{needle} missing from run_pipeline.py"

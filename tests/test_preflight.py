@@ -187,3 +187,26 @@ def test_check_entities_fails_on_a_broken_registry(tmp_path, monkeypatch):
 def test_entities_check_is_registered():
     from sami import preflight
     assert preflight.check_entities in preflight.CHECKS
+
+
+def test_category_training_ok_with_the_saved_model_and_no_workbooks(ctx, tmp_path, monkeypatch):
+    from sami import categorize
+    model = tmp_path / "m.joblib"
+    model.write_bytes(b"")
+    monkeypatch.setattr(categorize, "MODEL_PATH", model)
+    monkeypatch.setattr(categorize, "required_training_files", lambda: [tmp_path / "missing.xlsx"])
+    assert preflight.check_category_training(ctx).status == preflight.OK
+
+
+@pytest.mark.parametrize("has_model", [False, True])
+def test_category_training_fails_without_workbooks_when_it_must_train(ctx, tmp_path, monkeypatch, has_model):
+    """No saved model, or --retrain-classifier: the workbooks are needed, and the fix says where."""
+    from sami import categorize
+    model = tmp_path / "m.joblib"
+    if has_model:
+        model.write_bytes(b"")
+        ctx.retrain_classifier = True
+    monkeypatch.setattr(categorize, "MODEL_PATH", model)
+    monkeypatch.setattr(categorize, "required_training_files", lambda: [tmp_path / "missing.xlsx"])
+    result = preflight.check_category_training(ctx)
+    assert result.status == preflight.FAIL and "missing.xlsx" in result.detail and "labels" in result.fix
