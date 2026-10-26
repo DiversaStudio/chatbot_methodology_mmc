@@ -326,9 +326,15 @@ SYNTH_MEMO = "llm_haiku_synth/embeddings.pkl"          # vectors computed while 
 #: balanced classes. Notebook 6 measured it on the frozen test (final labels) at accuracy 83.7%, macro-F1 0.772,
 #: against 83.2% / 0.769 at full weight. That gap is inside the noise (95% interval of the accuracy difference
 #: -0.4 to +1.4 points, better in 63% of resamples) and the notebook's own adoption rule did not select it; it
-#: was chosen by the team. `frozen_test_scores` re-measures it on every run.
+#: was chosen by the team. `frozen_test_scores` measures it when the model is trained, and the score is saved
+#: with the model (`save_production`).
 PRODUCTION_SYNTH_WEIGHT = 0.5
 PRODUCTION_SVC = {"C": 10, "class_weight": "balanced", "cache_size": 1000}
+
+#: The fitted classifier, committed so a run needs none of the label workbooks (they are client data and stay
+#: gitignored). It holds the SVM (its support vectors are e5-large embeddings, no message text), the training
+#: row count and the frozen-test score. Rewritten by `run_pipeline.py --retrain-classifier`.
+MODEL_PATH = datasets.DATASETS_DIR.parent / "models" / "category_classifier.joblib"
 
 
 def required_training_files() -> list[Path]:
@@ -338,13 +344,10 @@ def required_training_files() -> list[Path]:
 
 
 class Production:
-    """The fitted classifier plus what it was trained on.
+    """The fitted classifier and how many training messages it was fitted on."""
 
-    `train_texts` (normalised) lets a caller tell the messages the model has seen from the ones it has not.
-    """
-
-    def __init__(self, model, n_train: int, train_texts: set[str]):
-        self.model, self.n_train, self.train_texts = model, n_train, train_texts
+    def __init__(self, model, n_train: int):
+        self.model, self.n_train = model, n_train
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return self.model.predict(X)
@@ -397,8 +400,43 @@ def training_set(cache_dir: str | Path, *, include_test: bool = False):
 def fit_production(cache_dir: str | Path, *, include_test: bool = False) -> Production:
     from sklearn.svm import SVC
 
-    X, y, texts, weight = training_set(cache_dir, include_test=include_test)
-    return Production(SVC(**PRODUCTION_SVC).fit(X, y, sample_weight=weight), len(y), set(_norm(texts)))
+    X, y, _texts, weight = training_set(cache_dir, include_test=include_test)
+    return Production(SVC(**PRODUCTION_SVC).fit(X, y, sample_weight=weight), len(y))
+
+
+def save_production(prod: Production, test: dict, path: str | Path = MODEL_PATH) -> None:
+    """Write `prod` and its frozen-test score (`frozen_test_scores`) to `path`, for `load_production`.
+
+    The embedding model's revision is saved too: the SVM only means something on vectors of that model.
+    """
+    import joblib
+    import sklearn
+
+    from . import nlp
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump({"model": prod.model, "n_train": prod.n_train, "test": test,
+                 "synthetic_weight": PRODUCTION_SYNTH_WEIGHT, "embed_revision": nlp.EMBED_REVISION,
+                 "sklearn_version": sklearn.__version__}, path, compress=3)
+
+
+def load_production(path: str | Path = MODEL_PATH) -> tuple[Production, dict]:
+    """The classifier `save_production` wrote, and the frozen-test score measured when it was trained.
+
+    Refuses a model fitted on another embedding model's vectors: its predictions would be silently wrong.
+    """
+    import joblib
+
+    from . import nlp
+
+    saved = joblib.load(Path(path))
+    if saved["embed_revision"] != nlp.EMBED_REVISION:
+        raise ValueError(
+            f"{path} was trained on embeddings of revision {saved['embed_revision']}, the pipeline embeds with "
+            f"{nlp.EMBED_REVISION}.\n  fix:  retrain it: `python run_pipeline.py --retrain-classifier` "
+            f"(needs the label workbooks in {datasets.DATASETS_DIR / 'labels'}).")
+    return Production(saved["model"], saved["n_train"]), saved["test"]
 
 
 def frozen_test_scores(prod: Production, cache_dir: str | Path) -> dict:

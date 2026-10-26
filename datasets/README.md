@@ -8,7 +8,7 @@ datasets/
   responses/    <- the chatbot users / responses export   (required)
   meal/         <- the MEAL survey export                 (required)
   bot_log/      <- the WhatsApp production log            (OPTIONAL)
-  labels/       <- the client's labelled messages          (notebook 4 only; the pipeline does not read it)
+  labels/       <- the client's labelled messages          (OPTIONAL: only to retrain the message classifier)
                    labels/llm_haiku/ = work files of `python -m sami.llm_labels` (regenerable, gitignored)
                    labels/llm_haiku_v2/ = the closed prompt experiment; labels/messages_category_haiku_final.xlsx = v1 labels + reviewer corrections
                    labels/llm_haiku_synth/ = work files of the synthetic set (`--version synth`); labels/messages_category_synthetic_haiku.xlsx = its review workbook
@@ -20,6 +20,14 @@ tables it fills (`fact_bot_turn`, `agg_coverage_gap`) are written empty but
 column-complete, and every other table is unaffected. Its format differs from
 the other two: **no header row**, four positional columns (timestamp, WhatsApp
 id, user message, bot reply).
+
+`labels/` is not needed for a run either. The message classifier behind the
+`*_category` tables is committed, already trained, in
+`models/category_classifier.joblib`, and every run uses it. The three label
+workbooks (`messages_category_original.xlsx`,
+`messages_category_haiku_final.xlsx`, `messages_category_synthetic_haiku.xlsx`)
+are client data, never committed, and are only read to train it again:
+`run_pipeline.py --retrain-classifier` (see `OPERATIONS.md`).
 
 ## Adding a new export
 

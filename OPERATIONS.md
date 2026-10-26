@@ -79,10 +79,10 @@ End-to-end sequence for refreshing the exports with a new data export:
    .venv\Scripts\python.exe run_pipeline.py --check
    ```
 
-   Success looks like ten `OK` (or `OK`/`WARN`, never `FAIL`) lines ending in
+   Success looks like twelve `OK` (or `OK`/`WARN`, never `FAIL`) lines ending in
    `preflight passed`, and exit code `0`. It does no work and downloads
-   nothing, so it costs seconds. See [The ten preflight
-   checks](#the-ten-preflight-checks) below for what each line means and what
+   nothing, so it costs seconds. See [The twelve preflight
+   checks](#the-twelve-preflight-checks) below for what each line means and what
    to do if it fails.
 
 3. **Run the pipeline:**
@@ -116,7 +116,7 @@ End-to-end sequence for refreshing the exports with a new data export:
 | Mode | What it does | Measured duration |
 | --- | --- | --- |
 | `run_pipeline.py` | Full pipeline: load, embed, cluster, sentiment, dimension/fact/aggregate tables, PII scan, write. Writes the full set of tables in `exports/`, including `dim_cluster` and every `nlp_*` table. | ~174 seconds (this run, RTX 3050 Ti, model cache warm). Previously measured at 2m11s on the same GPU and 5m22s on CPU only (also model cache warm); the CPU figure has not been re-measured on this branch. |
-| `--check` | Runs the ten preflight checks and exits. `responses`/`meal` each read only the first 5 rows of the export to confirm the header and columns; nothing is written. | Seconds. |
+| `--check` | Runs the twelve preflight checks and exits. `responses`/`meal` each read only the first 5 rows of the export to confirm the header and columns; nothing is written. | Seconds. |
 
 The run prints numbered, timed stages (e.g. `[5/9] sentiment over N
 messages …`, where N is the current message count in `fact_message`), so a
@@ -127,7 +127,7 @@ that differs is `meta_run.csv` (its `generated_at` timestamp) — every other
 table, including `nlp_umap.csv`, is byte-identical because the clustering and
 projection are seeded.
 
-## The ten preflight checks
+## The twelve preflight checks
 
 `run_pipeline.py` runs these checks, in this order, before doing any work —
 on every invocation, including `--check`. A `FAIL` stops the run; a `WARN`
@@ -141,6 +141,8 @@ lets it continue.
 | `responses` | `datasets/responses/` has a readable `.xlsx` with every required column present after header detection and column mapping. | If no file: save the responses export into `datasets/responses/`, or pass `--responses PATH`. If a column is missing: the error names the file and the missing column(s) — see `DATA_SOURCES.md`. |
 | `meal` | Same as `responses`, for `datasets/meal/`. | Save the MEAL export into `datasets/meal/`, or pass `--meal PATH`. |
 | `tone labels` | `validation/tone_labels_analyst.csv` exists. See [`DATA_SOURCES.md`](DATA_SOURCES.md) for what this file is, its columns, and why it is committed rather than dropped into `datasets/`. | A full run reads this file to build the `nlp_tone_confusion` table. Restore the file. |
+| `category_training` | The committed message classifier `models/category_classifier.joblib` exists. Without it, or with `--retrain-classifier`, the three label workbooks must be in `datasets/labels/` instead. | Restore the model from git (`git checkout -- models/`). To retrain, save the three workbooks (client data, obtained out-of-band) in `datasets/labels/`. |
+| `entities` | The institutions/procedures registry (`src/sami/entities.csv`, or a local override in `config/`) parses and validates. | The error names the row and the problem; fix the registry. |
 | `device` | Whether CUDA is usable. | CPU-only is a `WARN`, not a `FAIL` — the run proceeds, only slower. On an NVIDIA machine, install the CUDA build: `uv sync --no-group cpu --group gpu` |
 | `models` | The two Hugging Face models are cached, or the network can reach `huggingface.co` to download them. | Connect to the network for the first run, or copy a populated cache to the Hugging Face cache directory. |
 | `disk` | Enough free disk space for the model cache. | Free up space (the model cache is the bulk of it). |
@@ -167,6 +169,26 @@ preflight passed — 10 checks, 0 warning(s)
 Exit code `0`. On a CPU-only machine, `device` returns `WARN` (with the
 CPU/GPU runtime hint quoted above as the fix text) rather than `FAIL`, and
 `--check` still exits `0` — a missing GPU never blocks a run.
+
+## Retraining the message classifier
+
+The `*_category` tables come from a classifier that is trained once and
+committed: `models/category_classifier.joblib` (the SVM, its training row
+count and its frozen-test score). A normal run loads it and needs no label
+data. Retrain only when the training labels change, or when the embedding
+model is updated (the run refuses a model trained on another embedding
+revision and says so):
+
+```powershell
+.venv\Scripts\python.exe run_pipeline.py --retrain-classifier
+```
+
+It needs the three label workbooks in `datasets/labels/` (client data, never
+committed; `--check --retrain-classifier` verifies them), fits the model,
+measures it on the frozen test, overwrites the `.joblib` and then runs the
+pipeline as usual. Commit the new model with the exports. `meta_run`
+`classifier_test_accuracy` / `classifier_test_macro_f1` are the scores saved
+with the model, so they change only when it is retrained.
 
 ## The parity gate
 

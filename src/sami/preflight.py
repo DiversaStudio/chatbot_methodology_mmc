@@ -57,6 +57,7 @@ class Context:
     meal_path: Path | None = field(
         default_factory=lambda: datasets.resolve("meal"))
     out_dir: Path = field(default_factory=lambda: Path("exports"))
+    retrain_classifier: bool = False
 
 
 # ---- individual checks --------------------------------------------------------
@@ -143,14 +144,21 @@ def check_tone_labels(ctx: Context) -> Result:
 
 
 def check_category_training(ctx: Context) -> Result:
-    """The message classifier is fitted from these files on every run; without them there is no
+    """A run labels the messages with the committed classifier; the label workbooks are only needed to
+    fit it again (`--retrain-classifier`, or when the saved model is missing). Without either there is no
     categorisation to export."""
     from . import categorize
+    model = categorize.MODEL_PATH
+    if model.exists() and not ctx.retrain_classifier:
+        return Result("category_training", OK, f"saved classifier {model.name}")
     missing = [p for p in categorize.required_training_files() if not p.exists()]
     if not missing:
-        return Result("category_training", OK, f"{len(categorize.required_training_files())} label files present")
-    return Result("category_training", FAIL, "missing: " + ", ".join(p.name for p in missing),
-                  f"Save them in {datasets.DATASETS_DIR / 'labels'} (the folder is gitignored): the client's "
+        return Result("category_training", OK, f"{len(categorize.required_training_files())} label files present, "
+                      "the classifier will be trained")
+    why = "--retrain-classifier needs the label workbooks" if model.exists() else f"no saved classifier ({model})"
+    return Result("category_training", FAIL, f"{why}; missing: " + ", ".join(p.name for p in missing),
+                  f"Restore {model} from git, or save the label "
+                  f"workbooks in {datasets.DATASETS_DIR / 'labels'} (the folder is gitignored): the client's "
                   "labelled workbook, the final Haiku labels and the synthetic review workbook "
                   "(see notebooks/05_training_data.ipynb).")
 
