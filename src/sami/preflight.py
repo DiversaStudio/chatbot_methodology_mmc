@@ -142,6 +142,19 @@ def check_tone_labels(ctx: Context) -> Result:
                   "table. Restore the file.")
 
 
+def check_category_training(ctx: Context) -> Result:
+    """The message classifier is fitted from these files on every run; without them there is no
+    categorisation to export."""
+    from . import categorize
+    missing = [p for p in categorize.required_training_files() if not p.exists()]
+    if not missing:
+        return Result("category_training", OK, f"{len(categorize.required_training_files())} label files present")
+    return Result("category_training", FAIL, "missing: " + ", ".join(p.name for p in missing),
+                  f"Save them in {datasets.DATASETS_DIR / 'labels'} (the folder is gitignored): the client's "
+                  "labelled workbook, the final Haiku labels and the synthetic review workbook "
+                  "(see notebooks/05_training_data.ipynb).")
+
+
 def check_entities(ctx: Context) -> Result:
     """The institutions/procedures registry parses and validates.
 
@@ -243,7 +256,7 @@ def check_output_dir(ctx: Context) -> Result:
 
 CHECKS = (
     check_python, check_packages, check_salt, check_responses, check_meal,
-    check_tone_labels, check_entities, check_device, check_models, check_disk,
+    check_tone_labels, check_category_training, check_entities, check_device, check_models, check_disk,
     check_output_dir,
 )
 

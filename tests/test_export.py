@@ -106,7 +106,7 @@ def test_fact_message_emotion_order_matches_dashboard_reading_order():
 def test_meta_run_schema_version():
     m = export.build_meta_run({"responses_file": "x.xlsx"})
     kv = dict(zip(m["key"], m["value"]))
-    assert kv["schema_version"] == "21"
+    assert kv["schema_version"] == "23"
 
 
 def test_meta_run_carries_report_version():
@@ -1257,10 +1257,10 @@ def test_parity_check_fails_a_too_small_subcluster(SD):
     assert bool(p[p["metric"] == "subcluster_min_users"].iloc[0]["match"]) is False
 
 
-def test_meta_run_reports_schema_v21():
+def test_meta_run_reports_schema_v23():
     m = export.build_meta_run({"responses_rows": 1}, nlp_meta=None)
     val = m.set_index("key")["value"]
-    assert val["schema_version"] == "21"
+    assert val["schema_version"] == "23"
 
 
 def test_dim_cluster_description_survives_real_resolve_cluster_names():
@@ -1521,10 +1521,10 @@ def test_parity_entity_coverage_fails_below_the_hard_floor():
     assert bool(row["match"]) is False
 
 
-def test_meta_run_defaults_to_schema_version_21():
+def test_meta_run_defaults_to_schema_version_23():
     from sami import export
     out = export.build_meta_run({})
-    assert out.set_index("key").loc["schema_version", "value"] == "21"
+    assert out.set_index("key").loc["schema_version", "value"] == "23"
 
 
 @pytest.mark.parametrize("builder", ["dim_user", "fact_message"])
@@ -1964,3 +1964,98 @@ def test_conversation_ts_first_and_last_span_the_conversation():
     row = out.iloc[0]
     assert row["ts_first"] == pd.Timestamp("2026-01-01 09:00:00")
     assert row["ts_last"] == pd.Timestamp("2026-01-03 14:00:00")
+
+
+# ---- schema v23: the message classifier's tables, next to the k-means ones -----------------------------------------
+
+def _prof_for(ids):
+    return pd.DataFrame({"n_users": [10] * len(ids), "n_messages": [30] * len(ids), "median_age": [30] * len(ids),
+                         "top_terms": ["a, b"] * len(ids)}, index=pd.Index(ids, name="archetype"))
+
+
+def _resolved(ids):
+    return {c: {"name": f"c{c}", "marker": "", "provisional": False, "description": ""} for c in ids}
+
+
+def test_dim_cluster_fixed_identity_overrides_size_rank():
+    d = export.build_dim_cluster(_prof_for([3, 7]), _resolved([3, 7]), identity={3: (3, "#111111"), 7: (7, "#222222")})
+    real = d[d["cluster_id"] >= 0].set_index("cluster_id")
+    assert real.loc[3, "color_hex"] == "#111111" and real.loc[7, "display_order"] == 7
+    last = d.iloc[-1]
+    assert last["cluster_id"] == export.NO_CLUSTER_ID and last["display_order"] == 8       # after the highest order
+
+
+def test_dim_cluster_default_is_unchanged_by_the_classifier_parameters():
+    d = export.build_dim_cluster(_prof_for([0, 1]), _resolved([0, 1]))
+    assert list(d[d["cluster_id"] >= 0]["display_order"]) == [0, 1]
+    last = d.iloc[-1]
+    assert last["name"] == export.NO_CLUSTER_NAME and last["description"] == ""
+
+
+def test_dim_category_mirrors_dim_cluster_with_category_names():
+    d = export.build_dim_category(_prof_for([3, 7]), _resolved([3, 7]), identity={3: (3, "#111111"), 7: (7, "#222222")})
+    assert "cluster_id" not in d.columns and "is_real_cluster" not in d.columns
+    assert list(d["category_id"]) == [3, 7, export.NO_CLUSTER_ID] and list(d["is_real_category"]) == [True, True, False]
+    last = d.iloc[-1]
+    assert last["name"] == export.NO_CATEGORY_NAME and last["description"] == export.NO_CATEGORY_DESCRIPTION
+
+
+def test_voices_survive_an_empty_marker():
+    msgs = pd.DataFrame({"archetype": [0, 0], "user_id": ["u1", "u2"], "seq": [0, 0],
+                         "message": ["x" * 80 + " papeles", "y" * 80]})
+    resolved = {0: {"name": "Docs", "marker": "", "provisional": False}}
+    v = export.build_nlp_voices(msgs, resolved, terms_by_cluster={0: "papeles"})
+    assert v.loc[0, "matched_term"] == "papeles" and v.loc[0, "user_id"] == "u1"
+    c = export.build_nlp_category_voices(msgs, resolved, terms_by_category={0: "papeles"})
+    assert list(c.columns) == ["category_id", "name", "matched_term", "message", "user_id"]
+
+
+def test_dim_user_and_fact_message_carry_the_classifier_columns_beside_the_cluster_ones(SD):
+    users = SD.responses["user_id"].unique()
+    sub = {subclusters.NO_SUBCLUSTER_ID: subclusters.NO_SUBCLUSTER_NAME}
+    cats = pd.DataFrame({"category_id": [4], "n_categories": [2], "tied": [True]}, index=pd.Index(users[:1], name="user_id"))
+    d = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub,
+                              categories=cats).set_index("user_id")
+    assert (d.loc[users[0], ["category_id", "n_categories", "category_tied"]].tolist() == [4, 2, True])
+    rest = d.drop(index=users[0])
+    assert (rest["category_id"] == export.NO_CLUSTER_ID).all() and (rest["n_categories"] == 0).all() and not rest["category_tied"].any()
+    assert "cluster_id" in d.columns                                              # the k-means column is still there
+    plain = export.build_dim_user(SD.responses, SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub)
+    assert plain[["category_id", "n_categories", "category_tied"]].isna().all().all()
+
+    cat = pd.Series(["Empleabilidad"] * len(SD.messages), index=SD.messages.index)
+    f = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub,
+                                  message_category=cat, category_lab=pd.Series(4, index=users[:1]),
+                                  category_ids={"Empleabilidad": 2})
+    assert (f["message_category"] == "Employability").all() and (f["message_category_id"] == 2).all()
+    assert set(f["category_id"]) <= {4, export.NO_CLUSTER_ID} and "cluster_id" in f.columns
+    none = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub,
+                                     message_category=pd.Series("Ninguna", index=SD.messages.index), category_ids={})
+    assert (none["message_category_id"] == export.NO_CLUSTER_ID).all()
+    off = export.build_fact_message(SD.messages, lab=_empty_lab(), sub_lab=_empty_sub_lab(), sub_names=sub)
+    assert off[["message_category", "message_category_id", "category_id"]].isna().all().all()
+
+
+def test_agg_weekly_category_counts_each_message_under_its_own_category():
+    ts = pd.to_datetime(["2026-01-05", "2026-01-06", "2026-01-07", "2026-01-14"])
+    m = pd.DataFrame({"user_id": ["a", "a", "a", "b"], "ts": ts}, index=[10, 11, 12, 13])
+    ids = pd.Series([2, 2, -1, 5], index=m.index)                      # the third message has no topic
+    w = export.build_agg_weekly_category(m, ids)
+    assert set(zip(w["category_id"], w["user_id"], w["n"])) == {(2, "a", 2), (5, "b", 1)}
+    assert list(w.columns) == ["week", "category_id", "user_id", "n"]
+
+
+def test_priority_matrix_category_is_unmet_when_any_of_the_three_signals_shows():
+    msgs = pd.DataFrame({"user_id": ["n", "n", "r", "p", "q"], "message": list("abcde")}, index=[0, 1, 2, 3, 4])
+    sent = pd.DataFrame({"label": ["negative", "neutral", "neutral", "neutral", "neutral"]}, index=msgs.index)
+    meal = pd.DataFrame({"user_id": ["p", "q"], "rating_num": [2, 4]})
+    du = pd.DataFrame({"user_id": ["n", "r", "p", "q", "z"], "category_id": [1, 1, 2, 2, -1],
+                       "is_repeat_asker": [False, True, False, False, False]})
+    dim_cat = pd.DataFrame({"category_id": [1, 2], "name": ["A", "B"], "top_terms": ["x", "y"], "color_hex": ["#1", "#2"]})
+    out = export.build_agg_priority_matrix_category(msgs, sent, meal, du, dim_cat).set_index("user_id")
+    assert out.loc["n", ["is_unmet", "has_negative_tone"]].tolist() == [1, 1]          # negative tone only
+    assert out.loc["r", ["is_unmet", "is_repeat_asker"]].tolist() == [1, 1]            # repeat asker only
+    assert out.loc["p", ["is_unmet", "has_poor_survey"]].tolist() == [1, 1]            # rating 2 only
+    assert out.loc["q", "is_unmet"] == 0 and out.loc["q", "has_poor_survey"] == 0      # rating 4 is fine
+    assert "z" not in out.index                                                        # no category -> not in the table
+    assert (out["users"] == 1).all() and out.loc["n", "name"] == "A"

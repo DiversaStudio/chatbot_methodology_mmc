@@ -1,16 +1,24 @@
 kind,entity,gap_count,total_count,pct_gap
-procedure,Salvoconducto,4,23,17.4
-procedure,Regularización,5,36,13.9
-procedure,Trabajo/Empleo,5,50,10.0
-procedure,Refugio/Asilo,1,11,9.1
-institution,Migración Colombia,1,13,7.7
-procedure,Salud/EPS,2,44,4.5
-procedure,Visa,1,28,3.6
-procedure,Emprendimiento,1,31,3.2
-procedure,PPT,3,97,3.1
-procedure,Cédula,0,22,0.0
-procedure,Pasaporte,0,22,0.0
-procedure,Educación,0,10,0.0
-procedure,SISBÉN,0,7,0.0
-procedure,Nacionalidad/Naturalización,0,5,0.0
-procedure,Registro civil/Apostilla,0,5,0.0
+institution,ACNUR,3,12,25.0
+institution,Registraduría,3,13,23.1
+institution,SENA,1,8,12.5
+procedure,Ayuda económica,11,89,12.4
+institution,Cancillería,3,25,12.0
+procedure,PEP,4,50,8.0
+institution,Migración Colombia,8,110,7.3
+procedure,Registro civil/Apostilla,6,84,7.1
+procedure,PPT,49,778,6.3
+procedure,Pasaporte,11,192,5.7
+procedure,Refugio/Asilo,4,71,5.6
+procedure,Cédula,10,197,5.1
+procedure,Trabajo/Empleo,17,338,5.0
+procedure,Regularización,11,220,5.0
+procedure,Salvoconducto,10,206,4.9
+procedure,Salud/EPS,13,359,3.6
+procedure,Educación,2,59,3.4
+procedure,Visa,8,235,3.4
+procedure,Emprendimiento,5,150,3.3
+procedure,SISBÉN,1,53,1.9
+procedure,Ayuda humanitaria,1,76,1.3
+procedure,Nacionalidad/Naturalización,1,98,1.0
+procedure,Vivienda/Arriendo,0,38,0.0

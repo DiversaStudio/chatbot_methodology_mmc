@@ -1,9 +1,9 @@
 metric,exported_value,reconciliation_value,match
-users,1581.0,1581.0,True
-messages,5173.0,5173.0,True
-users_with_text,1346.0,1346.0,True
+users,2116.0,2116.0,True
+messages,6373.0,6373.0,True
+users_with_text,1740.0,1740.0,True
 meal_responses,115.0,115.0,True
-repeat_askers_pct,9.3,9.3,True
-cluster_coverage_pct,85.1,80.0,True
-subcluster_min_users,38.0,30.0,True
-entity_coverage_pct,40.1,20.0,True
+repeat_askers_pct,6.9,6.9,True
+cluster_coverage_pct,82.2,80.0,True
+subcluster_min_users,34.0,30.0,True
+entity_coverage_pct,40.6,20.0,True

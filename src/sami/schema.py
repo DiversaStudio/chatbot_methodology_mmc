@@ -118,6 +118,11 @@ RESPONSES_OPTIONAL = (
     "Language", "Registration Status", "Registration Started",
     "Registration Completed", "Attempts", "Is Returning User",
     "Safety Alert", "Escalation Status", "Migrated From v1", "Survey Completed",
+    # Which question an abandoned registration stopped at. Sparse: only an
+    # abandoned v2 registration carries one (32 of 1,660 records in the
+    # 2026-08 export). Moved here from RESPONSES_IGNORED when it was wired
+    # into dim_user.
+    "Drop-off Question",
     # KPI2 (average session time) differences this against Timestamp. Absent or
     # unparseable, session_minutes is null and the KPI reports on fewer users —
     # it never breaks the run. See load.last_message_ts.
@@ -130,7 +135,7 @@ RESPONSES_IGNORED = (
     "Subitems", "Consent", "City Location", "Prev_country", "Prev_country_other",
     "Destination", "Destination_other", "Survey sent", "Summarize", "Text",
     "Text 1",
-    "Drop-off Question", "Re-engagement Sent At", "transit", "origin_country",
+    "Re-engagement Sent At", "transit", "origin_country",
 )
 
 # Every export, whichever source, must carry these two — pseudonymization keys

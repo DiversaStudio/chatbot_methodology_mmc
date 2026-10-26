@@ -66,6 +66,11 @@ POLICY: dict[str, Policy] = {
     "is_returning": Policy.V2_ONLY,
     "safety_alert": Policy.V2_ONLY,
     "escalation_status": Policy.V2_ONLY,
+    # Only the v2 instrument records which question an abandoned registration
+    # stopped at, so pooling it with v1 would compare against a column v1 never
+    # had. (In practice v1 shows ~0 abandonment, so this also keeps a v1 "0%"
+    # from being read as a real v1 figure.)
+    "drop_off_question": Policy.V2_ONLY,
     # --- identical question and options in both versions ---
     "user_id": Policy.POOLABLE,
     "ts": Policy.POOLABLE,
@@ -111,6 +116,10 @@ POLICY: dict[str, Policy] = {
     "cluster_id": Policy.POOLABLE,
     "subcluster_id": Policy.POOLABLE,
     "subcluster_name": Policy.POOLABLE,
+    # Derived from the user's messages by the message classifier, like cluster_id above.
+    "category_id": Policy.POOLABLE,
+    "n_categories": Policy.POOLABLE,
+    "category_tied": Policy.POOLABLE,
     # Session time is timed by the PLATFORM, not asked by either questionnaire,
     # so the registration cohort does not change how it is measured — and the
     # only timestamps the loader trusts are the v2-platform ISO ones, which means

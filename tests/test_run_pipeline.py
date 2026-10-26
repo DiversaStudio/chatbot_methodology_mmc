@@ -307,3 +307,102 @@ def test_no_warning_above_the_soft_floor():
         warnings.simplefilter("always")
         run_pipeline._warn_entity_coverage(0.60, n_candidates=0)
     assert not [x for x in w if "entity coverage" in str(x.message).lower()]
+
+
+# ---- the message classifier's stage (schema v23) -------------------------------------------------------------------
+#
+# `_category_tables` is run for real on 30 synthetic users; only the classifier (fit, score, predict) is replaced,
+# by a keyword rule. Users: 10 write about work twice and say hello once; 10 ask about papers three times; 5 mix
+# one of each (a tie: the later message wins, papers); 5 only say hello.
+_KEYWORDS = {"trabajo": "Empleabilidad", "papeles": "Acceso a documentos y regularización"}
+
+
+def _classifier_fixture():
+    rows, resp = [], []
+    ts = pd.Timestamp("2026-01-01")
+
+    def add(uid, text, k):
+        rows.append({"user_id": uid, "message": text, "seq": k, "ts": ts + pd.Timedelta(hours=k),
+                     "city_canon": "Bogotá", "n_msgs_user": 0})
+
+    for i in range(30):
+        uid = f"u{i:03d}"
+        resp.append({"user_id": uid, "ts": ts, "city_canon": "Bogotá"})
+        if i < 10:
+            for k, t in enumerate(["busco trabajo", "hola", "trabajo urgente"]):
+                add(uid, t, k)
+        elif i < 20:
+            for k in range(3):
+                add(uid, f"necesito papeles {k}", k)
+        elif i < 25:
+            for k, t in enumerate(["busco trabajo", "necesito papeles"]):
+                add(uid, t, k)
+        else:
+            add(uid, "hola", 0)
+    messages = pd.DataFrame(rows)
+    messages["n_msgs_user"] = messages.groupby("user_id")["user_id"].transform("size")
+    return messages, pd.DataFrame(resp)
+
+
+def _run_category_tables_with_fixture(monkeypatch, tmp_path):
+    import run_pipeline
+
+    from sami import categorize, progress
+    from sami.facade import SamiData
+
+    messages, responses = _classifier_fixture()
+
+    def fake_classify(prod, texts, cache):
+        return np.array([next((c for k, c in _KEYWORDS.items() if k in t), categorize.NONE) for t in texts])
+
+    monkeypatch.setattr(categorize, "fit_production", lambda cache_dir: categorize.Production(None, 123, set()))
+    monkeypatch.setattr(categorize, "frozen_test_scores",
+                        lambda prod, cache_dir: {"accuracy": 0.9, "macro_f1": 0.8, "n": 50})
+    monkeypatch.setattr(categorize, "classify", fake_classify)
+    SD = SamiData(responses=responses, messages=messages, meal=pd.DataFrame(),
+                  reconciliation=pd.DataFrame(), run_meta={})
+    return run_pipeline._category_tables(SD, progress.Progress(10, enabled=False), tmp_path), SD
+
+
+def test_category_tables_wiring(monkeypatch, tmp_path):
+    """Actually CALLS `_category_tables`: the user rule, the fixed identity and the four tables must hold
+    together at run time, which the source-text tests cannot show."""
+    from sami import categorize
+
+    (tables, meta, cat, pred, dim_category), _SD = _run_category_tables_with_fixture(monkeypatch, tmp_path)
+    work, papers = (categorize.CATEGORY_IDS["Empleabilidad"],
+                    categorize.CATEGORY_IDS["Acceso a documentos y regularización"])
+
+    # the user rule: topic most written about; a tie goes to the latest message; hello-only users have none
+    assert cat.loc["u000", "category_id"] == work and cat.loc["u010", "category_id"] == papers
+    assert cat.loc["u020", "category_id"] == papers and cat.loc["u020", "tied"] and cat.loc["u020", "n_categories"] == 2
+    assert cat.loc["u025", "category_id"] == -1 and cat.loc["u025", "n_categories"] == 0
+    assert (pred == categorize.NONE).sum() == 10 + 5
+
+    # fixed identity: ids from CATEGORY_IDS, a row per category with users, then the -1 row
+    real = dim_category[dim_category["category_id"] >= 0]
+    assert set(real["category_id"]) == {work, papers} and (real["display_order"] == real["category_id"]).all()
+    assert dim_category.iloc[-1]["category_id"] == -1 and dim_category.iloc[-1]["name"] == "No category"
+    assert real.set_index("category_id").loc[work, "name"] == "Employability"
+
+    # the other tables, with category_id (never cluster_id), and each message under its OWN category
+    t = tables["nlp_category_terms"]
+    assert list(t.columns) == ["category_id", "user_id", "term", "weight"]
+    assert set(t["category_id"]) == {work, papers} and {"trabajo", "papeles"} <= set(t["term"])
+    assert list(tables["nlp_category_voices"].columns) == ["category_id", "name", "matched_term", "message", "user_id"]
+    w = tables["agg_weekly_category"]
+    assert w.groupby("category_id")["n"].sum().to_dict() == {work: 10 * 2 + 5, papers: 10 * 3 + 5}
+
+    # what meta_run says about the classifier
+    assert meta["classifier_train_rows"] == 123 and meta["classifier_synthetic_weight"] == 0.5
+    assert meta["classifier_test_accuracy"] == 0.9 and meta["users_tied_categories"] == 5
+    assert meta["users_only_ninguna"] == 5 and meta["n_categories"] == 2
+
+
+def test_classifier_tables_are_wired_into_main_next_to_the_cluster_ones():
+    """The k-means tables must still be built, and the classification ones added, not swapped in."""
+    src = (Path(__file__).resolve().parents[1] / "run_pipeline.py").read_text(encoding="utf-8")
+    for needle in ("_nlp_tables(", "_category_tables(", "tables.update(nlp_tables)", "tables.update(cat_tables)",
+                   '"agg_priority_matrix_category"', "export.build_agg_priority_matrix(",
+                   "message_category=pred", "categories=cat", "--category-cache", '"--k"'):
+        assert needle in src, f"{needle} missing from run_pipeline.py"

@@ -28,13 +28,13 @@ from sklearn.cluster import KMeans
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from sami import (load_sami, nlp, clusters, validation, metrics, taxonomy,  # noqa: E402
-                  export, preflight, progress, config, schema, datasets, theme,
+                  categorize, export, preflight, progress, config, schema, datasets, theme,
                   subclusters, qa, bot_replies, redact)
 
 RANDOM_STATE = 0
 # Stage count for the [i/n] counter: 4 shared (load, dim/fact, aggregates,
-# write) + 7 NLP-only + 1 optional (bot log).
-_STAGES_BASE, _STAGES_NLP = 5, 7
+# write) + 7 k-means NLP-only + 3 classifier-only + 1 optional (bot log).
+_STAGES_BASE, _STAGES_NLP = 5, 10
 
 GAP_GOLD_PATH = Path("validation/gap_gold_labels.csv")
 
@@ -200,6 +200,70 @@ def _nlp_tables(SD, pr, k_override: int | None = None):
     return tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names
 
 
+def _category_tables(SD, pr, cache_dir: Path):
+    """The message classifier's side of the export (schema v23), next to the k-means tables.
+
+    Fits `categorize.fit_production` (the team's setting: Corrected + synthetic at half weight, RBF SVM),
+    labels every message, and gives each user the topic they wrote about most
+    (`categorize.dominant_categories`). Returns
+    (tables, meta, cat, pred, dim_category) where `tables` holds `dim_category`, `nlp_category_terms`,
+    `nlp_category_voices` and `agg_weekly_category`; `cat` is the per-user frame (`category_id`, `n_categories`,
+    `tied`, indexed by user_id; -1 = no topic) and `pred` the per-message class, index-aligned to
+    `SD.messages`. Tables that need `dim_user` (the priority matrix) are built later, in `main`.
+
+    `cache_dir` holds the embeddings of the training messages and of this run's messages.
+    """
+    ids = categorize.CATEGORY_IDS
+    none_id = -2                                    # "Ninguna": takes part in the term scoring only
+    with pr.stage("training the message classifier"):
+        prod = categorize.fit_production(cache_dir)
+        test = categorize.frozen_test_scores(prod, cache_dir)
+    with pr.stage(f"classifying {len(SD.messages)} messages"):
+        labels = categorize.classify(prod, SD.messages["message"], Path(cache_dir) / "pipeline_messages.npz")
+        pred = pd.Series(labels, index=SD.messages.index, name="message_category")
+        dom = categorize.dominant_categories(SD.messages, labels)
+    with pr.stage("category tables"):
+        pred_id = pred.map(ids).fillna(none_id).astype(int)
+        cat = pd.DataFrame({"category_id": dom["dominant"].map(ids).fillna(export.NO_CLUSTER_ID).astype(int),
+                            "n_categories": dom["n_categories"], "tied": dom["tied"]})
+        lab = cat.loc[cat["category_id"] >= 0, "category_id"].rename("archetype")
+        # One document per (user, message category): `ctfidf_terms`' distinct-user floor keeps working, and
+        # "Ninguna" takes part only so words common to every topic (greetings) score low.
+        msgs = SD.messages.assign(_norm=SD.messages["message"].map(nlp.normalize_text), _cid=pred_id)
+        msgs = msgs[msgs["_norm"] != ""]
+        pooled = msgs.groupby(["user_id", "_cid"])["_norm"].agg(" ".join).reset_index()
+        terms = clusters.ctfidf_terms(pooled["_norm"].tolist(), pooled["_cid"].to_numpy(), top_n=40)
+        terms.pop(none_id, None)
+        resolved = categorize.resolve_categories(terms)
+        prof = clusters.archetype_profiles(lab, SD.responses, SD.messages, terms=terms)
+        identity = {cid: (cid, theme.CATEGORY_COLORS[cid]) for cid in ids.values()}
+        dim_category = export.build_dim_category(prof, resolved, identity)
+        has_topic = pred != categorize.NONE
+        msgs_cat = SD.messages[has_topic].assign(archetype=pred_id[has_topic])
+        message_cat_id = pred_id.where(has_topic, export.NO_CLUSTER_ID)
+        tables = {
+            "dim_category": dim_category,
+            "nlp_category_terms": export.build_nlp_category_terms(terms, msgs_cat),
+            "nlp_category_voices": export.build_nlp_category_voices(
+                msgs_cat, resolved, terms_by_category=dict(zip(dim_category["category_id"],
+                                                               dim_category["top_terms"]))),
+            "agg_weekly_category": export.build_agg_weekly_category(SD.messages, message_cat_id),
+        }
+    meta = {
+        "classifier": "RBF SVM C=10 on e5-large embeddings, Corrected + synthetic (weight 0.5) training messages",
+        "classifier_train_rows": prod.n_train,
+        "classifier_synthetic_weight": categorize.PRODUCTION_SYNTH_WEIGHT,
+        "classifier_test_accuracy": round(test["accuracy"], 3),
+        "classifier_test_macro_f1": round(test["macro_f1"], 3),
+        "classifier_test_n": test["n"],
+        "n_categories": len(lab.unique()),
+        "users_with_category": len(lab),
+        "users_tied_categories": int(cat["tied"].sum()),
+        "users_only_ninguna": int((cat["n_categories"] == 0).sum()),
+    }
+    return tables, meta, cat, pred, dim_category
+
+
 def _bot_tables(path, dim_user) -> tuple[dict, dict]:
     """The two spec-4 tables and their meta keys. Degrades, never raises.
 
@@ -278,6 +342,10 @@ def main(argv=None) -> int:
                          "row (default: newest in datasets/bot_log/). OPTIONAL: "
                          "without it the two coverage-gap tables are empty and "
                          "every other table is unaffected.")
+    ap.add_argument("--category-cache", default="outputs/cache",
+                    help="folder for the message classifier's embedding caches "
+                         "(default: outputs/cache). The first run embeds the training "
+                         "and the pipeline's messages (about 15 min on CPU); later runs reuse them.")
     ap.add_argument("--k", type=int, default=None,
                     help="pin the archetype cluster count instead of letting "
                          "the stability curve choose it (default: auto)")
@@ -310,6 +378,7 @@ def main(argv=None) -> int:
 
     nlp_tables, nlp_meta, sent, emo, lab, dim_cluster, sub_lab, sub_names = _nlp_tables(
         SD, pr, k_override=args.k)
+    cat_tables, cat_meta, cat, pred, dim_category = _category_tables(SD, pr, Path(args.category_cache))
 
     with pr.stage("building dimension + fact tables"):
         # Every message inherits its author's cluster. This is the join that
@@ -320,10 +389,13 @@ def main(argv=None) -> int:
         neg_by_cluster = metrics.negative_by_cluster(real_msgs, sent)
 
         dim_user = export.build_dim_user(SD.responses, SD.messages, lab=lab,
-                                         sub_lab=sub_lab, sub_names=sub_names)
+                                         sub_lab=sub_lab, sub_names=sub_names,
+                                         categories=cat)
         fact_message = export.build_fact_message(SD.messages, sentiment=sent, lab=lab,
                                                  sub_lab=sub_lab, sub_names=sub_names,
-                                                 emotion=emo)
+                                                 emotion=emo, message_category=pred,
+                                                 category_lab=cat["category_id"],
+                                                 category_ids=categorize.CATEGORY_IDS)
         fact_meal = export.build_fact_meal(SD.meal)
         # NER is loaded once here rather than inside the sampler: the sampler is
         # called per-bucket-loop and spacy.load is expensive.
@@ -365,9 +437,11 @@ def main(argv=None) -> int:
             "agg_priority_matrix": export.build_agg_priority_matrix(
                 SD.messages, fact_meal, dim_user, dim_cluster,
                 neg_by_cluster=neg_by_cluster, sentiment=sent),
+            "agg_priority_matrix_category": export.build_agg_priority_matrix_category(
+                SD.messages, sent, fact_meal, dim_user, dim_category),
             "meta_run": export.build_meta_run(
                 SD.run_meta,
-                nlp_meta={**nlp_meta,
+                nlp_meta={**nlp_meta, **cat_meta,
                           "entity_coverage_pct": round(100 * ent_coverage, 1),
                           "entity_dict_entities": len(taxonomy.ENTITY_PATTERNS),
                           "entity_dict_patterns": sum(
@@ -380,6 +454,7 @@ def main(argv=None) -> int:
                 entity_coverage_pct=round(100 * ent_coverage, 1)),
         }
         tables.update(nlp_tables)
+        tables.update(cat_tables)
         tables.update(bot_tables)
 
     with pr.stage("PII scan + write"):
